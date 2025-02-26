@@ -1,7 +1,7 @@
 // src/components/PriorityOrdersTable.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Order } from '@/types';
 
@@ -17,35 +17,36 @@ export default function PriorityOrdersTable({
   onPriorityOrdersChange,
 }: PriorityOrdersTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
-  // Handle drag start
-  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+  
+  // Safely handle drag start
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     setDraggedIndex(index);
     // Set data transfer for compatibility
     e.dataTransfer.setData('text/plain', index.toString());
     // Set visual effect
     e.currentTarget.classList.add('bg-blue-50');
-  };
+  }, []);
 
   // Handle drag over
-  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     e.preventDefault();
     e.currentTarget.classList.add('border-t-2', 'border-blue-500');
-  };
+  }, []);
 
   // Handle drag leave
-  const handleDragLeave = (e: React.DragEvent<HTMLTableRowElement>) => {
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLTableRowElement>) => {
     e.currentTarget.classList.remove('border-t-2', 'border-blue-500');
-  };
+  }, []);
 
-  // Handle drop
-  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, targetIndex: number) => {
+  // Handle drop with stable references
+  const handleDrop = useCallback((e: React.DragEvent<HTMLTableRowElement>, targetIndex: number) => {
     e.preventDefault();
     e.currentTarget.classList.remove('border-t-2', 'border-blue-500');
     
     if (draggedIndex === null) return;
     
     // Create a new array with the reordered items
+    // Important: Use the exact same object references, just in a different order
     const newOrders = [...orders];
     const [movedItem] = newOrders.splice(draggedIndex, 1);
     newOrders.splice(targetIndex, 0, movedItem);
@@ -55,13 +56,18 @@ export default function PriorityOrdersTable({
     
     // Reset dragged index
     setDraggedIndex(null);
-  };
+  }, [draggedIndex, orders, onPriorityOrdersChange]);
 
   // Handle drag end
-  const handleDragEnd = (e: React.DragEvent<HTMLTableRowElement>) => {
+  const handleDragEnd = useCallback((e: React.DragEvent<HTMLTableRowElement>) => {
     e.currentTarget.classList.remove('bg-blue-50');
     setDraggedIndex(null);
-  };
+  }, []);
+
+  // Reset draggedIndex when orders change externally
+  useEffect(() => {
+    setDraggedIndex(null);
+  }, [orders]);
 
   // If there are no priority orders, show a placeholder message
   if (orders.length === 0) {
@@ -113,7 +119,7 @@ export default function PriorityOrdersTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {orders.map((order, index) => (
               <tr
-                key={order.id}
+                key={`priority-${order.id}-${index}`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}

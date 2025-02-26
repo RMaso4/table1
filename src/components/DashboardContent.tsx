@@ -361,96 +361,102 @@ export default function DashboardContent() {
   }, []);
 
   // Handle real-time updates for orders
-  useEffect(() => {
-    // Skip if real-time updates are disabled or no update received
-    if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
-      return;
+useEffect(() => {
+  // Skip if real-time updates are disabled or no update received
+  if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
+    return;
+  }
+  
+  console.log('Processing real-time order update:', lastOrderUpdate);
+  
+  // Create a unique identifier for this update to track in component state
+  const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
+  
+  // Use a ref to track processed updates within this component
+  const processedUpdatesRef = useRef(new Set<string>());
+  
+  // Skip if we've seen this update already 
+  if (processedUpdatesRef.current.has(updateId)) {
+    console.log('DashboardContent: Skipping already processed update', updateId);
+    return;
+  }
+  
+  // Mark as processed
+  processedUpdatesRef.current.add(updateId);
+  
+  // Show a toast notification for the update
+  const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
+  setLastUpdateToast(`Order ${orderNumber} updated`);
+  
+  // Clear toast after 3 seconds
+  setTimeout(() => setLastUpdateToast(null), 3000);
+  
+  // Create a new order object from the update data
+  const updatedOrderData = {
+    ...lastOrderUpdate.data,
+    id: lastOrderUpdate.orderId // Ensure ID is preserved
+  } as Order;
+  
+  // Update orders with the new data - create a new reference
+  setOrders(prevOrders => {
+    // Find the order index to update
+    const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+    
+    // If order exists, update it
+    if (orderIndex !== -1) {
+      const updatedOrders = [...prevOrders];
+      // Create a merged object with all the current properties + the updated ones
+      updatedOrders[orderIndex] = {
+        ...updatedOrders[orderIndex],
+        ...updatedOrderData,
+      };
+      
+      console.log('Updated order in state:', updatedOrders[orderIndex]);
+      return updatedOrders;
     }
     
-    console.log('Processing real-time order update:', lastOrderUpdate);
-    
-    // Create a unique identifier for this update to track in component state
-    const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
-    
-    // Use a ref to track processed updates within this component
-    const processedUpdatesRef = useRef(new Set<string>());
-    
-    // Skip if we've seen this update already 
-    if (processedUpdatesRef.current.has(updateId)) {
-      console.log('DashboardContent: Skipping already processed update', updateId);
-      return;
+    // If we have a full order object and it's not in our list yet, add it
+    // Only add if we're not filtering (to avoid confusion)
+    if (
+      lastOrderUpdate.data.id &&
+      !Object.keys(columnFilters).length && 
+      !globalSearchQuery && 
+      !activeFilters.length
+    ) {
+      console.log('Adding new order to state:', updatedOrderData);
+      return [...prevOrders, updatedOrderData];
     }
     
-    // Mark as processed
-    processedUpdatesRef.current.add(updateId);
-    
-    // Show a toast notification for the update
-    const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
-    setLastUpdateToast(`Order ${orderNumber} updated`);
-    
-    // Clear toast after 3 seconds
-    setTimeout(() => setLastUpdateToast(null), 3000);
-    
-    // Update orders with the new data
-    setOrders(prevOrders => {
-      // Find the order index to update
-      const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
-      
-      // If order exists, update it
-      if (orderIndex !== -1) {
-        const updatedOrders = [...prevOrders];
-        updatedOrders[orderIndex] = {
-          ...updatedOrders[orderIndex],
-          ...lastOrderUpdate.data,
-          id: lastOrderUpdate.orderId // Ensure ID is preserved
-        } as Order;
-        
-        console.log('Updated order in state:', updatedOrders[orderIndex]);
-        return updatedOrders;
-      }
-      
-      // If we have a full order object and it's not in our list yet, add it
-      // Only add if we're not filtering (to avoid confusion)
-      if (
-        lastOrderUpdate.data.id &&
-        !Object.keys(columnFilters).length && 
-        !globalSearchQuery && 
-        !activeFilters.length
-      ) {
-        // Ensure all required Order properties are present
-        const newOrder = {
-          ...lastOrderUpdate.data,
-          id: lastOrderUpdate.orderId,
-          project: lastOrderUpdate.data.project || '',
-          debiteur_klant: lastOrderUpdate.data.debiteur_klant || '',
-        } as Order;
-        
-        console.log('Adding new order to state:', newOrder);
-        return [...prevOrders, newOrder];
-      }
-      
-      // Otherwise, don't change anything
-      return prevOrders;
-    });
+    // Otherwise, don't change anything
+    return prevOrders;
+  });
 
-    // Also update priority orders if the updated order is in the priority list
-    setPriorityOrders(prevPriorityOrders => {
-      const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+  // Also update priority orders if the updated order is in the priority list
+  // Make sure to use the SAME object reference created above to avoid React errors
+  setPriorityOrders(prevPriorityOrders => {
+    const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+    
+    if (priorityOrderIndex !== -1) {
+      // Find the updated order in the orders array that we just updated
+      // This ensures consistent references between the two arrays
+      const mainOrdersUpdated = orders.find(order => order.id === lastOrderUpdate.orderId);
       
-      if (priorityOrderIndex !== -1) {
-        const updatedPriorityOrders = [...prevPriorityOrders];
-        updatedPriorityOrders[priorityOrderIndex] = {
-          ...updatedPriorityOrders[priorityOrderIndex],
-          ...lastOrderUpdate.data,
-          id: lastOrderUpdate.orderId // Ensure ID is preserved
-        } as Order;
-        
-        return updatedPriorityOrders;
-      }
+      // If we don't find it (shouldn't happen), create a new merged object
+      const updatedOrder = mainOrdersUpdated || {
+        ...prevPriorityOrders[priorityOrderIndex],
+        ...updatedOrderData
+      };
       
-      return prevPriorityOrders;
-    });
-  }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters]);
+      // Create a new array with the updated order
+      const updatedPriorityOrders = [...prevPriorityOrders];
+      updatedPriorityOrders[priorityOrderIndex] = updatedOrder;
+      
+      return updatedPriorityOrders;
+    }
+    
+    return prevPriorityOrders;
+  });
+}, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
   
   // Handle notifications from real-time updates
   useEffect(() => {
@@ -508,15 +514,35 @@ export default function DashboardContent() {
   
       console.log(`Updating cell ${field} for order ${orderId} to:`, processedValue);
   
-      // Optimistically update UI
-      setOrders(prevOrders => prevOrders.map(order =>
-        order.id === orderId ? { ...order, [field]: processedValue } : order
-      ));
-
-      // Also update in priority orders if present
-      setPriorityOrders(prevOrders => prevOrders.map(order =>
-        order.id === orderId ? { ...order, [field]: processedValue } : order
-      ));
+      // Create a new reference for the updated order
+      const updatedOrder = orders.find(order => order.id === orderId);
+      if (!updatedOrder) {
+        throw new Error('Order not found');
+      }
+  
+      // Create a proper copy of the order with the updated field
+      const newUpdatedOrder = { 
+        ...updatedOrder, 
+        [field]: processedValue 
+      };
+  
+      // Update in main orders array with the new reference
+      setOrders(prevOrders => 
+        prevOrders.map(order => order.id === orderId ? newUpdatedOrder : order)
+      );
+  
+      // Important: Update priority orders with the SAME object reference
+      // This was likely causing the React error
+      setPriorityOrders(prevOrders => {
+        // First check if the order is in the priority list
+        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+        if (orderIndex === -1) return prevOrders; // Not in the list
+        
+        // Create a new array with the same object reference for the updated order
+        const newPriorityOrders = [...prevOrders];
+        newPriorityOrders[orderIndex] = newUpdatedOrder;
+        return newPriorityOrders;
+      });
   
       // Send update to server
       const response = await fetch(`/api/orders/${orderId}`, {
@@ -535,11 +561,8 @@ export default function DashboardContent() {
       }
       
       // Get the updated order data from the response
-      const updatedOrder = await response.json();
-      console.log('Server confirmed update:', updatedOrder);
-      
-      // Note: We don't need to update state again here since Pusher will broadcast
-      // the change which will be picked up by the lastOrderUpdate useEffect
+      const updatedOrderFromServer = await response.json();
+      console.log('Server confirmed update:', updatedOrderFromServer);
       
       // Show a brief success message
       setLastUpdateToast(`Updated ${field} successfully`);
@@ -551,9 +574,6 @@ export default function DashboardContent() {
       // Show error message
       setError(error instanceof Error ? error.message : 'Failed to update order');
       setTimeout(() => setError(null), 3000);
-      
-      // You might want to revert the optimistic update here
-      // by re-fetching the current state from the server
     }
   };
 
