@@ -170,9 +170,22 @@ async function startServer() {
     process.on('SIGTERM', gracefulShutdown('SIGTERM'));
     process.on('SIGINT', gracefulShutdown('SIGINT'));
 
-    // Initialize Socket.IO
-    const io = socketService.initSocketIO(server);
-    console.log('🚀 Socket.IO server initialized with engine:', io.engine.opts.path);
+    // Import config to determine which real-time service to use
+    let realtimeConfig;
+    try {
+      realtimeConfig = require('./dist/src/lib/socketConfig').REALTIME_CONFIG;
+    } catch (error) {
+      console.warn('Could not load realtime config, defaulting to Socket.IO only');
+      realtimeConfig = { USE_SOCKET_IO: true, USE_PUSHER: false };
+    }
+
+    // Initialize Socket.IO only if enabled
+    if (realtimeConfig.USE_SOCKET_IO) {
+      const io = socketService.initSocketIO(server);
+      console.log('🚀 Socket.IO server initialized with engine:', io.engine.opts.path);
+    } else {
+      console.log('⏭️ Socket.IO initialization skipped (disabled in config)');
+    }
 
     // Initialize real-time updates
     await initRealTimeUpdates();

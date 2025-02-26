@@ -1,8 +1,10 @@
+// src/hooks/usePusher.ts
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
 import { useSession } from 'next-auth/react';
+import { REALTIME_CONFIG } from '@/lib/socketConfig';
 
 // Define more specific types for our event data
 interface OrderData {
@@ -43,6 +45,21 @@ interface PusherChannel {
 }
 
 export default function usePusher() {
+  // If Pusher is disabled in config, return mock implementation
+  if (!REALTIME_CONFIG.USE_PUSHER) {
+    return {
+      isConnected: false,
+      connectionAttempts: 0,
+      connectionError: 'Pusher disabled in configuration',
+      trigger: async () => false,
+      reconnect: () => false,
+      lastOrderUpdate: null,
+      lastNotification: null,
+      orderUpdates: [],
+      notifications: []
+    };
+  }
+
   const [isConnected, setIsConnected] = useState(false);
   const { data: session } = useSession();
   const [lastOrderUpdate, setLastOrderUpdate] = useState<OrderUpdateEvent | null>(null);
@@ -79,7 +96,9 @@ export default function usePusher() {
       
       // Increment connection attempts
       setConnectionAttempts(prev => prev + 1);
-      console.log(`Pusher connection attempt #${connectionAttempts + 1}`);
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log(`Pusher connection attempt #${connectionAttempts + 1}`);
+      }
       
       // Ensure pusher connects
       if (pusherClient.connection.state !== 'connected') {
@@ -98,12 +117,16 @@ export default function usePusher() {
   const setupChannels = useCallback(() => {
     // Only set up channels once
     if (channelsSetupRef.current) {
-      console.log('Channels already set up, skipping duplicate setup');
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log('Channels already set up, skipping duplicate setup');
+      }
       return true;
     }
     
     try {
-      console.log('Setting up Pusher channels');
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log('Setting up Pusher channels');
+      }
       
       // Clean up any existing subscriptions
       Object.values(channelsRef.current).forEach(channel => {
@@ -123,7 +146,9 @@ export default function usePusher() {
       
       // Set up order update handler with improved deduplication
       ordersChannel.bind(EVENTS.ORDER_UPDATED, (data: OrderUpdateEvent) => {
-        console.log('Pusher: Order update received:', data);
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Pusher: Order update received:', data);
+        }
         
         // Validate data
         if (!data || !data.orderId || !data.data) {
@@ -136,12 +161,16 @@ export default function usePusher() {
         
         // Check both forms of duplicates
         if (processedOrdersRef.current.has(data.orderId)) {
-          console.log('Skipping duplicate order ID:', data.orderId);
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping duplicate order ID:', data.orderId);
+          }
           return;
         }
         
         if (processedOrderContentRef.current.has(contentFingerprint)) {
-          console.log('Skipping duplicate order content:', contentFingerprint);
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping duplicate order content:', contentFingerprint);
+          }
           return;
         }
         
@@ -166,7 +195,9 @@ export default function usePusher() {
       
       // Set up notification handler with improved deduplication
       notificationsChannel.bind(EVENTS.NOTIFICATION_NEW, (data: NotificationEvent) => {
-        console.log('Pusher: Notification received:', data);
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Pusher: Notification received:', data);
+        }
         
         // Validate data
         if (!data || !data.id) {
@@ -174,17 +205,23 @@ export default function usePusher() {
           return;
         }
         
-        // Create content fingerprint for semantic duplicate detection
-        const contentFingerprint = `${data.orderId}:${data.message}:${data.userId}`;
+        // Create more robust content fingerprint for semantic duplicate detection
+        // Include timestamp (truncated to minute) to better handle similar notifications
+        const timestamp = new Date(data.createdAt).toISOString().slice(0, 16); // Up to minutes
+        const contentFingerprint = `${data.orderId}:${data.message}:${data.userId}:${timestamp}`;
         
         // Check both forms of duplicates
         if (processedNotificationsRef.current.has(data.id)) {
-          console.log('Skipping duplicate notification ID:', data.id);
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping duplicate notification ID:', data.id);
+          }
           return;
         }
         
         if (processedNotificationContentRef.current.has(contentFingerprint)) {
-          console.log('Skipping duplicate notification content:', contentFingerprint);
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping duplicate notification content:', contentFingerprint);
+          }
           return;
         }
         
@@ -192,11 +229,15 @@ export default function usePusher() {
         processedNotificationsRef.current.add(data.id);
         processedNotificationContentRef.current.add(contentFingerprint);
         
-        // Don't remove ID from processed list (IDs should be globally unique)
-        // But clear content fingerprint after a delay to allow similar notifications
+        // Keep these processed sets from growing unbounded
+        setTimeout(() => {
+          processedNotificationsRef.current.delete(data.id);
+        }, 60000); // 1 minute
+        
+        // Clear content fingerprint after a delay to allow similar notifications
         setTimeout(() => {
           processedNotificationContentRef.current.delete(contentFingerprint);
-        }, 30000);
+        }, 60000); // 1 minute
         
         // Update state with the new notification
         setLastNotification(data);
@@ -220,7 +261,9 @@ export default function usePusher() {
     
     // Set up connection state handlers
     const handleConnected = () => {
-      console.log('Pusher connection established');
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log('Pusher connection established');
+      }
       setIsConnected(true);
       setConnectionError(null);
       
@@ -229,7 +272,9 @@ export default function usePusher() {
     };
     
     const handleDisconnected = () => {
-      console.log('Pusher disconnected');
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log('Pusher disconnected');
+      }
       setIsConnected(false);
       
       // Reset channels setup flag on disconnection
@@ -237,7 +282,9 @@ export default function usePusher() {
       
       // Attempt to reconnect after a delay
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting to reconnect to Pusher...');
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Attempting to reconnect to Pusher...');
+        }
         connectToPusher();
       }, 3000);
     };
@@ -289,7 +336,9 @@ export default function usePusher() {
   // Function to trigger events through the API
   const trigger = useCallback(async (event: string, data: Record<string, unknown>) => {
     try {
-      console.log(`Triggering event "${event}" with data:`, data);
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log(`Triggering event "${event}" with data:`, data);
+      }
       
       const response = await fetch('/api/socket', {
         method: 'POST',
@@ -305,7 +354,9 @@ export default function usePusher() {
         return false;
       }
       
-      console.log(`Successfully triggered event "${event}"`);
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log(`Successfully triggered event "${event}"`);
+      }
       return true;
     } catch (error) {
       console.error('Failed to trigger event:', error);

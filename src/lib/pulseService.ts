@@ -1,6 +1,7 @@
 // src/lib/pulseService.ts
 import { prisma } from './prisma';
 import { emitOrderUpdate, emitNotification } from './socketBridge';
+import { REALTIME_CONFIG } from './socketConfig';
 
 // TypeScript interface for a Prisma client with stream method
 interface PrismaClientWithStream {
@@ -25,6 +26,12 @@ let isPolling = false;
 
 // Fallback to polling if Pulse is not available
 async function pollForOrderChanges() {
+  // Skip if Socket.IO is disabled
+  if (!REALTIME_CONFIG.USE_SOCKET_IO) {
+    console.log('Socket.IO disabled in config. Skipping polling.');
+    return;
+  }
+
   console.log('Starting polling for database changes...');
   
   if (isPolling) {
@@ -96,6 +103,18 @@ async function pollForOrderChanges() {
 
 // Initialize all streams or fallback to polling
 export async function initPulseStreams() {
+  // Skip everything if both real-time services are disabled
+  if (!REALTIME_CONFIG.USE_SOCKET_IO && !REALTIME_CONFIG.USE_PUSHER) {
+    console.log('All real-time updates are disabled in config. Skipping initialization.');
+    return;
+  }
+  
+  // Skip Socket.IO based polling if it's disabled
+  if (!REALTIME_CONFIG.USE_SOCKET_IO) {
+    console.log('Socket.IO is disabled in config. Skipping Socket.IO polling.');
+    return;
+  }
+  
   console.log('Checking if Pulse is available...');
   
   if (isPulseAvailable()) {

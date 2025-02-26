@@ -1,12 +1,20 @@
 // src/app/api/socket/route.ts
 import { NextResponse } from 'next/server';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
+import { REALTIME_CONFIG } from '@/lib/socketConfig';
 
 export async function POST(request: Request) {
   try {
     const { event, data } = await request.json();
     
-    console.log(`API: Received event "${event}" with data:`, data);
+    // Skip Socket.IO if disabled, but still process with Pusher if enabled
+    if (!REALTIME_CONFIG.USE_SOCKET_IO && REALTIME_CONFIG.DEBUG) {
+      console.log('Socket.IO forwarding disabled in config');
+    }
+    
+    if (REALTIME_CONFIG.DEBUG) {
+      console.log(`API: Received event "${event}" with data:`, data);
+    }
     
     // Validate input
     if (!event || !data) {
@@ -15,7 +23,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
     
-    // Map the event to the appropriate channel and event name
+    // Map the event to the appropriate channel and event name for Pusher
     let channel: string;
     let eventName: string;
     let payload: unknown = data;
@@ -60,37 +68,100 @@ export async function POST(request: Request) {
         }, { status: 400 });
     }
     
-    // Trigger the Pusher event
-    console.log(`API: Triggering Pusher event "${eventName}" on channel "${channel}" with payload:`, payload);
-    
-    // Add diagnostic data
-    const diagnosticData = {
-      ...(typeof payload === 'object' && payload !== null ? payload : { data: payload }),
-      _meta: {
-        processedAt: new Date().toISOString(),
-        originalEvent: event,
-        triggerChannel: channel,
-        triggerEvent: eventName
+    // Process with Pusher if enabled
+    if (REALTIME_CONFIG.USE_PUSHER) {
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log(`API: Triggering Pusher event "${eventName}" on channel "${channel}" with payload:`, payload);
       }
-    };
+      
+      // Add diagnostic data
+      const diagnosticData = {
+        ...(typeof payload === 'object' && payload !== null ? payload : { data: payload }),
+        _meta: {
+          processedAt: new Date().toISOString(),
+          originalEvent: event,
+          triggerChannel: channel,
+          triggerEvent: eventName
+        }
+      };
+      
+      try {
+        await pusherServer.trigger(channel, eventName, diagnosticData);
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log(`API: Successfully triggered Pusher event "${eventName}"`);
+        }
+      } catch (pusherError) {
+        console.error('API: Pusher trigger error:', pusherError);
+        return NextResponse.json({ 
+          error: 'Pusher trigger failed',
+          details: pusherError instanceof Error ? pusherError.message : String(pusherError)
+        }, { status: 500 });
+      }
+    }
     
-    try {
-      await pusherServer.trigger(channel, eventName, diagnosticData);
-      console.log(`API: Successfully triggered Pusher event "${eventName}"`);
-    } catch (pusherError) {
-      console.error('API: Pusher trigger error:', pusherError);
-      return NextResponse.json({ 
-        error: 'Pusher trigger failed',
-        details: pusherError instanceof Error ? pusherError.message : String(pusherError)
-      }, { status: 500 });
+    // Process with Socket.IO if enabled
+    if (REALTIME_CONFIG.USE_SOCKET_IO) {
+      // Store socket service in a variable
+      let socketService = null;
+      
+      // Dynamically import socket service
+      try {
+        // Use dynamic import for server-side
+        const imported = await import('../../../../server/socketService.js');
+        socketService = {
+          getIO: imported.getIO,
+          emitOrderUpdate: async (orderId: string, orderData: unknown) => 
+            Promise.resolve(imported.emitOrderUpdate(orderId, orderData)),
+          emitNotification: async (data: unknown) => 
+            Promise.resolve(imported.emitNotification(data))
+        };
+        
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Socket service imported successfully');
+        }
+      } catch (error) {
+        console.error('Failed to import socket service:', error);
+        // Continue with Pusher if available, otherwise return error
+        if (!REALTIME_CONFIG.USE_PUSHER) {
+          return NextResponse.json({ error: 'Socket service not available' }, { status: 500 });
+        }
+      }
+      
+      // If socket service was successfully imported, use it
+      if (socketService) {
+        const io = socketService.getIO();
+        if (!io) {
+          if (REALTIME_CONFIG.DEBUG) {
+            console.error('Socket.IO server not initialized');
+          }
+          // Continue with Pusher if available, otherwise return error
+          if (!REALTIME_CONFIG.USE_PUSHER) {
+            return NextResponse.json({ error: 'Socket.IO server not initialized' }, { status: 500 });
+          }
+        } else {
+          // Process the event with Socket.IO
+          switch (event) {
+            case 'order:updated':
+              const { orderId, orderData } = data;
+              await socketService.emitOrderUpdate(orderId, orderData);
+              break;
+            case 'notification:new':
+              await socketService.emitNotification(data);
+              break;
+            default:
+              // Already handled above
+              break;
+          }
+        }
+      }
     }
     
     return NextResponse.json({ 
       success: true,
-      message: `Event "${event}" triggered successfully on Pusher`,
+      message: `Event "${event}" processed successfully`,
       meta: {
-        channel,
-        event: eventName,
+        pusher: REALTIME_CONFIG.USE_PUSHER,
+        socketio: REALTIME_CONFIG.USE_SOCKET_IO,
         timestamp: new Date().toISOString()
       }
     });

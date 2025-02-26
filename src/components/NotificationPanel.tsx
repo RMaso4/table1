@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Trash2, Check } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
+import { REALTIME_CONFIG } from '@/lib/socketConfig';
 
 interface Notification {
   id: string;
@@ -91,48 +92,63 @@ export default function NotificationPanel() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || !REALTIME_CONFIG.USE_PUSHER) return;
     
     const channel = pusherClient.subscribe(CHANNELS.NOTIFICATIONS);
     
     channel.bind(EVENTS.NOTIFICATION_NEW, (notification: Notification) => {
-      // Create a unique identifier for deduplication
+      // Enhanced deduplication logic
+      // Create a unique identifier that includes timestamp to minute precision
       const notificationKey = notification.id;
-      const contentKey = `${notification.orderId}:${notification.message}:${notification.userId}`;
+      const timestamp = new Date(notification.createdAt).toISOString().slice(0, 16); // To minutes
+      const contentKey = `${notification.orderId}:${notification.message}:${notification.userId}:${timestamp}`;
+      
+      // Add debug logging
+      if (REALTIME_CONFIG.DEBUG) {
+        console.log('Notification received:', {id: notification.id, contentKey});
+      }
       
       // Skip duplicates (check both ID and content)
       if (processedNotificationsRef.current.has(notificationKey)) {
-        console.log('NotificationPanel: Skipping duplicate notification ID:', notificationKey);
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('NotificationPanel: Skipping duplicate notification ID:', notificationKey);
+        }
         return;
       }
       
       if (processedMessagesRef.current.has(contentKey)) {
-        console.log('NotificationPanel: Skipping duplicate notification content:', contentKey);
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('NotificationPanel: Skipping duplicate notification content:', contentKey);
+        }
         return;
       }
       
-      console.log('New notification received via Pusher:', notification);
-      
-      // Mark as processed
-      processedNotificationsRef.current.add(notificationKey);
-      processedMessagesRef.current.add(contentKey);
-      
-      // Update notifications using functional update to ensure we're using the latest state
+      // Check against current notifications state to prevent logical duplicates
+      let isDuplicate = false;
       setNotifications(prev => {
-        // Final safety check against the current state
-        const exists = prev.some(n => n.id === notification.id);
-        if (exists) return prev;
-        
-        // Check for semantic duplicates
-        const semanticDuplicate = prev.some(n => 
-          n.orderId === notification.orderId && 
-          n.message === notification.message && 
-          n.userId === notification.userId
+        isDuplicate = prev.some(n => 
+          n.id === notification.id || 
+          (n.orderId === notification.orderId && 
+           n.message === notification.message && 
+           n.userId === notification.userId &&
+           // Check if timestamps are within 1 minute of each other
+           Math.abs(new Date(n.createdAt).getTime() - new Date(notification.createdAt).getTime()) < 60000)
         );
-        if (semanticDuplicate) return prev;
         
-        // No duplicates found, add the new notification
-        const updated = [notification, ...prev];
+        if (isDuplicate) return prev;
+        
+        // Mark as processed
+        processedNotificationsRef.current.add(notificationKey);
+        processedMessagesRef.current.add(contentKey);
+        
+        // Schedule cleanup to prevent memory leaks
+        setTimeout(() => {
+          processedNotificationsRef.current.delete(notificationKey);
+        }, 300000); // 5 minutes
+        
+        setTimeout(() => {
+          processedMessagesRef.current.delete(contentKey);
+        }, 60000); // 1 minute
         
         // Update unread count
         setUnreadCount(count => count + 1);
@@ -140,8 +156,14 @@ export default function NotificationPanel() {
         // Show notification toast
         showNotificationToast(notification);
         
-        return updated;
+        // Add to list
+        return [notification, ...prev];
       });
+      
+      // If we determined it was a duplicate, don't process further
+      if (isDuplicate && REALTIME_CONFIG.DEBUG) {
+        console.log('NotificationPanel: Duplicate notification detected in existing state');
+      }
     });
   
     // Clean up
@@ -457,120 +479,120 @@ export default function NotificationPanel() {
                       <button
                         onClick={toggleSelectAll}
                         className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md"
-                      >
-                        {selectedNotifications.size === notifications.length 
-                          ? 'Deselect All' 
-                          : 'Select All'}
-                      </button>
-                      
-                      {selectedNotifications.size > 0 && (
-                        <button
-                          onClick={confirmDeleteSelected}
-                          className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center gap-1"
                         >
-                          <Trash2 className="h-3 w-3" />
-                          <span>Delete ({selectedNotifications.size})</span>
+                          {selectedNotifications.size === notifications.length 
+                            ? 'Deselect All' 
+                            : 'Select All'}
                         </button>
-                      )}
-                    </>
+                        
+                        {selectedNotifications.size > 0 && (
+                          <button
+                            onClick={confirmDeleteSelected}
+                            className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete ({selectedNotifications.size})</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  {unreadCount > 0 && !isSelectionMode && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Mark all as read
+                    </button>
                   )}
                 </div>
-                
-                {unreadCount > 0 && !isSelectionMode && (
-                  <button
-                    onClick={markAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Mark all as read
-                  </button>
-                )}
-              </div>
-            )}
-            
-            <div className="overflow-y-auto flex-grow">
-              {isLoading ? (
-                <div className="p-6 text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
-                  <p className="mt-2 text-gray-600">Loading notifications...</p>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <p>No notifications</p>
-                  <p className="text-sm mt-2">You&apos;ll see updates here when there&apos;s activity.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 hover:bg-gray-50 ${
-                        !notification.read ? 'bg-blue-50' : ''
-                      }`}
-                    >
-                      <div className="flex items-start">
-                        {/* Selection checkbox */}
-                        {isSelectionMode && (
+              )}
+              
+              <div className="overflow-y-auto flex-grow">
+                {isLoading ? (
+                  <div className="p-6 text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading notifications...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <p>No notifications</p>
+                    <p className="text-sm mt-2">You&apos;ll see updates here when there&apos;s activity.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`p-4 hover:bg-gray-50 ${
+                          !notification.read ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-start">
+                          {/* Selection checkbox */}
+                          {isSelectionMode && (
+                            <div 
+                              className="mr-3 mt-1"
+                              onClick={() => toggleSelection(notification.id)}
+                            >
+                              <div className={`h-5 w-5 rounded border ${
+                                selectedNotifications.has(notification.id)
+                                  ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
+                                  : 'border-gray-300'
+                              }`}>
+                                {selectedNotifications.has(notification.id) && (
+                                  <Check className="h-3 w-3 text-white" />
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Notification content */}
                           <div 
-                            className="mr-3 mt-1"
-                            onClick={() => toggleSelection(notification.id)}
+                            className="flex-1 cursor-pointer"
+                            onClick={() => !isSelectionMode && !notification.read && markAsRead(notification.id)}
                           >
-                            <div className={`h-5 w-5 rounded border ${
-                              selectedNotifications.has(notification.id)
-                                ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
-                                : 'border-gray-300'
-                            }`}>
-                              {selectedNotifications.has(notification.id) && (
-                                <Check className="h-3 w-3 text-white" />
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-800">{notification.message}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {formatTime(notification.createdAt)}
+                                </p>
+                              </div>
+                              {!notification.read && (
+                                <span className="h-2 w-2 bg-blue-500 rounded-full mt-1 flex-shrink-0 ml-2"></span>
                               )}
                             </div>
                           </div>
-                        )}
-                        
-                        {/* Notification content */}
-                        <div 
-                          className="flex-1 cursor-pointer"
-                          onClick={() => !isSelectionMode && !notification.read && markAsRead(notification.id)}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-800">{notification.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatTime(notification.createdAt)}
-                              </p>
-                            </div>
-                            {!notification.read && (
-                              <span className="h-2 w-2 bg-blue-500 rounded-full mt-1 flex-shrink-0 ml-2"></span>
-                            )}
-                          </div>
+                          
+                          {/* Delete button */}
+                          {!isSelectionMode && (
+                            <button
+                              onClick={() => confirmDeleteNotification(notification.id)}
+                              className="ml-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                              aria-label="Delete notification"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
-                        
-                        {/* Delete button */}
-                        {!isSelectionMode && (
-                          <button
-                            onClick={() => confirmDeleteNotification(notification.id)}
-                            className="ml-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
-                            aria-label="Delete notification"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        message={confirmDialog.message}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setConfirmDialog({ isOpen: false, message: '', notificationIds: [] })}
-      />
-    </div>
-  );
-}
+        )}
+        
+        {/* Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          message={confirmDialog.message}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDialog({ isOpen: false, message: '', notificationIds: [] })}
+        />
+      </div>
+    );
+  }
