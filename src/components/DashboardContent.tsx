@@ -12,7 +12,8 @@ import SearchBar from '@/components/SearchBar';
 import EditableCell from '@/components/EditableCell';
 import FilterDialog from '@/components/FilterDialog';
 import DraggableColumnHeader from '@/components/DraggableColumnHeader';
-import SocketConnectionTest from '@/components/SocketConnectionTest';
+import RealTimeTestingTool from '@/components/RealTimeTestingTool';
+import PusherConnectionDebugger from '@/components/PusherConnectionDebugger';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
@@ -266,11 +267,9 @@ export default function DashboardContent() {
       ) {
         // Ensure all required Order properties are present
         const newOrder = {
-          id: lastOrderUpdate.data.id,
-          verkoop_order: lastOrderUpdate.data.verkoop_order || '',
+          ...lastOrderUpdate.data,
           project: lastOrderUpdate.data.project || '',
           debiteur_klant: lastOrderUpdate.data.debiteur_klant || '',
-          ...lastOrderUpdate.data
         } as Order;
         
         console.log('Adding new order to state:', newOrder);
@@ -383,10 +382,6 @@ export default function DashboardContent() {
   };
 
   // Column drag and drop handlers
-  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
-    setDraggingColumn(field);
-  };
-
   const handleColumnDragOver = (e: React.DragEvent, field: string) => {
     e.preventDefault();
     if (!draggingColumn || draggingColumn === field) return;
@@ -399,6 +394,10 @@ export default function DashboardContent() {
     newColumnOrder.splice(dropIndex, 0, draggingColumn);
 
     setColumnOrder(newColumnOrder);
+  };
+
+  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
+    setDraggingColumn(field);
   };
 
   const handleColumnDragEnd = () => {
@@ -432,28 +431,6 @@ export default function DashboardContent() {
 
   // Test real-time updates
   const triggerTestUpdate = async () => {
-    try {
-      const response = await fetch('/api/test-socket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          mode: 'order' // or 'notification' or 'all'
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to trigger test update');
-      }
-      
-      console.log('Test update triggered');
-    } catch (error) {
-      console.error('Error triggering test update:', error);
-    }
-  };
-
-  if (loading) {
     return (
       <div className="flex h-screen">
         <Navbar onLogout={handleLogout} />
@@ -641,23 +618,24 @@ export default function DashboardContent() {
           
           {/* Testing Tools */}
           <div className="mt-4">
-            <details className="border rounded-md bg-white shadow">
+            <details className="border rounded-md bg-white shadow" open>
               <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
                 Real-time Testing Tools
               </summary>
               <div className="p-4">
-                <div className="mb-4">
-                  <button
-                    onClick={triggerTestUpdate}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Trigger Test Update
-                  </button>
-                  <p className="mt-1 text-sm text-gray-500">
-                    This will generate a test order update and broadcast it to all connected clients.
-                  </p>
-                </div>
-                <SocketConnectionTest />
+                <RealTimeTestingTool />
+              </div>
+            </details>
+          </div>
+          
+          {/* Connection Debugger */}
+          <div className="mt-4">
+            <details className="border rounded-md bg-white shadow">
+              <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
+                Connection Diagnostics
+              </summary>
+              <div className="p-4">
+                <PusherConnectionDebugger />
               </div>
             </details>
           </div>
