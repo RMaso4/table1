@@ -14,6 +14,9 @@ import FilterDialog from '@/components/FilterDialog';
 import DraggableColumnHeader from '@/components/DraggableColumnHeader';
 import SocketConnectionTest from '@/components/SocketConnectionTest';
 
+// Import real-time updates hook
+import usePusher from '@/hooks/usePusher';
+
 // Import types
 import { Order } from '@/types';
 
@@ -43,6 +46,10 @@ interface ColumnDefinition {
 export default function DashboardContent() {
   const router = useRouter();
   const { data: session } = useSession();
+  
+  // Real-time updates state and hook
+  const { isConnected, lastOrderUpdate, lastNotification } = usePusher();
+  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
 
   // Available columns configuration (memoized to prevent unnecessary re-renders)
   const availableColumns = useMemo<ColumnDefinition[]>(() => [
@@ -99,6 +106,7 @@ export default function DashboardContent() {
   const [columnOrder, setColumnOrder] = useState<string[]>(
     availableColumns.map(col => col.field)
   );
+  const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
 
   // Load saved column order
   useEffect(() => {
@@ -214,43 +222,79 @@ export default function DashboardContent() {
     fetchOrders();
   }, []);
 
-  // Handle real-time updates
+  // Handle real-time updates for orders
   useEffect(() => {
-    // Setup event source for server-sent events
-    const eventSource = new EventSource('/api/events');
+    // Skip if real-time updates are disabled or no update received
+    if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
+      return;
+    }
     
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'order:updated') {
-          setOrders(prevOrders => {
-            const orderExists = prevOrders.some(order => order.id === data.orderId);
-            
-            if (orderExists) {
-              return prevOrders.map(order => 
-                order.id === data.orderId ? { ...order, ...data.data } : order
-              );
-            } else {
-              if (Object.keys(columnFilters).length > 0 || globalSearchQuery || activeFilters.length > 0) {
-                return prevOrders;
-              }
-              return [...prevOrders, data.data];
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error processing event:', error);
+    console.log('Processing real-time order update:', lastOrderUpdate);
+    
+    // Show a toast notification for the update
+    const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
+    setLastUpdateToast(`Order ${orderNumber} updated`);
+    
+    // Clear toast after 3 seconds
+    setTimeout(() => setLastUpdateToast(null), 3000);
+    
+    // Update orders with the new data
+    setOrders(prevOrders => {
+      // Find the order index to update
+      const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+      
+      // If order exists, update it
+      if (orderIndex !== -1) {
+        const updatedOrders = [...prevOrders];
+        updatedOrders[orderIndex] = {
+          ...updatedOrders[orderIndex],
+          ...lastOrderUpdate.data,
+          id: lastOrderUpdate.orderId // Ensure ID is preserved
+        } as Order;
+        
+        console.log('Updated order in state:', updatedOrders[orderIndex]);
+        return updatedOrders;
       }
-    };
-    
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-    };
-    
-    return () => {
-      eventSource.close();
-    };
-  }, [columnFilters, globalSearchQuery, activeFilters]);
+      
+      // If we have a full order object and it's not in our list yet, add it
+      // Only add if we're not filtering (to avoid confusion)
+      if (
+        lastOrderUpdate.data.id &&
+        !Object.keys(columnFilters).length && 
+        !globalSearchQuery && 
+        !activeFilters.length
+      ) {
+        // Ensure all required Order properties are present
+        const newOrder = {
+          id: lastOrderUpdate.data.id,
+          verkoop_order: lastOrderUpdate.data.verkoop_order || '',
+          project: lastOrderUpdate.data.project || '',
+          debiteur_klant: lastOrderUpdate.data.debiteur_klant || '',
+          ...lastOrderUpdate.data
+        } as Order;
+        
+        console.log('Adding new order to state:', newOrder);
+        return [...prevOrders, newOrder];
+      }
+      
+      // Otherwise, don't change anything
+      return prevOrders;
+    });
+  }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters]);
+  
+  // Handle notifications from real-time updates
+  useEffect(() => {
+    if (realtimeEnabled && lastNotification) {
+      // Show a toast or some visual indication of the notification
+      const message = lastNotification.message;
+      setLastUpdateToast(message);
+      
+      // Clear toast after 3 seconds
+      setTimeout(() => setLastUpdateToast(null), 3000);
+      
+      console.log('Notification received:', message);
+    }
+  }, [lastNotification, realtimeEnabled]);
 
   // Handler functions
   const handleGlobalSearch = (query: string) => {
@@ -292,18 +336,29 @@ export default function DashboardContent() {
         processedValue = date.toISOString();
       }
 
+      // Optimistically update UI
       setOrders(prevOrders => prevOrders.map(order =>
         order.id === orderId ? { ...order, [field]: processedValue } : order
       ));
 
+      // Send update to server
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: processedValue }),
       });
-      if (!response.ok) throw new Error('Failed to update order');
+      
+      if (!response.ok) {
+        throw new Error('Failed to update order');
+      }
+      
+      // Server responded with success - the real-time update will be broadcasted to all clients
+      console.log(`Updated order ${orderId}, field ${field} to ${String(value)}`);
+      
     } catch (error) {
       console.error('Error updating cell:', error);
+      // Revert optimistic update if needed
+      // This would require keeping a snapshot of the previous state
     }
   };
 
@@ -355,6 +410,29 @@ export default function DashboardContent() {
     }
   };
 
+  // Test real-time updates
+  const triggerTestUpdate = async () => {
+    try {
+      const response = await fetch('/api/test-socket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mode: 'order' // or 'notification' or 'all'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to trigger test update');
+      }
+      
+      console.log('Test update triggered');
+    } catch (error) {
+      console.error('Error triggering test update:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen">
@@ -393,10 +471,42 @@ export default function DashboardContent() {
       <Navbar onLogout={handleLogout} />
       <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
         <div className="p-8 flex-grow overflow-auto">
+          {lastUpdateToast && (
+            <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
+              {lastUpdateToast}
+            </div>
+          )}
+          
           <div className="bg-white rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h1 className="text-xl font-semibold text-gray-900">Order Overview</h1>
               <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Real-time updates:</span>
+                  <button
+                    onClick={() => setRealtimeEnabled(!realtimeEnabled)}
+                    className={`px-3 py-1 text-sm rounded ${
+                      realtimeEnabled 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {realtimeEnabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                  
+                  {isConnected ? (
+                    <span className="flex items-center text-xs text-green-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                      Connected
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-xs text-red-600">
+                      <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                      Disconnected
+                    </span>
+                  )}
+                </div>
+                
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800"
@@ -509,8 +619,31 @@ export default function DashboardContent() {
             </div>
           </div>
           
+          {/* Testing Tools */}
+          <div className="mt-4">
+            <details className="border rounded-md bg-white shadow">
+              <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
+                Real-time Testing Tools
+              </summary>
+              <div className="p-4">
+                <div className="mb-4">
+                  <button
+                    onClick={triggerTestUpdate}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Trigger Test Update
+                  </button>
+                  <p className="mt-1 text-sm text-gray-500">
+                    This will generate a test order update and broadcast it to all connected clients.
+                  </p>
+                </div>
+                <SocketConnectionTest />
+              </div>
+            </details>
+          </div>
+          
           {/* Authentication Status */}
-          <div className="bg-white rounded-lg shadow p-6 mb-4">
+          <div className="bg-white rounded-lg shadow p-6 mb-4 mt-4">
             <h2 className="text-lg font-semibold mb-2">Authentication Status</h2>
             <div className="flex gap-4 items-center">
               <div className="flex items-center">
@@ -523,18 +656,6 @@ export default function DashboardContent() {
                 </div>
               )}
             </div>
-          </div>
-          
-          {/* Socket Connection Debug Panel */}
-          <div className="mt-4">
-            <details className="border rounded-md bg-white shadow">
-              <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
-                WebSocket Connection Status
-              </summary>
-              <div className="p-4">
-                <SocketConnectionTest />
-              </div>
-            </details>
           </div>
         </div>
       </div>
