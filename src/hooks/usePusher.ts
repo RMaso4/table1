@@ -27,7 +27,7 @@ interface NotificationEvent {
   createdAt: string;
 }
 
-// Type for connection error
+// Type for connection errors
 interface PusherConnectionError {
   message: string;
   code?: number;
