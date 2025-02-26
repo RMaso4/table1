@@ -1,4 +1,4 @@
-// components/DashboardContent.tsx
+// src/components/DashboardContent.tsx
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -14,6 +14,8 @@ import FilterDialog from '@/components/FilterDialog';
 import DraggableColumnHeader from '@/components/DraggableColumnHeader';
 import RealTimeTestingTool from '@/components/RealTimeTestingTool';
 import PusherConnectionDebugger from '@/components/PusherConnectionDebugger';
+import PriorityOrdersTable from '@/components/PriorityOrdersTable';
+import OrderTableActions from '@/components/OrderTableActions';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
@@ -54,6 +56,9 @@ export default function DashboardContent() {
   // Real-time updates state and hook
   const { isConnected, lastOrderUpdate, lastNotification } = usePusher();
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+
+  // Priority orders state
+  const [priorityOrders, setPriorityOrders] = useState<Order[]>([]);
 
   // Available columns configuration (memoized to prevent unnecessary re-renders)
   const availableColumns = useMemo<ColumnDefinition[]>(() => [
@@ -112,8 +117,62 @@ export default function DashboardContent() {
   );
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
 
-  // Create ref for processed updates at the component top level
-  const processedUpdatesRef = useRef(new Set<string>());
+  // Load priority orders from localStorage on component mount
+  useEffect(() => {
+    const savedPriorityOrders = localStorage.getItem('priorityOrders');
+    if (savedPriorityOrders) {
+      try {
+        const parsedOrders = JSON.parse(savedPriorityOrders);
+        setPriorityOrders(parsedOrders);
+      } catch (error) {
+        console.error('Error parsing saved priority orders:', error);
+      }
+    }
+  }, []);
+
+  // Save priority orders to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+  }, [priorityOrders]);
+
+  // Add an order to the priority list
+  const addToPriorityList = (orderId: string) => {
+    const orderToAdd = orders.find(order => order.id === orderId);
+    if (!orderToAdd) return;
+
+    // Check if the order is already in the priority list
+    if (priorityOrders.some(order => order.id === orderId)) return;
+
+    // Add the order to the priority list
+    setPriorityOrders(prev => [...prev, orderToAdd]);
+    
+    // Show confirmation toast
+    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Remove an order from the priority list
+  const removeFromPriorityList = (orderId: string) => {
+    const orderToRemove = priorityOrders.find(order => order.id === orderId);
+    if (!orderToRemove) return;
+
+    // Remove the order from the priority list
+    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
+    
+    // Show confirmation toast
+    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Update priority orders (used for reordering)
+  const updatePriorityOrders = (newOrders: Order[]) => {
+    setPriorityOrders(newOrders);
+  };
+
+  // Check if an order is in the priority list
+  const isOrderPrioritized = (orderId: string) => {
+    return priorityOrders.some(order => order.id === orderId);
+  };
 
   // Handle export functionality
   const handleExport = () => {
@@ -139,6 +198,43 @@ export default function DashboardContent() {
     );
     
     // Perform export
+    exporter.toCSV();
+  };
+
+  // Handle export of priority orders
+  const handleExportPriority = () => {
+    if (priorityOrders.length === 0) {
+      setError('No priority orders to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    // Define essential columns for priority export
+    const priorityColumns: ExportColumnDefinition[] = [
+      { field: 'verkoop_order', title: 'Order #', type: 'text' },
+      { field: 'project', title: 'Project', type: 'text' },
+      { field: 'debiteur_klant', title: 'Customer', type: 'text' },
+      { field: 'material', title: 'Material', type: 'text' },
+      { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
+    ];
+    
+    // Create export utilities for priority orders
+    const exporter = createExportOptions(
+      priorityOrders,
+      priorityColumns,
+      // Success callback
+      () => {
+        setLastUpdateToast('Priority export successful');
+        setTimeout(() => setLastUpdateToast(null), 3000);
+      },
+      // Error callback
+      (error) => {
+        setError(`Priority export failed: ${error.message}`);
+        setTimeout(() => setError(null), 3000);
+      }
+    );
+    
+    // Perform export with priority filename
     exporter.toCSV();
   };
 
@@ -245,6 +341,14 @@ export default function DashboardContent() {
         const data = await response.json();
         setOrders(data);
         setFilteredOrders(data);
+
+        // Update priority orders with fresh data
+        setPriorityOrders(prev => {
+          return prev.map(priorityOrder => {
+            const updatedOrder = data.find((order: Order) => order.id === priorityOrder.id);
+            return updatedOrder || priorityOrder;
+          }).filter(order => !!order);
+        });
       } catch (err) {
         setError('Failed to load orders');
         console.error('Error fetching orders:', err);
@@ -268,6 +372,9 @@ export default function DashboardContent() {
     // Create a unique identifier for this update to track in component state
     const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
     
+    // Use a ref to track processed updates within this component
+    const processedUpdatesRef = useRef(new Set<string>());
+    
     // Skip if we've seen this update already 
     if (processedUpdatesRef.current.has(updateId)) {
       console.log('DashboardContent: Skipping already processed update', updateId);
@@ -276,11 +383,6 @@ export default function DashboardContent() {
     
     // Mark as processed
     processedUpdatesRef.current.add(updateId);
-    
-    // Clean up processed updates after a while to prevent memory leaks
-    setTimeout(() => {
-      processedUpdatesRef.current.delete(updateId);
-    }, 10000);
     
     // Show a toast notification for the update
     const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
@@ -329,6 +431,24 @@ export default function DashboardContent() {
       
       // Otherwise, don't change anything
       return prevOrders;
+    });
+
+    // Also update priority orders if the updated order is in the priority list
+    setPriorityOrders(prevPriorityOrders => {
+      const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+      
+      if (priorityOrderIndex !== -1) {
+        const updatedPriorityOrders = [...prevPriorityOrders];
+        updatedPriorityOrders[priorityOrderIndex] = {
+          ...updatedPriorityOrders[priorityOrderIndex],
+          ...lastOrderUpdate.data,
+          id: lastOrderUpdate.orderId // Ensure ID is preserved
+        } as Order;
+        
+        return updatedPriorityOrders;
+      }
+      
+      return prevPriorityOrders;
     });
   }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters]);
   
@@ -392,6 +512,11 @@ export default function DashboardContent() {
       setOrders(prevOrders => prevOrders.map(order =>
         order.id === orderId ? { ...order, [field]: processedValue } : order
       ));
+
+      // Also update in priority orders if present
+      setPriorityOrders(prevOrders => prevOrders.map(order =>
+        order.id === orderId ? { ...order, [field]: processedValue } : order
+      ));
   
       // Send update to server
       const response = await fetch(`/api/orders/${orderId}`, {
@@ -447,12 +572,43 @@ export default function DashboardContent() {
     setColumnOrder(newColumnOrder);
   };
 
-  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
+  const handleColumnDragStart = (_e: React.DragEvent, field: string) => {
     setDraggingColumn(field);
   };
 
   const handleColumnDragEnd = () => {
     setDraggingColumn(null);
+  };
+
+  // Save priority orders to backend
+  const savePriorityOrdersToBackend = async () => {
+    try {
+      // In a full implementation, you would save the priority orders to your backend
+      // For now, we're just using localStorage, but here's how you could implement it:
+      /*
+      const response = await fetch('/api/priority-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priorityOrders: priorityOrders.map(order => order.id)
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save priority orders');
+      }
+      */
+
+      // For now we'll just show a success message
+      setLastUpdateToast('Priority order saved');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      console.error('Error saving priority orders:', error);
+      setError('Failed to save priority orders');
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   // Clear all filters
@@ -524,6 +680,14 @@ export default function DashboardContent() {
             </div>
           )}
           
+          {/* Priority Orders Table */}
+          <PriorityOrdersTable 
+            orders={priorityOrders}
+            onRemoveFromPriority={removeFromPriorityList}
+            onPriorityOrdersChange={updatePriorityOrders}
+          />
+          
+          {/* Main Orders Table */}
           <div className="bg-white rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h1 className="text-xl font-semibold text-gray-900">Order Overview</h1>
@@ -554,16 +718,30 @@ export default function DashboardContent() {
                   )}
                 </div>
                 
-                {/* Export Button */}
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  disabled={filteredOrders.length === 0}
-                  title="Export data to CSV"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Exporteren</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Export Button */}
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                    disabled={filteredOrders.length === 0}
+                    title="Export data to CSV"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Exporteren</span>
+                  </button>
+                  
+                  {/* Export Priority Button */}
+                  {priorityOrders.length > 0 && (
+                    <button
+                      onClick={handleExportPriority}
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                      title="Export priority orders to CSV"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Export Priority</span>
+                    </button>
+                  )}
+                </div>
                 
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
@@ -593,6 +771,12 @@ export default function DashboardContent() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {/* Priority Action Column */}
+                    <th className="w-12 px-2 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Priority
+                    </th>
+                    
+                    {/* Regular Columns */}
                     {columnOrder.map(field => {
                       const column = availableColumns.find(col => col.field === field)!;
                       return (
@@ -616,6 +800,16 @@ export default function DashboardContent() {
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
+                        {/* Priority Action Cell */}
+                        <td className="px-2 py-4 whitespace-nowrap">
+                          <OrderTableActions
+                            orderId={order.id}
+                            isPrioritized={isOrderPrioritized(order.id)}
+                            onAddToPriority={addToPriorityList}
+                          />
+                        </td>
+                        
+                        {/* Regular Data Cells */}
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
                           return (
@@ -665,7 +859,7 @@ export default function DashboardContent() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columnOrder.length} className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td colSpan={columnOrder.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
                         {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ? 
                           'No orders match the current filters.' : 
                           'No orders found. Add an order to get started.'}
