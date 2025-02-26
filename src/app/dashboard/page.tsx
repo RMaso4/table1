@@ -8,7 +8,7 @@ import DashboardContent from '@/components/DashboardContent';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession(); // Removed unused 'session' variable
   const [hasCustomToken, setHasCustomToken] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);

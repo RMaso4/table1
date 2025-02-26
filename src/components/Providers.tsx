@@ -19,7 +19,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       // Helper to check for cookies
       const getCookie = (name: string) => {
         const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
+        for (const cookie of cookies) { // Changed 'let' to 'const'
           const [cookieName, cookieValue] = cookie.trim().split('=');
           if (cookieName === name) {
             return cookieValue;

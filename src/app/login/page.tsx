@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession(); // Removed unused 'session' variable
 
   // Check if already authenticated
   useEffect(() => {
@@ -72,9 +72,9 @@ export default function LoginPage() {
       // 4. Redirect to dashboard
       setRedirecting(true);
       window.location.href = '/dashboard'; // Use direct navigation instead of router.push
-    } catch (err: any) {
+    } catch (err: unknown) { // Changed from any to unknown for type safety
       console.error('Login error:', err);
-      setError(err.message || 'An error occurred. Please try again.');
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setIsLoading(false);
     }
   };

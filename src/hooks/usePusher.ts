@@ -5,15 +5,22 @@ import { useEffect, useState } from 'react';
 import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
 import { useSession } from 'next-auth/react';
 
+// Define proper types instead of using 'any'
 type PusherEvent = {
   orderId?: string;
-  data?: any;
+  data?: unknown; // Changed from any to unknown
   id?: string;
   message?: string;
   userId?: string;
   read?: boolean;
   createdAt?: string;
 };
+
+// Create an interface for the trigger function parameters
+interface TriggerParams {
+  event: string;
+  data: Record<string, unknown>;
+}
 
 export default function usePusher() {
   const [isConnected, setIsConnected] = useState(false);
@@ -54,7 +61,7 @@ export default function usePusher() {
   }, [session]);
   
   // Function to trigger events (similar to socket.emit)
-  const trigger = async (event: string, data: any) => {
+  const trigger = async (event: string, data: Record<string, unknown>) => {
     try {
       await fetch('/api/socket', {
         method: 'POST',
