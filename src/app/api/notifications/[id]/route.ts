@@ -44,7 +44,7 @@ export async function PATCH(
       );
     }
 
-    // Parse request body
+    // Parse request bodys
     const body = await request.json();
     const { read } = body;
 
