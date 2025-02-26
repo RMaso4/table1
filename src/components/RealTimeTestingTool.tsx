@@ -2,8 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import usePusher from '@/hooks/usePusher';
-import { CHANNELS, EVENTS } from '@/lib/pusher';
+// Remove unused imports
+// import { CHANNELS, EVENTS } from '@/lib/pusher';
 import PusherConnectionDebugger from './PusherConnectionDebugger';
+
+// Define types for the test result
+interface TestResult {
+  success?: boolean;
+  message?: string;
+  triggered?: {
+    notification?: boolean;
+    order?: boolean;
+  };
+  testOrderUpdate?: {
+    orderId?: string;
+    data?: {
+      id?: string;
+      verkoop_order?: string;
+      [key: string]: unknown;
+    };
+  };
+  error?: string;
+  [key: string]: unknown;
+}
 
 export default function RealTimeTestingTool() {
   const { 
@@ -19,7 +40,7 @@ export default function RealTimeTestingTool() {
   const [messages, setMessages] = useState<string[]>([]);
   const [testMode, setTestMode] = useState<'all' | 'order' | 'notification'>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
   
   // Add messages to the log
   const addMessage = (message: string) => {
@@ -81,7 +102,7 @@ export default function RealTimeTestingTool() {
         throw new Error(`Server error: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json() as TestResult;
       setTestResult(data);
       addMessage(`✅ API test triggered: ${data.message || 'success'}`);
       
@@ -120,7 +141,7 @@ export default function RealTimeTestingTool() {
           <label className="text-sm mr-2">Test Mode:</label>
           <select 
             value={testMode}
-            onChange={(e) => setTestMode(e.target.value as any)}
+            onChange={(e) => setTestMode(e.target.value as 'all' | 'order' | 'notification')}
             className="border rounded px-2 py-1 text-sm"
           >
             <option value="all">All Events</option>

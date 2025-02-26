@@ -7,11 +7,11 @@ import { useSession } from 'next-auth/react';
 
 // Define more specific types for our event data
 interface OrderData {
-  id: string;
-  verkoop_order: string;
+  id?: string;
+  verkoop_order?: string;
   project?: string;
   debiteur_klant?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OrderUpdateEvent {
@@ -28,6 +28,21 @@ interface NotificationEvent {
   createdAt: string;
 }
 
+// Type for connection error
+interface PusherConnectionError {
+  message: string;
+  code?: number;
+  type?: string;
+  data?: unknown;
+  [key: string]: unknown;
+}
+
+// Type for channel object
+interface PusherChannel {
+  unbind_all: () => void;
+  bind: (eventName: string, callback: (data: unknown) => void) => void;
+}
+
 export default function usePusher() {
   const [isConnected, setIsConnected] = useState(false);
   const { data: session } = useSession();
@@ -39,7 +54,7 @@ export default function usePusher() {
   // Connection status management
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const channelsRef = useRef<{[key: string]: any}>({});
+  const channelsRef = useRef<Record<string, PusherChannel | null>>({});
   
   // Reconnection logic
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -153,7 +168,7 @@ export default function usePusher() {
       }, 3000);
     };
     
-    const handleError = (err: any) => {
+    const handleError = (err: PusherConnectionError) => {
       console.error('Pusher connection error:', err);
       setConnectionError(err?.message || 'Connection error');
       setIsConnected(false);

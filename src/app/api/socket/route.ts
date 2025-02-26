@@ -2,6 +2,14 @@
 import { NextResponse } from 'next/server';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 
+// Define types for the error objects
+interface PusherError {
+  message: string;
+  code?: number;
+  status?: number;
+  [key: string]: unknown;
+}
+
 export async function POST(request: Request) {
   try {
     const { event, data } = await request.json();
@@ -18,7 +26,7 @@ export async function POST(request: Request) {
     // Map the event to the appropriate channel and event name
     let channel: string;
     let eventName: string;
-    let payload: any = data;
+    let payload: unknown = data;
     
     switch (event) {
       case 'order:updated':
@@ -26,7 +34,7 @@ export async function POST(request: Request) {
         eventName = EVENTS.ORDER_UPDATED;
         
         // Ensure data is properly formatted
-        if (typeof data === 'object' && 'orderId' in data) {
+        if (typeof data === 'object' && data !== null && 'orderId' in data) {
           // Already in correct format
           payload = data;
         } else {
@@ -65,7 +73,7 @@ export async function POST(request: Request) {
     
     // Add diagnostic data
     const diagnosticData = {
-      ...payload,
+      ...(typeof payload === 'object' && payload !== null ? payload : { data: payload }),
       _meta: {
         processedAt: new Date().toISOString(),
         originalEvent: event,

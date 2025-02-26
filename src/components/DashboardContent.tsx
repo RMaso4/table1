@@ -429,8 +429,7 @@ export default function DashboardContent() {
     }
   };
 
-  // Test real-time updates
-  const triggerTestUpdate = async () => {
+  if (loading) {
     return (
       <div className="flex h-screen">
         <Navbar onLogout={handleLogout} />

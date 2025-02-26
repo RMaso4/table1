@@ -1,7 +1,17 @@
+// src/components/PusherConnectionDebugger.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { pusherClient } from '@/lib/pusher';
+
+// Define types for Pusher errors
+interface PusherConnectionError {
+  message: string;
+  code?: number;
+  type?: string;
+  data?: unknown;
+  [key: string]: unknown;
+}
 
 export default function PusherConnectionDebugger() {
   const [connectionState, setConnectionState] = useState<string>('Not initialized');
@@ -44,7 +54,7 @@ export default function PusherConnectionDebugger() {
       setErrorMessage('Connection to Pusher failed');
     });
     
-    pusherClient.connection.bind('error', (err: any) => {
+    pusherClient.connection.bind('error', (err: PusherConnectionError) => {
       console.error('Pusher connection error:', err);
       setErrorMessage(err?.message || 'Unknown connection error');
     });
