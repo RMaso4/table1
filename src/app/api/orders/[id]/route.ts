@@ -147,11 +147,10 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
 };
 
 export async function PATCH(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-  ) {
+  request: NextRequest, { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: 'Missing order ID' }, { status: 400 });
     }
@@ -222,12 +221,6 @@ export async function PATCH(
       });
     } catch (pusherError) {
       console.error('Pusher error:', pusherError);
-    }
-
-    // Create notifications for each updated field
-    for (const [field, value] of Object.entries(updatedData)) {
-      const validatedValue = validateFieldValue(field, value as string | number | boolean | null);
-      await createNotification(id, existingOrder.verkoop_order, user.id, field, validatedValue);
     }
 
     return NextResponse.json(updatedOrder);
