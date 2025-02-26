@@ -45,21 +45,6 @@ interface PusherChannel {
 }
 
 export default function usePusher() {
-  // If Pusher is disabled in config, return mock implementation
-  if (!REALTIME_CONFIG.USE_PUSHER) {
-    return {
-      isConnected: false,
-      connectionAttempts: 0,
-      connectionError: 'Pusher disabled in configuration',
-      trigger: async () => false,
-      reconnect: () => false,
-      lastOrderUpdate: null,
-      lastNotification: null,
-      orderUpdates: [],
-      notifications: []
-    };
-  }
-
   const [isConnected, setIsConnected] = useState(false);
   const { data: session } = useSession();
   const [lastOrderUpdate, setLastOrderUpdate] = useState<OrderUpdateEvent | null>(null);
@@ -85,7 +70,7 @@ export default function usePusher() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const connectToPusher = useCallback(() => {
-    if (!session?.user) return false;
+    if (!session?.user || !REALTIME_CONFIG.USE_PUSHER) return false;
     
     try {
       // Clear any previous reconnection timeouts
@@ -115,6 +100,9 @@ export default function usePusher() {
   
   // Set up channels and event listeners
   const setupChannels = useCallback(() => {
+    // Only set up channels if Pusher is enabled
+    if (!REALTIME_CONFIG.USE_PUSHER) return false;
+    
     // Only set up channels once
     if (channelsSetupRef.current) {
       if (REALTIME_CONFIG.DEBUG) {
@@ -259,6 +247,9 @@ export default function usePusher() {
   useEffect(() => {
     if (!session?.user) return;
     
+    // Skip all Pusher-related logic if disabled in config
+    if (!REALTIME_CONFIG.USE_PUSHER) return;
+    
     // Set up connection state handlers
     const handleConnected = () => {
       if (REALTIME_CONFIG.DEBUG) {
@@ -364,6 +355,22 @@ export default function usePusher() {
     }
   }, []);
   
+  // If Pusher is disabled, return mock implementation
+  if (!REALTIME_CONFIG.USE_PUSHER) {
+    return {
+      isConnected: false,
+      connectionAttempts,
+      connectionError: 'Pusher disabled in configuration',
+      trigger,
+      reconnect: () => false,
+      lastOrderUpdate: null,
+      lastNotification: null,
+      orderUpdates: [],
+      notifications: []
+    };
+  }
+  
+  // Return actual implementation
   return { 
     isConnected,
     connectionAttempts,

@@ -40,7 +40,7 @@
     "src/types/**/*.ts",
     "src/types/**/*.d.ts",
     ".next/types/**/*.ts"
-, "src/components/PriorityOrdersTable.tsx."  ],
+  ],
   "exclude": [
     "node_modules"
   ]
