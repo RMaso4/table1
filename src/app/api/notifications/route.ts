@@ -45,7 +45,7 @@ export async function GET() {
     const notifications = await prisma.notification.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      take: 50, // Limit to last 50 notifications
+      take: 500, // Limit to last 50 notifications
       include: {
         user: {
           select: {

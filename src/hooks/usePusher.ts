@@ -36,7 +36,7 @@ interface PusherConnectionError {
   [key: string]: unknown;
 }
 
-// Type for channel object
+// Type for channel objects
 interface PusherChannel {
   unbind_all: () => void;
   bind: (eventName: string, callback: (data: unknown) => void) => void;
