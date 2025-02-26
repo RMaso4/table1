@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { Role } from '@prisma/client';
 
 // Ensure DATABASE_URL is available and provide fallback for easy debugging
 const DATABASE_URL = process.env.DATABASE_URL || '';
@@ -27,6 +28,14 @@ const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
   console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+}
+
+// Type for our custom user
+interface CustomUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  role: Role;
 }
 
 // Configure NextAuth options
@@ -87,15 +96,16 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // Authentication succeeded, return the user
+          // Authentication succeeded, return the user with explicit typing
           console.log(`Auth successful: ${credentials.email} (${user.role})`);
           
+          // Return properly typed user object
           return {
             id: user.id,
             email: user.email,
-            name: user.name || null,
+            name: user.name,
             role: user.role
-          };
+          } as CustomUser;
         } catch (error) {
           console.error("Database error during authentication:", error);
           return null;
@@ -110,8 +120,10 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       // Include the user ID and role in the JWT
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        // Cast user to our custom type to access properties safely
+        const customUser = user as CustomUser;
+        token.id = customUser.id;
+        token.role = customUser.role;
       }
       return token;
     },
@@ -121,7 +133,7 @@ export const authOptions: NextAuthOptions = {
       // Make user data available in the session
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as Role;
       }
       return session;
     }

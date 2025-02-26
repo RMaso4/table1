@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Session } from 'next-auth';
+
+// Type assertion helper for the custom session
+interface CustomSession extends Session {
+  user: {
+    id: string;
+    role: string;
+    email?: string | null;
+    name?: string | null;
+  }
+}
 
 // Create notification for order updates
 const createNotification = async (orderId: string, orderNumber: string, userId: string, field: string, value: string | number | boolean) => {
@@ -72,8 +83,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Use type assertion to tell TypeScript this is our custom user type
-        const user = session.user;
+        // Use type assertion to tell TypeScript this is our custom session
+        const userSession = session as CustomSession;
+        const userId = userSession.user.id;
 
         const data = await request.json();
 
@@ -81,8 +93,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         console.log('Attempting to update order:', {
             orderId: id,
             updateData: data,
-            userId: user.id,
-            userEmail: user.email
+            userId: userId,
+            userEmail: session.user.email
         });
 
         // Get the order before update to include in notification
@@ -123,10 +135,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         // Create notifications for each changed field
         const changedFields = Object.keys(data);
         
-        // We can now safely access the id property
         for (const field of changedFields) {
             // Create notifications - Pulse will automatically detect these
-            await createNotification(id, orderBefore.verkoop_order, user.id, field, data[field]);
+            await createNotification(id, orderBefore.verkoop_order, userId, field, data[field]);
         }
 
         return NextResponse.json(updatedOrder);
