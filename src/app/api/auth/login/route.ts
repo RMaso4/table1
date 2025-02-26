@@ -138,7 +138,7 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   } finally {
-    // No need to disconnect here since Prisma will handle it,
+    // No need to disconnect no here since Prisma will handle it,
     // but we could add a manual disconnect if we wanted extra safety
   }
 }
