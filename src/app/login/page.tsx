@@ -66,7 +66,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // 3. Successful login - manually set a flag in localStorage for extra verification
+      // 3. Successful login - manually set a flag in localStorage for extra verifications
       window.localStorage.setItem('auth_timestamp', Date.now().toString());
       
       // 4. Redirect to dashboard
