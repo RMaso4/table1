@@ -53,7 +53,7 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. Also call custom login API to set JWT token
+      // 2. Also call custom login API to set JWT tokenk
       const apiLoginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
