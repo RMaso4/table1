@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter } from 'lucide-react';
+import { Filter, Download } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 // Import custom components
@@ -17,6 +17,9 @@ import PusherConnectionDebugger from '@/components/PusherConnectionDebugger';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
+
+// Import export utilities
+import { createExportOptions, ColumnDefinition as ExportColumnDefinition } from '@/utils/exportUtils';
 
 // Import types
 import { Order } from '@/types';
@@ -109,6 +112,33 @@ export default function DashboardContent() {
   );
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
 
+  // Handle export functionality
+  const handleExport = () => {
+    // Get visible columns in their current order
+    const visibleColumns = columnOrder
+      .map(field => availableColumns.find(col => col.field === field))
+      .filter((col): col is ColumnDefinition => col !== undefined);
+    
+    // Create export utilities
+    const exporter = createExportOptions(
+      filteredOrders, 
+      visibleColumns as ExportColumnDefinition[],
+      // Success callback
+      () => {
+        setLastUpdateToast('Export successful');
+        setTimeout(() => setLastUpdateToast(null), 3000);
+      },
+      // Error callback
+      (error) => {
+        setError(`Export failed: ${error.message}`);
+        setTimeout(() => setError(null), 3000);
+      }
+    );
+    
+    // Perform export
+    exporter.toCSV();
+  };
+
   // Load saved column order
   useEffect(() => {
     const savedOrder = localStorage.getItem('columnOrder');
@@ -178,7 +208,7 @@ export default function DashboardContent() {
       });
     });
 
-    // Apply sorting if a sort field is selecteded
+    // Apply sorting if a sort field is selected
     if (sortState.field) {
       result.sort((a, b) => {
         const aValue = a[sortState.field as keyof Order];
@@ -502,6 +532,17 @@ export default function DashboardContent() {
                     </span>
                   )}
                 </div>
+                
+                {/* Export Button */}
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  disabled={filteredOrders.length === 0}
+                  title="Export data to CSV"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Exporteren</span>
+                </button>
                 
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
