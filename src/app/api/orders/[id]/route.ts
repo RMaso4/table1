@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Session } from 'next-auth';
+import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 
 // Type assertion helper for the custom session
 interface CustomSession extends Session {
@@ -124,7 +125,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             }
         }
 
-        // Update the order - Pulse will automatically detect this change
+        // Update the order in the database
         const updatedOrder = await prisma.order.update({
             where: { id },
             data,
@@ -136,8 +137,27 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const changedFields = Object.keys(data);
         
         for (const field of changedFields) {
-            // Create notifications - Pulse will automatically detect these
+            // Create notifications
             await createNotification(id, orderBefore.verkoop_order, userId, field, data[field]);
+        }
+
+        // Broadcast the update via Pusher
+        try {
+            // Format the update payload
+            const updatePayload = {
+                orderId: id,
+                data: updatedOrder
+            };
+            
+            console.log('Broadcasting order update via Pusher:', updatePayload);
+            
+            // Trigger the Pusher event
+            await pusherServer.trigger(CHANNELS.ORDERS, EVENTS.ORDER_UPDATED, updatePayload);
+            
+            console.log('Successfully broadcasted order update');
+        } catch (error) {
+            console.error('Failed to broadcast update:', error);
+            // Continue even if broadcasting fails - at least the database was updated
         }
 
         return NextResponse.json(updatedOrder);

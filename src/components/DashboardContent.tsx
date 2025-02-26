@@ -335,30 +335,50 @@ export default function DashboardContent() {
         if (isNaN(date.getTime())) throw new Error('Invalid date');
         processedValue = date.toISOString();
       }
-
+  
+      console.log(`Updating cell ${field} for order ${orderId} to:`, processedValue);
+  
       // Optimistically update UI
       setOrders(prevOrders => prevOrders.map(order =>
         order.id === orderId ? { ...order, [field]: processedValue } : order
       ));
-
+  
       // Send update to server
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         body: JSON.stringify({ [field]: processedValue }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update order');
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        throw new Error(errorData.error || 'Failed to update order');
       }
       
-      // Server responded with success - the real-time update will be broadcasted to all clients
-      console.log(`Updated order ${orderId}, field ${field} to ${String(value)}`);
+      // Get the updated order data from the response
+      const updatedOrder = await response.json();
+      console.log('Server confirmed update:', updatedOrder);
+      
+      // Note: We don't need to update state again here since Pusher will broadcast
+      // the change which will be picked up by the lastOrderUpdate useEffect
+      
+      // Show a brief success message
+      setLastUpdateToast(`Updated ${field} successfully`);
+      setTimeout(() => setLastUpdateToast(null), 2000);
       
     } catch (error) {
       console.error('Error updating cell:', error);
-      // Revert optimistic update if needed
-      // This would require keeping a snapshot of the previous state
+      
+      // Show error message
+      setError(error instanceof Error ? error.message : 'Failed to update order');
+      setTimeout(() => setError(null), 3000);
+      
+      // You might want to revert the optimistic update here
+      // by re-fetching the current state from the server
     }
   };
 
