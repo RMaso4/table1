@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -27,8 +28,8 @@ export async function GET() {
     }
 
     // Determine which notifications to fetch based on user role
-    let whereClause: any = {
-      // Don't include notifications the user has deleted
+    // Define base where clause to filter out notifications deleted by this user
+    const whereClause: Prisma.NotificationWhereInput = {
       NOT: {
         deletedByUsers: {
           has: user.id
@@ -36,10 +37,8 @@ export async function GET() {
       }
     };
     
-    if (user.role === 'PLANNER' || user.role === 'BEHEERDER') {
-      // Planners and Beheerders see all notifications (except deleted ones)
-    } else {
-      // Other roles only see their own notifications
+    // Add user-specific filter if not a privileged role
+    if (user.role !== 'PLANNER' && user.role !== 'BEHEERDER') {
       whereClause.userId = user.id;
     }
 

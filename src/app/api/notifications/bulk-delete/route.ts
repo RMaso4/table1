@@ -52,18 +52,18 @@ export async function POST(request: Request) {
     });
 
     // Determine which notifications the user is allowed to delete
-    let idsToUpdate: string[] = [];
+    const idsToUpdate: string[] = [];
     
     if (['PLANNER', 'BEHEERDER'].includes(user.role)) {
       // Planners and beheerders can delete any notification
-      idsToUpdate = notifications
+      idsToUpdate.push(...notifications
         .filter(n => !n.deletedByUsers.includes(user.id))
-        .map(n => n.id);
+        .map(n => n.id));
     } else {
       // Other users can only delete their own notifications
-      idsToUpdate = notifications
+      idsToUpdate.push(...notifications
         .filter(n => n.userId === user.id && !n.deletedByUsers.includes(user.id))
-        .map(n => n.id);
+        .map(n => n.id));
     }
 
     if (idsToUpdate.length === 0) {
