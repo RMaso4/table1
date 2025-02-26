@@ -16,12 +16,6 @@ type PusherEvent = {
   createdAt?: string;
 };
 
-// Create an interface for the trigger function parameters
-interface TriggerParams {
-  event: string;
-  data: Record<string, unknown>;
-}
-
 export default function usePusher() {
   const [isConnected, setIsConnected] = useState(false);
   const { data: session } = useSession();
