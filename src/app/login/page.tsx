@@ -40,7 +40,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Sign in with NextAuth
+      // 1. Sign in with NextAuths credentials provider
       const nextAuthResult = await signIn('credentials', {
         redirect: false,
         email,
