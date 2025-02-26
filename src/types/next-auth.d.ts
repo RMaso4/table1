@@ -1,7 +1,6 @@
 // src/types/next-auth.d.ts
 import { Role } from '@prisma/client';
-import NextAuth, { DefaultSession, DefaultUser } from 'next-auth';
-import { JWT } from 'next-auth/jwt';
+import { DefaultSession, DefaultUser } from 'next-auth';
 
 // Extend the built-in session types
 declare module 'next-auth' {
