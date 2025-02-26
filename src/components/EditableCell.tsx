@@ -6,8 +6,8 @@ import { useSession } from 'next-auth/react';
 import { Check } from 'lucide-react';
 
 interface EditableCellProps {
-  value: string | number | null;
-  onChange: (value: string | number) => Promise<void>;
+  value: string | number | boolean | null;
+  onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
   orderId: string;
@@ -18,7 +18,9 @@ export default function EditableCell({
   value,
   onChange,
   type = 'text',
-  field
+  field,
+  orderId,
+  orderNumber
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -27,6 +29,36 @@ export default function EditableCell({
   const [showSuccess, setShowSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
+  
+  // Local validation to prevent client-side errors
+  const validateInput = (): boolean => {
+    // Reset error first
+    setError(null);
+    
+    try {
+      // Validate based on field type
+      if (type === 'number' && inputValue !== '') {
+        const num = Number(inputValue);
+        if (isNaN(num)) {
+          setError('Please enter a valid number');
+          return false;
+        }
+      }
+      
+      if (type === 'date' && inputValue !== '') {
+        const date = new Date(inputValue);
+        if (isNaN(date.getTime())) {
+          setError('Please enter a valid date');
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (err) {
+      setError('Invalid input');
+      return false;
+    }
+  };
 
   // Function to check if user has edit permission for the field
   const canEdit = () => {
@@ -48,10 +80,14 @@ export default function EditableCell({
 
   useEffect(() => {
     if (type === 'date' && value) {
-      const dateValue = new Date(value as string);
-      if (!isNaN(dateValue.getTime())) {
-        setInputValue(dateValue.toISOString().split('T')[0]);
-      } else {
+      try {
+        const dateValue = new Date(value as string);
+        if (!isNaN(dateValue.getTime())) {
+          setInputValue(dateValue.toISOString().split('T')[0]);
+        } else {
+          setInputValue('');
+        }
+      } catch (e) {
         setInputValue('');
       }
     } else {
@@ -76,25 +112,27 @@ export default function EditableCell({
       setIsEditing(false);
       return;
     }
+    
+    // Validate input
+    if (!validateInput()) {
+      return; // Don't submit if validation fails
+    }
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      if (type === 'date' && inputValue) {
-        const date = new Date(inputValue);
-        if (isNaN(date.getTime())) {
-          throw new Error('Invalid date format');
-        }
-      }
-
-      let processedValue: string | number = inputValue;
-      if (type === 'number') {
-        const num = Number(inputValue);
-        if (isNaN(num)) {
-          throw new Error('Invalid number format');
-        }
-        processedValue = num;
+      let processedValue: string | number | boolean = inputValue;
+      
+      // Process based on type
+      if (type === 'number' && inputValue) {
+        processedValue = Number(inputValue);
+      } else if (type === 'date' && inputValue) {
+        // Date already validated in validateInput
+        processedValue = inputValue;
+      } else if (type === 'date' && !inputValue) {
+        // Empty date field should be null
+        processedValue = null as any;
       }
 
       // Call onChange - this already creates notifications on the server side
@@ -106,6 +144,8 @@ export default function EditableCell({
       
       setIsEditing(false);
     } catch (err) {
+      // Error is already handled in the onChange function (in DashboardContent)
+      // Just keep the cell in edit mode
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
@@ -113,11 +153,15 @@ export default function EditableCell({
   };
 
   const handleBlur = () => {
-    handleSubmit();
+    // Only submit if we're not already submitting and there's no error
+    if (!isSubmitting && !error) {
+      handleSubmit();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSubmit();
     }
     if (e.key === 'Escape') {
@@ -128,11 +172,17 @@ export default function EditableCell({
   };
 
   const formatDisplayValue = () => {
-    if (!value) return '-';
+    if (value === null || value === undefined || value === '') return '-';
+    
     if (type === 'date') {
-      const date = new Date(value as string);
-      return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
+      try {
+        const date = new Date(value as string);
+        return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
+      } catch (e) {
+        return '-';
+      }
     }
+    
     return value;
   };
 

@@ -504,37 +504,68 @@ useEffect(() => {
 
   const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean) => {
     try {
-      let processedValue = value;
-      const column = availableColumns.find(col => col.field === field);
-      if (column?.type === 'date' && value && (typeof value === 'string' || typeof value === 'number')) {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) throw new Error('Invalid date');
-        processedValue = date.toISOString();
-      }
+      // Reset any previous errors
+      setError(null);
+      
+      console.log(`Updating cell ${field} for order ${orderId} to:`, value);
   
-      console.log(`Updating cell ${field} for order ${orderId} to:`, processedValue);
-  
-      // Create a new reference for the updated order
-      const updatedOrder = orders.find(order => order.id === orderId);
-      if (!updatedOrder) {
+      // Find the order to update
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (!orderToUpdate) {
         throw new Error('Order not found');
       }
   
-      // Create a proper copy of the order with the updated field
+      // Validate the value before sending to server
+      let processedValue = value;
+      
+      // For date fields
+      const dateFields = [
+        'productie_datum', 'lever_datum', 'startdatum_assemblage', 
+        'start_datum_machinale', 'bruto_zagen', 'pers', 'netto_zagen',
+        'verkantlijmen', 'cnc_start_datum', 'pmt_start_datum', 'lakkerij_datum',
+        'coaten_m1', 'verkantlijmen_order_gereed'
+      ];
+      
+      if (dateFields.includes(field) && value !== null && value !== '') {
+        try {
+          const date = new Date(value as string | number);
+          if (isNaN(date.getTime())) {
+            throw new Error(`Invalid date format for ${field}`);
+          }
+          processedValue = date.toISOString();
+        } catch (e) {
+          throw new Error(`Please enter a valid date for ${field}`);
+        }
+      }
+      
+      // For number fields
+      const numberFields = [
+        'pos', 'height', 'db_waarde', 'mon', 'pho', 'pro', 
+        'ap', 'sp', 'cp', 'wp', 'dwp', 'pc', 'pcp', 'totaal_boards', 'tot'
+      ];
+      
+      if (numberFields.includes(field) && value !== null && value !== '') {
+        const num = Number(value);
+        if (isNaN(num)) {
+          throw new Error(`Please enter a valid number for ${field}`);
+        }
+        processedValue = num;
+      }
+  
+      // Create a proper copy of the order with the updated field for optimistic UI update
       const newUpdatedOrder = { 
-        ...updatedOrder, 
+        ...orderToUpdate, 
         [field]: processedValue 
       };
   
-      // Update in main orders array with the new reference
+      // Optimistically update the orders state with the new reference
       setOrders(prevOrders => 
         prevOrders.map(order => order.id === orderId ? newUpdatedOrder : order)
       );
   
-      // Important: Update priority orders with the SAME object reference
-      // This was likely causing the React error
+      // Also update priority orders with the SAME object reference
       setPriorityOrders(prevOrders => {
-        // First check if the order is in the priority list
+        // Check if the order is in the priority list
         const orderIndex = prevOrders.findIndex(order => order.id === orderId);
         if (orderIndex === -1) return prevOrders; // Not in the list
         
@@ -544,7 +575,7 @@ useEffect(() => {
         return newPriorityOrders;
       });
   
-      // Send update to server
+      // Send update to server with error handling
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 
@@ -554,15 +585,33 @@ useEffect(() => {
         body: JSON.stringify({ [field]: processedValue }),
       });
       
+      // Parse response data
+      const data = await response.json();
+      
+      // Handle error responses
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error:', errorData);
-        throw new Error(errorData.error || 'Failed to update order');
+        // Server returned an error
+        const errorMessage = data.message || data.error || 'Failed to update order';
+        
+        // Revert optimistic update
+        setOrders(prevOrders => 
+          prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
+        );
+        
+        setPriorityOrders(prevOrders => {
+          const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+          if (orderIndex === -1) return prevOrders;
+          
+          const revertedPriorityOrders = [...prevOrders];
+          revertedPriorityOrders[orderIndex] = orderToUpdate;
+          return revertedPriorityOrders;
+        });
+        
+        throw new Error(errorMessage);
       }
       
-      // Get the updated order data from the response
-      const updatedOrderFromServer = await response.json();
-      console.log('Server confirmed update:', updatedOrderFromServer);
+      // Success case - get the updated order from server
+      console.log('Server confirmed update:', data);
       
       // Show a brief success message
       setLastUpdateToast(`Updated ${field} successfully`);
@@ -573,7 +622,7 @@ useEffect(() => {
       
       // Show error message
       setError(error instanceof Error ? error.message : 'Failed to update order');
-      setTimeout(() => setError(null), 3000);
+      setTimeout(() => setError(null), 5000);
     }
   };
 
