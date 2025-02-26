@@ -251,7 +251,7 @@ export default function NotificationPanel() {
       
       if (!response.ok) throw new Error('Failed to delete notification');
       
-      // Update local state
+      // Update local state - remove the notification from the UI
       setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
       
       // Update unread count if needed

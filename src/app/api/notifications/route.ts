@@ -27,14 +27,20 @@ export async function GET() {
     }
 
     // Determine which notifications to fetch based on user role
-    let whereClause = {};
+    let whereClause: any = {
+      // Don't include notifications the user has deleted
+      NOT: {
+        deletedByUsers: {
+          has: user.id
+        }
+      }
+    };
     
     if (user.role === 'PLANNER' || user.role === 'BEHEERDER') {
-      // Planners and Beheerders see all notifications
-      whereClause = {};
+      // Planners and Beheerders see all notifications (except deleted ones)
     } else {
       // Other roles only see their own notifications
-      whereClause = { userId: user.id };
+      whereClause.userId = user.id;
     }
 
     const notifications = await prisma.notification.findMany({
@@ -112,12 +118,31 @@ export async function POST(request: Request) {
       }
     });
 
+    // Create message
+    const messageText = `Order ${orderNumber} had ${field} updated to ${value} by ${user.name || user.email}`;
+    
+    // Check for recent identical notifications to prevent duplicates
+    const recentNotifications = await prisma.notification.findMany({
+        where: {
+            orderId: orderId,
+            message: messageText,
+            createdAt: {
+                gte: new Date(Date.now() - 60000) // Only check last minute
+            }
+        }
+    });
+
+    // If we already have this exact notification recently, don't create duplicates
+    if (recentNotifications.length > 0) {
+        console.log('Skipping duplicate notification creation');
+        return NextResponse.json({ success: true, notifications: recentNotifications });
+    }
+
     // Create notifications for each planner/beheerder
-    // Pulse will automatically detect these new records
     const notificationPromises = planners.map(planner => 
       prisma.notification.create({
         data: {
-          message: `Order ${orderNumber} had ${field} updated to ${value} by ${user.name || user.email}`,
+          message: messageText,
           orderId,
           userId: planner.id,
         },

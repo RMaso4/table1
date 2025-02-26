@@ -58,10 +58,18 @@ export async function PATCH(
     // Check if user is authorized to modify this notification
     const notification = await prisma.notification.findUnique({
       where: { id: notificationId },
-      select: { userId: true }
+      select: { userId: true, deletedByUsers: true }
     });
 
     if (!notification) {
+      return NextResponse.json(
+        { error: 'Notification not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if this notification has been deleted by the user
+    if (notification.deletedByUsers.includes(user.id)) {
       return NextResponse.json(
         { error: 'Notification not found' },
         { status: 404 }
@@ -80,7 +88,7 @@ export async function PATCH(
       );
     }
 
-    // Update the notification - Pulse will automatically detect this change
+    // Update the notification
     const updatedNotification = await prisma.notification.update({
       where: { id: notificationId },
       data: { read },
@@ -96,7 +104,7 @@ export async function PATCH(
   }
 }
 
-// Add DELETE method to handle notification deletion
+// Update DELETE method to mark as deleted for the current user instead of actually deleting
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -140,7 +148,7 @@ export async function DELETE(
     // Check if notification exists
     const notification = await prisma.notification.findUnique({
       where: { id: notificationId },
-      select: { userId: true }
+      select: { userId: true, deletedByUsers: true }
     });
 
     if (!notification) {
@@ -150,7 +158,7 @@ export async function DELETE(
       );
     }
 
-    // Only allow users to delete their own notifications or if they are PLANNER/BEHEERDER
+    // Only allow users to delete notifications they should see
     const canDelete = 
       notification.userId === user.id || 
       ['PLANNER', 'BEHEERDER'].includes(user.role);
@@ -162,9 +170,19 @@ export async function DELETE(
       );
     }
 
-    // Delete the notification
-    await prisma.notification.delete({
+    // Check if user has already deleted this notification
+    if (notification.deletedByUsers.includes(user.id)) {
+      return NextResponse.json({ success: true });
+    }
+
+    // Mark as deleted for this user (add user ID to deletedByUsers array)
+    await prisma.notification.update({
       where: { id: notificationId },
+      data: {
+        deletedByUsers: {
+          push: user.id
+        }
+      },
     });
 
     return NextResponse.json({ success: true });

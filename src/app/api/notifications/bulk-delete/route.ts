@@ -39,50 +39,57 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check permissions based on user role
-    if (!['PLANNER', 'BEHEERDER'].includes(user.role)) {
-      // For regular users, only allow deleting their own notifications
-      // First, find all notifications by IDs
-      const notifications = await prisma.notification.findMany({
-        where: {
-          id: { in: ids }
-        },
-        select: {
-          id: true,
-          userId: true
-        }
-      });
-
-      // Filter out the ones that don't belong to the user
-      const allowedIds = notifications
-        .filter(n => n.userId === user.id)
-        .map(n => n.id);
-
-      if (allowedIds.length === 0) {
-        return NextResponse.json(
-          { error: 'You are not authorized to delete any of these notifications' },
-          { status: 403 }
-        );
+    // Get notifications the user is trying to delete
+    const notifications = await prisma.notification.findMany({
+      where: {
+        id: { in: ids }
+      },
+      select: {
+        id: true,
+        userId: true,
+        deletedByUsers: true
       }
+    });
 
-      // Only delete the allowed notifications
-      await prisma.notification.deleteMany({
-        where: {
-          id: { in: allowedIds }
-        }
-      });
-
-      return NextResponse.json({ success: true, deletedCount: allowedIds.length });
+    // Determine which notifications the user is allowed to delete
+    let idsToUpdate: string[] = [];
+    
+    if (['PLANNER', 'BEHEERDER'].includes(user.role)) {
+      // Planners and beheerders can delete any notification
+      idsToUpdate = notifications
+        .filter(n => !n.deletedByUsers.includes(user.id))
+        .map(n => n.id);
     } else {
-      // PLANNER and BEHEERDER can delete any notification
-      const result = await prisma.notification.deleteMany({
-        where: {
-          id: { in: ids }
-        }
-      });
-
-      return NextResponse.json({ success: true, deletedCount: result.count });
+      // Other users can only delete their own notifications
+      idsToUpdate = notifications
+        .filter(n => n.userId === user.id && !n.deletedByUsers.includes(user.id))
+        .map(n => n.id);
     }
+
+    if (idsToUpdate.length === 0) {
+      return NextResponse.json(
+        { success: true, message: 'No valid notifications to delete' }
+      );
+    }
+
+    // Update each notification to add the user to the deletedByUsers array
+    const updatePromises = idsToUpdate.map(id =>
+      prisma.notification.update({
+        where: { id },
+        data: {
+          deletedByUsers: {
+            push: user.id
+          }
+        }
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Marked ${idsToUpdate.length} notifications as deleted`
+    });
   } catch (error) {
     console.error('Error deleting notifications:', error);
     return NextResponse.json(

@@ -3,20 +3,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { Session } from 'next-auth';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 
-// Type assertion helper for the custom session
-interface CustomSession extends Session {
-  user: {
-    id: string;
-    role: string;
-    email?: string | null;
-    name?: string | null;
-  }
-}
-
-// Create notification for order updates
+// Create notification for order updates with duplicate prevention
 const createNotification = async (orderId: string, orderNumber: string, userId: string, field: string, value: string | number | boolean) => {
     try {
         // Find planners to notify
@@ -39,12 +28,30 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
         });
 
         const userName = user?.name || user?.email || 'Unknown user';
+        const messageText = `Order ${orderNumber} had ${field} updated to ${value} by ${userName}`;
+
+        // Check for recent identical notifications to prevent duplicates
+        const recentNotifications = await prisma.notification.findMany({
+            where: {
+                orderId: orderId,
+                message: messageText,
+                createdAt: {
+                    gte: new Date(Date.now() - 60000) // Only check last minute
+                }
+            }
+        });
+
+        // If we already have this exact notification recently, don't create duplicates
+        if (recentNotifications.length > 0) {
+            console.log('Skipping duplicate notification creation');
+            return recentNotifications;
+        }
 
         // Create notifications for each planner/beheerder
         const notificationPromises = planners.map(planner => 
             prisma.notification.create({
                 data: {
-                    message: `Order ${orderNumber} had ${field} updated to ${value} by ${userName}`,
+                    message: messageText,
                     orderId: orderId,
                     userId: planner.id,
                 },
@@ -84,9 +91,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Use type assertion to tell TypeScript this is our custom session
-        const userSession = session as CustomSession;
-        const userId = userSession.user.id;
+        // Get user information
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! },
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
+            );
+        }
 
         const data = await request.json();
 
@@ -94,8 +109,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         console.log('Attempting to update order:', {
             orderId: id,
             updateData: data,
-            userId: userId,
-            userEmail: session.user.email
+            userId: user.id,
+            userEmail: user.email
         });
 
         // Get the order before update to include in notification
@@ -137,8 +152,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const changedFields = Object.keys(data);
         
         for (const field of changedFields) {
-            // Create notifications
-            await createNotification(id, orderBefore.verkoop_order, userId, field, data[field]);
+            // Create notifications - with duplicate prevention
+            await createNotification(id, orderBefore.verkoop_order, user.id, field, data[field]);
         }
 
         // Broadcast the update via Pusher
