@@ -122,10 +122,6 @@ function emitNotification(notification) {
     console.log('Emitting notification:', notification);
     // Send to planners and beheerders
     io.to('role:PLANNER').to('role:BEHEERDER').emit('notification:new', notification);
-    // Send to specific user if applicable
-    if (notification.userId) {
-        io.to(`user:${notification.userId}`).emit('notification:new', notification);
-    }
     return true;
 }
 // Graceful shutdown

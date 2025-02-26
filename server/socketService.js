@@ -110,11 +110,6 @@ function emitNotification(notification) {
     // Send to all PLANNER and BEHEERDER users
     io.to('role:PLANNER').to('role:BEHEERDER').emit('notification:new', notification);
     
-    // Also send to the specific user if applicable
-    if (notification.userId) {
-      io.to(`user:${notification.userId}`).emit('notification:new', notification);
-    }
-    
     // Also broadcast to all clients as a fallback
     io.emit('notification:new', notification);
     
