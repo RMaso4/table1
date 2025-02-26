@@ -131,7 +131,7 @@ export default function PriorityOrdersTable({
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-500">
-                              {order.lever_datum
+                              {typeof order.lever_datum === 'string' || typeof order.lever_datum === 'number'
                                 ? new Date(order.lever_datum).toLocaleDateString()
                                 : '-'}
                             </div>
