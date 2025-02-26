@@ -112,6 +112,9 @@ export default function DashboardContent() {
   );
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
 
+  // Create ref for processed updates at the component top level
+  const processedUpdatesRef = useRef(new Set<string>());
+
   // Handle export functionality
   const handleExport = () => {
     // Get visible columns in their current order
@@ -254,78 +257,80 @@ export default function DashboardContent() {
   }, []);
 
   // Handle real-time updates for orders
-useEffect(() => {
-  // Skip if real-time updates are disabled or no update received
-  if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
-    return;
-  }
-  
-  console.log('Processing real-time order update:', lastOrderUpdate);
-  
-  // Create a unique identifier for this update to track in component state
-  const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
-  
-  // Use a ref to track processed updates within this component
-  const processedUpdatesRef = useRef(new Set<string>());
-  
-  // Skip if we've seen this update already 
-  if (processedUpdatesRef.current.has(updateId)) {
-    console.log('DashboardContent: Skipping already processed update', updateId);
-    return;
-  }
-  
-  // Mark as processed
-  processedUpdatesRef.current.add(updateId);
-  
-  // Show a toast notification for the update
-  const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
-  setLastUpdateToast(`Order ${orderNumber} updated`);
-  
-  // Clear toast after 3 seconds
-  setTimeout(() => setLastUpdateToast(null), 3000);
-  
-  // Update orders with the new data
-  setOrders(prevOrders => {
-    // Find the order index to update
-    const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
-    
-    // If order exists, update it
-    if (orderIndex !== -1) {
-      const updatedOrders = [...prevOrders];
-      updatedOrders[orderIndex] = {
-        ...updatedOrders[orderIndex],
-        ...lastOrderUpdate.data,
-        id: lastOrderUpdate.orderId // Ensure ID is preserved
-      } as Order;
-      
-      console.log('Updated order in state:', updatedOrders[orderIndex]);
-      return updatedOrders;
+  useEffect(() => {
+    // Skip if real-time updates are disabled or no update received
+    if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
+      return;
     }
     
-    // If we have a full order object and it's not in our list yet, add it
-    // Only add if we're not filtering (to avoid confusion)
-    if (
-      lastOrderUpdate.data.id &&
-      !Object.keys(columnFilters).length && 
-      !globalSearchQuery && 
-      !activeFilters.length
-    ) {
-      // Ensure all required Order properties are present
-      const newOrder = {
-        ...lastOrderUpdate.data,
-        id: lastOrderUpdate.orderId,
-        project: lastOrderUpdate.data.project || '',
-        debiteur_klant: lastOrderUpdate.data.debiteur_klant || '',
-      } as Order;
-      
-      console.log('Adding new order to state:', newOrder);
-      return [...prevOrders, newOrder];
+    console.log('Processing real-time order update:', lastOrderUpdate);
+    
+    // Create a unique identifier for this update to track in component state
+    const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
+    
+    // Skip if we've seen this update already 
+    if (processedUpdatesRef.current.has(updateId)) {
+      console.log('DashboardContent: Skipping already processed update', updateId);
+      return;
     }
     
-    // Otherwise, don't change anything
-    return prevOrders;
-  });
-}, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters]);
+    // Mark as processed
+    processedUpdatesRef.current.add(updateId);
+    
+    // Clean up processed updates after a while to prevent memory leaks
+    setTimeout(() => {
+      processedUpdatesRef.current.delete(updateId);
+    }, 10000);
+    
+    // Show a toast notification for the update
+    const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
+    setLastUpdateToast(`Order ${orderNumber} updated`);
+    
+    // Clear toast after 3 seconds
+    setTimeout(() => setLastUpdateToast(null), 3000);
+    
+    // Update orders with the new data
+    setOrders(prevOrders => {
+      // Find the order index to update
+      const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+      
+      // If order exists, update it
+      if (orderIndex !== -1) {
+        const updatedOrders = [...prevOrders];
+        updatedOrders[orderIndex] = {
+          ...updatedOrders[orderIndex],
+          ...lastOrderUpdate.data,
+          id: lastOrderUpdate.orderId // Ensure ID is preserved
+        } as Order;
+        
+        console.log('Updated order in state:', updatedOrders[orderIndex]);
+        return updatedOrders;
+      }
+      
+      // If we have a full order object and it's not in our list yet, add it
+      // Only add if we're not filtering (to avoid confusion)
+      if (
+        lastOrderUpdate.data.id &&
+        !Object.keys(columnFilters).length && 
+        !globalSearchQuery && 
+        !activeFilters.length
+      ) {
+        // Ensure all required Order properties are present
+        const newOrder = {
+          ...lastOrderUpdate.data,
+          id: lastOrderUpdate.orderId,
+          project: lastOrderUpdate.data.project || '',
+          debiteur_klant: lastOrderUpdate.data.debiteur_klant || '',
+        } as Order;
+        
+        console.log('Adding new order to state:', newOrder);
+        return [...prevOrders, newOrder];
+      }
+      
+      // Otherwise, don't change anything
+      return prevOrders;
+    });
+  }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters]);
   
   // Handle notifications from real-time updates
   useEffect(() => {
@@ -442,7 +447,7 @@ useEffect(() => {
     setColumnOrder(newColumnOrder);
   };
 
-  const handleColumnDragStart = (_e: React.DragEvent, field: string) => {
+  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
     setDraggingColumn(field);
   };
 
