@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUp, Trash2, Star } from 'lucide-react';
+import { ArrowUp, Star } from 'lucide-react';
 
 interface OrderTableActionsProps {
   orderId: string;

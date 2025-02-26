@@ -1,9 +1,8 @@
 // src/components/PriorityOrdersTable.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { ArrowDown, GripVertical, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { GripVertical, X } from 'lucide-react';
 import { Order } from '@/types';
 
 interface PriorityOrdersTableProps {
@@ -17,16 +16,51 @@ export default function PriorityOrdersTable({
   onRemoveFromPriority,
   onPriorityOrdersChange,
 }: PriorityOrdersTableProps) {
-  // Handle drag end event
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-    const items = Array.from(orders);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+  // Handle drag start
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    setDraggedIndex(index);
+    // Set data transfer for compatibility
+    e.dataTransfer.setData('text/plain', index.toString());
+    // Set visual effect
+    e.currentTarget.classList.add('bg-blue-50');
+  };
 
-    // Call parent callback with the new order
-    onPriorityOrdersChange(items);
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-t-2', 'border-blue-500');
+  };
+
+  // Handle drag leave
+  const handleDragLeave = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.currentTarget.classList.remove('border-t-2', 'border-blue-500');
+  };
+
+  // Handle drop
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, targetIndex: number) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-t-2', 'border-blue-500');
+    
+    if (draggedIndex === null) return;
+    
+    // Create a new array with the reordered items
+    const newOrders = [...orders];
+    const [movedItem] = newOrders.splice(draggedIndex, 1);
+    newOrders.splice(targetIndex, 0, movedItem);
+    
+    // Call the parent's onPriorityOrdersChange with the new order
+    onPriorityOrdersChange(newOrders);
+    
+    // Reset dragged index
+    setDraggedIndex(null);
+  };
+
+  // Handle drag end
+  const handleDragEnd = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.currentTarget.classList.remove('bg-blue-50');
+    setDraggedIndex(null);
   };
 
   // If there are no priority orders, show a placeholder message
@@ -50,112 +84,95 @@ export default function PriorityOrdersTable({
         </div>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="priority-orders">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="overflow-x-auto"
-            >
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="w-10 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      #
-                    </th>
-                    <th className="w-12 px-3 py-3"></th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Order #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Material
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Delivery Date
-                    </th>
-                    <th className="w-12 px-3 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {orders.map((order, index) => (
-                    <Draggable
-                      key={order.id}
-                      draggableId={order.id}
-                      index={index}
-                    >
-                      {(provided, snapshot) => (
-                        <tr
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`hover:bg-gray-50 ${
-                            snapshot.isDragging ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <td className="px-3 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {index + 1}
-                            </div>
-                          </td>
-                          <td
-                            className="px-3 py-4 whitespace-nowrap cursor-move"
-                            {...provided.dragHandleProps}
-                          >
-                            <GripVertical className="h-5 w-5 text-gray-400" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {order.verkoop_order}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {order.project || '-'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {order.debiteur_klant}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {order.material}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {typeof order.lever_datum === 'string' || typeof order.lever_datum === 'number'
-                                ? new Date(order.lever_datum).toLocaleDateString()
-                                : '-'}
-                            </div>
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => onRemoveFromPriority(order.id)}
-                              className="text-gray-400 hover:text-red-500"
-                              title="Remove from priority"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="w-10 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
+              <th className="w-12 px-3 py-3"></th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Order #
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Customer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Material
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Delivery Date
+              </th>
+              <th className="w-12 px-3 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {orders.map((order, index) => (
+              <tr
+                key={order.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className="hover:bg-gray-50 transition-colors duration-150"
+              >
+                <td className="px-3 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {index + 1}
+                  </div>
+                </td>
+                <td
+                  className="px-3 py-4 whitespace-nowrap cursor-move"
+                >
+                  <GripVertical className="h-5 w-5 text-gray-400" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {order.verkoop_order}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {order.project || '-'}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {order.debiteur_klant}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {order.material}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {order.lever_datum && (typeof order.lever_datum === 'string' || typeof order.lever_datum === 'number')
+                      ? new Date(order.lever_datum).toLocaleDateString()
+                      : '-'}
+                  </div>
+                </td>
+                <td className="px-3 py-4 whitespace-nowrap text-right">
+                  <button
+                    onClick={() => onRemoveFromPriority(order.id)}
+                    className="text-gray-400 hover:text-red-500"
+                    title="Remove from priority"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
