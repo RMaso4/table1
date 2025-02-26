@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
 
@@ -33,17 +33,17 @@ export default function NotificationPanel() {
   // Keep track of processed notification IDs to prevent duplicates
   const processedNotificationsRef = useRef<Set<string>>(new Set());
 
-  // Close panel when clicking outside
+  // Close popup when pressing Escape key
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (notificationPanelRef.current && !notificationPanelRef.current.contains(event.target as Node)) {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
         setIsOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [isOpen]);
 
   // Handle new notifications via Pusher
   useEffect(() => {
@@ -183,11 +183,19 @@ export default function NotificationPanel() {
     }).format(date);
   };
 
+  // Close popup when clicking outside the content
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className="relative" ref={notificationPanelRef}>
+    <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-300 hover:text-white"
+        aria-label="Open notifications"
       >
         <Bell className="h-6 w-6" />
         {unreadCount > 0 && (
@@ -197,57 +205,83 @@ export default function NotificationPanel() {
         )}
       </button>
 
+      {/* Popup Overlay */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-lg overflow-hidden z-50 transform -translate-x-3/4 md:-translate-x-1/2 lg:-translate-x-1/4">
-          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-            <div className="text-xs text-gray-500">
-              {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-          
-          <div className="max-h-96 overflow-y-auto">
-            {isLoading ? (
-              <div className="p-4 text-center">
-                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-blue-500 border-r-transparent"></div>
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">No notifications</div>
-            ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-800">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTime(notification.createdAt)}
-                      </p>
-                    </div>
-                    {!notification.read && (
-                      <span className="h-2 w-2 bg-blue-500 rounded-full mt-1"></span>
-                    )}
-                  </div>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={handleBackdropClick}
+        >
+          {/* Popup Content */}
+          <div 
+            ref={notificationPanelRef}
+            className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col animate-fadeIn"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+              <div className="flex items-center gap-4">
+                <div className="text-xs text-gray-500">
+                  {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
                 </div>
-              ))
+                <button 
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close notifications"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="overflow-y-auto flex-grow">
+              {isLoading ? (
+                <div className="p-6 text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+                  <p className="mt-2 text-gray-600">Loading notifications...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <p>No notifications</p>
+                  <p className="text-sm mt-2">You'll see updates here when there's activity.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-4 hover:bg-gray-50 cursor-pointer ${
+                        !notification.read ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => !notification.read && markAsRead(notification.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-800">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatTime(notification.createdAt)}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <span className="h-2 w-2 bg-blue-500 rounded-full mt-1 flex-shrink-0 ml-2"></span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {notifications.length > 0 && unreadCount > 0 && (
+              <div className="p-3 border-t border-gray-200 text-center bg-gray-50">
+                <button
+                  onClick={markAllAsRead}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Mark all as read
+                </button>
+              </div>
             )}
           </div>
-          
-          {notifications.length > 0 && (
-            <div className="p-2 border-t border-gray-200 text-center">
-              <button
-                onClick={markAllAsRead}
-                className="text-xs text-blue-600 hover:text-blue-800"
-              >
-                Mark all as read
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
