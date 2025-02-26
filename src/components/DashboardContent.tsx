@@ -178,7 +178,7 @@ export default function DashboardContent() {
       });
     });
 
-    // Apply sorting if a sort field is selected
+    // Apply sorting if a sort field is selecteded
     if (sortState.field) {
       result.sort((a, b) => {
         const aValue = a[sortState.field as keyof Order];
