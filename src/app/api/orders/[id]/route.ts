@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 import { Prisma } from '@prisma/client';
 
-// Proper data type validation for field values
+// Field validation function 
 const validateFieldValue = (field: string, value: string | number | boolean | null): string | number | boolean | null => {
   // Date fields should be valid dates or null
   const dateFields = [
@@ -147,11 +147,11 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
 };
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     if (!id) {
       return NextResponse.json({ error: 'Missing order ID' }, { status: 400 });
     }
@@ -188,7 +188,7 @@ export async function PATCH(
     }
 
     // Validate and sanitize updates
-    const updatedData: Record<string, any> = {};
+    const updatedData: Record<string, unknown> = {};
     for (const [field, value] of Object.entries(data)) {
       if (value === null || value === undefined) continue;
       updatedData[field] = value;
@@ -197,7 +197,7 @@ export async function PATCH(
     // Prevent duplicate verkoop_order
     if (updatedData.verkoop_order && updatedData.verkoop_order !== existingOrder.verkoop_order) {
       const duplicateOrder = await prisma.order.findUnique({
-        where: { verkoop_order: updatedData.verkoop_order },
+        where: { verkoop_order: updatedData.verkoop_order as string },
         select: { id: true },
       });
       if (duplicateOrder) {
@@ -237,7 +237,7 @@ export async function PATCH(
         }, { status: 400 });
       }
     }
-    //this needs this
+
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
