@@ -146,10 +146,10 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
   }
 };
 
-export async function PATCH(request: Request, context: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     // Get order ID from params
-    const { id } = context.params;
+    const { id } = params;
     if (!id) {
       return NextResponse.json({ error: 'Missing order ID' }, { status: 400 });
     }
