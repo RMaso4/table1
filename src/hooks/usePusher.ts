@@ -1,4 +1,3 @@
-// src/hooks/usePusher.ts
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -56,6 +55,15 @@ export default function usePusher() {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const channelsRef = useRef<Record<string, PusherChannel | null>>({});
   
+  // Enhanced duplicate prevention with both ID-based and content-based tracking
+  const processedOrdersRef = useRef<Set<string>>(new Set());
+  const processedOrderContentRef = useRef<Set<string>>(new Set());
+  const processedNotificationsRef = useRef<Set<string>>(new Set());
+  const processedNotificationContentRef = useRef<Set<string>>(new Set());
+  
+  // Flag to track if channels are already set up
+  const channelsSetupRef = useRef(false);
+  
   // Reconnection logic
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -88,7 +96,15 @@ export default function usePusher() {
   
   // Set up channels and event listeners
   const setupChannels = useCallback(() => {
+    // Only set up channels once
+    if (channelsSetupRef.current) {
+      console.log('Channels already set up, skipping duplicate setup');
+      return true;
+    }
+    
     try {
+      console.log('Setting up Pusher channels');
+      
       // Clean up any existing subscriptions
       Object.values(channelsRef.current).forEach(channel => {
         if (channel && typeof channel.unbind_all === 'function') {
@@ -105,7 +121,7 @@ export default function usePusher() {
       channelsRef.current.orders = ordersChannel;
       channelsRef.current.notifications = notificationsChannel;
       
-      // Set up order update handler
+      // Set up order update handler with improved deduplication
       ordersChannel.bind(EVENTS.ORDER_UPDATED, (data: OrderUpdateEvent) => {
         console.log('Pusher: Order update received:', data);
         
@@ -115,12 +131,40 @@ export default function usePusher() {
           return;
         }
         
+        // Create a unique content fingerprint for this update
+        const contentFingerprint = `${data.orderId}:${JSON.stringify(data.data)}`;
+        
+        // Check both forms of duplicates
+        if (processedOrdersRef.current.has(data.orderId)) {
+          console.log('Skipping duplicate order ID:', data.orderId);
+          return;
+        }
+        
+        if (processedOrderContentRef.current.has(contentFingerprint)) {
+          console.log('Skipping duplicate order content:', contentFingerprint);
+          return;
+        }
+        
+        // Mark as processed to prevent duplicates
+        processedOrdersRef.current.add(data.orderId);
+        processedOrderContentRef.current.add(contentFingerprint);
+        
+        // Clear this order ID from processed list after a delay to allow future updates
+        setTimeout(() => {
+          processedOrdersRef.current.delete(data.orderId);
+        }, 3000);
+        
+        // Clear content fingerprint after a longer delay
+        setTimeout(() => {
+          processedOrderContentRef.current.delete(contentFingerprint);
+        }, 10000);
+        
         // Update state with the new data
         setLastOrderUpdate(data);
         setOrderUpdates(prev => [data, ...prev].slice(0, 50));
       });
       
-      // Set up notification handler
+      // Set up notification handler with improved deduplication
       notificationsChannel.bind(EVENTS.NOTIFICATION_NEW, (data: NotificationEvent) => {
         console.log('Pusher: Notification received:', data);
         
@@ -130,10 +174,37 @@ export default function usePusher() {
           return;
         }
         
+        // Create content fingerprint for semantic duplicate detection
+        const contentFingerprint = `${data.orderId}:${data.message}:${data.userId}`;
+        
+        // Check both forms of duplicates
+        if (processedNotificationsRef.current.has(data.id)) {
+          console.log('Skipping duplicate notification ID:', data.id);
+          return;
+        }
+        
+        if (processedNotificationContentRef.current.has(contentFingerprint)) {
+          console.log('Skipping duplicate notification content:', contentFingerprint);
+          return;
+        }
+        
+        // Mark as processed to prevent duplicates
+        processedNotificationsRef.current.add(data.id);
+        processedNotificationContentRef.current.add(contentFingerprint);
+        
+        // Don't remove ID from processed list (IDs should be globally unique)
+        // But clear content fingerprint after a delay to allow similar notifications
+        setTimeout(() => {
+          processedNotificationContentRef.current.delete(contentFingerprint);
+        }, 30000);
+        
         // Update state with the new notification
         setLastNotification(data);
         setNotifications(prev => [data, ...prev].slice(0, 50));
       });
+      
+      // Mark channels as set up to prevent duplicate setup
+      channelsSetupRef.current = true;
       
       return true;
     } catch (error) {
@@ -160,6 +231,9 @@ export default function usePusher() {
     const handleDisconnected = () => {
       console.log('Pusher disconnected');
       setIsConnected(false);
+      
+      // Reset channels setup flag on disconnection
+      channelsSetupRef.current = false;
       
       // Attempt to reconnect after a delay
       reconnectTimeoutRef.current = setTimeout(() => {
@@ -201,6 +275,9 @@ export default function usePusher() {
           channel.unbind_all();
         }
       });
+      
+      // Reset channels setup flag
+      channelsSetupRef.current = false;
       
       // Clear reconnection timeout
       if (reconnectTimeoutRef.current) {

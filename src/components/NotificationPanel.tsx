@@ -90,38 +90,40 @@ export default function NotificationPanel() {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [isOpen]);
 
-  // Handle new notifications via Pusher
   useEffect(() => {
     if (!session?.user) return;
     
     const channel = pusherClient.subscribe(CHANNELS.NOTIFICATIONS);
     
     channel.bind(EVENTS.NOTIFICATION_NEW, (notification: Notification) => {
-      // Check if we've already processed this notification
-      if (processedNotificationsRef.current.has(notification.id)) {
-        console.log('Skipping duplicate notification ID:', notification.id);
+      // Create a unique identifier for deduplication
+      const notificationKey = notification.id;
+      const contentKey = `${notification.orderId}:${notification.message}:${notification.userId}`;
+      
+      // Skip duplicates (check both ID and content)
+      if (processedNotificationsRef.current.has(notificationKey)) {
+        console.log('NotificationPanel: Skipping duplicate notification ID:', notificationKey);
         return;
       }
       
-      // Create a unique key from the notification's content to catch semantic duplicates
-      const messageKey = `${notification.orderId}:${notification.message}:${notification.userId}`;
-      if (processedMessagesRef.current.has(messageKey)) {
-        console.log('Skipping duplicate notification content:', messageKey);
+      if (processedMessagesRef.current.has(contentKey)) {
+        console.log('NotificationPanel: Skipping duplicate notification content:', contentKey);
         return;
       }
       
       console.log('New notification received via Pusher:', notification);
       
       // Mark as processed
-      processedNotificationsRef.current.add(notification.id);
-      processedMessagesRef.current.add(messageKey);
+      processedNotificationsRef.current.add(notificationKey);
+      processedMessagesRef.current.add(contentKey);
       
+      // Update notifications using functional update to ensure we're using the latest state
       setNotifications(prev => {
-        // Double-check again (in case notification arrived multiple times rapidly)
+        // Final safety check against the current state
         const exists = prev.some(n => n.id === notification.id);
         if (exists) return prev;
         
-        // Check for semantic duplicates (same message about same order)
+        // Check for semantic duplicates
         const semanticDuplicate = prev.some(n => 
           n.orderId === notification.orderId && 
           n.message === notification.message && 
@@ -129,7 +131,7 @@ export default function NotificationPanel() {
         );
         if (semanticDuplicate) return prev;
         
-        // Add new notification at the beginning
+        // No duplicates found, add the new notification
         const updated = [notification, ...prev];
         
         // Update unread count
@@ -141,7 +143,7 @@ export default function NotificationPanel() {
         return updated;
       });
     });
-
+  
     // Clean up
     return () => {
       channel.unbind_all();
