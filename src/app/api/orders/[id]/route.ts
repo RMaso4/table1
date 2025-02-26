@@ -237,7 +237,7 @@ export async function PATCH(
         }, { status: 400 });
       }
     }
-
+    //this needs this
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
