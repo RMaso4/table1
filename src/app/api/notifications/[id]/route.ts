@@ -95,3 +95,84 @@ export async function PATCH(
     );
   }
 }
+
+// Add DELETE method to handle notification deletion
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Await the params object to access its properties
+    const params = await context.params;
+    const notificationId = params.id;
+    
+    // First, get the session
+    const session = await getServerSession(authOptions);
+    
+    // Check if user is authenticated
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    // Validate ID
+    if (!notificationId) {
+      return NextResponse.json(
+        { error: 'Missing notification ID' },
+        { status: 400 }
+      );
+    }
+
+    // Get user information
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email! },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if notification exists
+    const notification = await prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { userId: true }
+    });
+
+    if (!notification) {
+      return NextResponse.json(
+        { error: 'Notification not found' },
+        { status: 404 }
+      );
+    }
+
+    // Only allow users to delete their own notifications or if they are PLANNER/BEHEERDER
+    const canDelete = 
+      notification.userId === user.id || 
+      ['PLANNER', 'BEHEERDER'].includes(user.role);
+    
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'You are not authorized to delete this notification' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the notification
+    await prisma.notification.delete({
+      where: { id: notificationId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete notification' },
+      { status: 500 }
+    );
+  }
+}
