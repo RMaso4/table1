@@ -38,6 +38,18 @@ interface CustomUser {
   role: Role;
 }
 
+// Type for session with our custom properties
+interface CustomSession {
+  user: {
+    id: string;
+    role: Role;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  }
+  expires: string;
+}
+
 // Configure NextAuth options
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(authPrisma),
@@ -130,12 +142,18 @@ export const authOptions: NextAuthOptions = {
     
     // This callback is called whenever a session is checked
     async session({ session, token }) {
-      // Make user data available in the session
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
-      }
-      return session;
+      // Use a temporary variable with a type that has our custom properties
+      const customSession = session as unknown as CustomSession;
+      
+      // Now safely assign the properties
+      customSession.user = {
+        ...session.user,
+        id: token.id as string,
+        role: token.role as Role
+      };
+      
+      // Return the modified session
+      return customSession;
     }
   },
   
