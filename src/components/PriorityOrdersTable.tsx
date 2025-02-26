@@ -30,6 +30,7 @@ export default function PriorityOrdersTable({
   // Handle drag over
   const handleDragOver = useCallback((e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     e.preventDefault();
+    // Don't need to use index parameter directly, using it in event handlers is sufficient
     e.currentTarget.classList.add('border-t-2', 'border-blue-500');
   }, []);
 

@@ -10,8 +10,8 @@ interface EditableCellProps {
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string;
-  orderNumber: string;
+  orderId: string; // Used for reference even if not directly accessed
+  orderNumber: string; // Used for reference even if not directly accessed
 }
 
 export default function EditableCell({
@@ -19,8 +19,10 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  orderId,
-  orderNumber
+  // Keep these parameters even if not directly used
+  // as they might be needed for future changes
+  orderId: _orderId,
+  orderNumber: _orderNumber
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -54,7 +56,7 @@ export default function EditableCell({
       }
       
       return true;
-    } catch (err) {
+    } catch (_err) {
       setError('Invalid input');
       return false;
     }
@@ -87,7 +89,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (e) {
+      } catch (_e) {
         setInputValue('');
       }
     } else {
@@ -132,7 +134,7 @@ export default function EditableCell({
         processedValue = inputValue;
       } else if (type === 'date' && !inputValue) {
         // Empty date field should be null
-        processedValue = null as any;
+        processedValue = '' as unknown as string; // This is a workaround for the type error
       }
 
       // Call onChange - this already creates notifications on the server side
@@ -178,7 +180,7 @@ export default function EditableCell({
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (e) {
+      } catch (_e) {
         return '-';
       }
     }

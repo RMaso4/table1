@@ -626,22 +626,7 @@ useEffect(() => {
     }
   };
 
-  // Column drag and drop handlers
-  const handleColumnDragOver = (e: React.DragEvent, field: string) => {
-    e.preventDefault();
-    if (!draggingColumn || draggingColumn === field) return;
-
-    const newColumnOrder = [...columnOrder];
-    const dragIndex = newColumnOrder.indexOf(draggingColumn);
-    const dropIndex = newColumnOrder.indexOf(field);
-
-    newColumnOrder.splice(dragIndex, 1);
-    newColumnOrder.splice(dropIndex, 0, draggingColumn);
-
-    setColumnOrder(newColumnOrder);
-  };
-
-  const handleColumnDragStart = (_e: React.DragEvent, field: string) => {
+  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
     setDraggingColumn(field);
   };
 
@@ -649,36 +634,70 @@ useEffect(() => {
     setDraggingColumn(null);
   };
 
-  // Save priority orders to backend
-  const savePriorityOrdersToBackend = async () => {
-    try {
-      // In a full implementation, you would save the priority orders to your backend
-      // For now, we're just using localStorage, but here's how you could implement it:
-      /*
-      const response = await fetch('/api/priority-orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priorityOrders: priorityOrders.map(order => order.id)
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save priority orders');
-      }
-      */
-
-      // For now we'll just show a success message
-      setLastUpdateToast('Priority order saved');
-      setTimeout(() => setLastUpdateToast(null), 3000);
-    } catch (error) {
-      console.error('Error saving priority orders:', error);
-      setError('Failed to save priority orders');
-      setTimeout(() => setError(null), 3000);
-    }
+  const handleColumnDragOver = (e: React.DragEvent, field: string) => {
+    e.preventDefault(); // Keep this line
+    if (!draggingColumn || draggingColumn === field) return;
+  
+    const newColumnOrder = [...columnOrder];
+    const dragIndex = newColumnOrder.indexOf(draggingColumn);
+    const dropIndex = newColumnOrder.indexOf(field);
+  
+    newColumnOrder.splice(dragIndex, 1);
+    newColumnOrder.splice(dropIndex, 0, draggingColumn);
+  
+    setColumnOrder(newColumnOrder);
   };
+  
+  // 3. Either use the savePriorityOrdersToBackend function or comment it
+  // Example of how to use it (call it after updating priorities):
+  // const addToPriorityList = (orderId: string) => {
+  //   const orderToAdd = orders.find(order => order.id === orderId);
+  //   if (!orderToAdd) return;
+  
+  //   // Check if the order is already in the priority list
+  //   if (priorityOrders.some(order => order.id === orderId)) return;
+  
+  //   // Add the order to the priority list
+  //   setPriorityOrders(prev => [...prev, orderToAdd]);
+    
+  //   // Show confirmation toast
+  //   setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
+  //   setTimeout(() => setLastUpdateToast(null), 3000);
+    
+  //   // Save to backend when adding to priority list
+  //   savePriorityOrdersToBackend();
+  // };
+  
+  // OR if you're not using it yet, you can comment it out:
+  // const savePriorityOrdersToBackend = async () => {
+  //   try {
+  //     // In a full implementation, you would save the priority orders to your backend
+  //     // For now, we're just using localStorage, but here's how you could implement it:
+  //     /*
+  //     const response = await fetch('/api/priority-orders', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         priorityOrders: priorityOrders.map(order => order.id)
+  //       }),
+  //     });
+  //
+  //     if (!response.ok) {
+  //       throw new Error('Failed to save priority orders');
+  //     }
+  //     */
+  //
+  //     // For now we'll just show a success message
+  //     setLastUpdateToast('Priority order saved');
+  //     setTimeout(() => setLastUpdateToast(null), 3000);
+  //   } catch (error) {
+  //     console.error('Error saving priority orders:', error);
+  //     setError('Failed to save priority orders');
+  //     setTimeout(() => setError(null), 3000);
+  //   }
+  // };
 
   // Clear all filters
   const clearAllFilters = () => {

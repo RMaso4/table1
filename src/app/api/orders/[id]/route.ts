@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 
 // Proper data type validation for field values
-const validateFieldValue = (field: string, value: any) => {
+const validateFieldValue = (field: string, value: string | number | boolean | null): string | number | boolean | null => {
   // Date fields should be valid dates or null
   const dateFields = [
     'productie_datum', 'lever_datum', 'startdatum_assemblage', 
@@ -20,12 +20,12 @@ const validateFieldValue = (field: string, value: any) => {
     if (value === null) return null;
     
     try {
-      const date = new Date(value);
+      const date = new Date(value as string | number);
       if (isNaN(date.getTime())) {
         throw new Error(`Invalid date format for field ${field}`);
       }
       return date.toISOString();
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`Invalid date format for field ${field}`);
     }
   }
@@ -63,7 +63,7 @@ const validateFieldValue = (field: string, value: any) => {
 };
 
 // Create notification for order updates with duplicate prevention
-const createNotification = async (orderId: string, orderNumber: string, userId: string, field: string, value: any) => {
+const createNotification = async (orderId: string, orderNumber: string, userId: string, field: string, value: string | number | boolean | null) => {
   try {
     // Find planners to notify
     const planners = await prisma.user.findMany({
@@ -87,11 +87,13 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
     const userName = user?.name || user?.email || 'Unknown user';
     
     // Format the value for display in notification
-    let displayValue = value;
-    if (value instanceof Date) {
-      displayValue = value.toLocaleDateString();
+    let displayValue: string;
+    if (typeof value === 'string' && !isNaN(new Date(value).getTime())) {
+      displayValue = new Date(value).toLocaleDateString();
     } else if (typeof value === 'boolean') {
       displayValue = value ? 'Yes' : 'No';
+    } else {
+      displayValue = String(value ?? 'null');
     }
     
     const messageText = `Order ${orderNumber} had ${field} updated to ${displayValue} by ${userName}`;
@@ -138,8 +140,8 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
     );
 
     return await Promise.all(notificationPromises);
-  } catch (error) {
-    console.error('Error creating notifications:', error);
+  } catch (_error) {
+    console.error('Error creating notifications:', _error);
     return [];
   }
 };
@@ -171,7 +173,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     let data;
     try {
       data = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
@@ -186,10 +188,10 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     }
 
     // Validate all field updates
-    const validatedData: Record<string, any> = {};
+    const validatedData: Record<string, string | number | boolean | null> = {};
     for (const [field, value] of Object.entries(data)) {
       try {
-        validatedData[field] = validateFieldValue(field, value);
+        validatedData[field] = validateFieldValue(field, value as string | number | boolean | null);
       } catch (error) {
         return NextResponse.json({ 
           error: 'Validation error', 
@@ -203,7 +205,7 @@ export async function PATCH(request: Request, context: { params: { id: string } 
     if (validatedData.verkoop_order && validatedData.verkoop_order !== orderBefore.verkoop_order) {
       // Check if the new order number is already in use
       const existingOrder = await prisma.order.findUnique({
-        where: { verkoop_order: validatedData.verkoop_order },
+        where: { verkoop_order: validatedData.verkoop_order as string },
         select: { id: true }
       });
       
@@ -238,8 +240,8 @@ export async function PATCH(request: Request, context: { params: { id: string } 
         
         await pusherServer.trigger(CHANNELS.ORDERS, EVENTS.ORDER_UPDATED, updatePayload);
       }
-    } catch (error) {
-      console.error('Failed to broadcast update:', error);
+    } catch (_error) {
+      console.error('Failed to broadcast update:', _error);
       // Continue even if broadcasting fails - database was updated
     }
 
