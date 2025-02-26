@@ -147,97 +147,97 @@ const createNotification = async (orderId: string, orderNumber: string, userId: 
 };
 
 export async function PATCH(
-    request: Request,
-    context: { params: { id: string } }
-  ) {
-    try {
-      const { id } = context.params;
-      if (!id) {
-        return NextResponse.json({ error: 'Missing order ID' }, { status: 400 });
-      }
-  
-      // Authenticate user
-      const session = await getServerSession(authOptions);
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-  
-      // Fetch the authenticated user
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-      });
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-  
-      // Parse request body
-      let data;
-      try {
-        data = await request.json();
-      } catch {
-        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-      }
-  
-      // Fetch existing order
-      const existingOrder = await prisma.order.findUnique({
-        where: { id },
-        select: { verkoop_order: true },
-      });
-      if (!existingOrder) {
-        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-      }
-  
-      // Validate and sanitize updates
-      const updatedData: Record<string, any> = {};
-      for (const [field, value] of Object.entries(data)) {
-        if (value === null || value === undefined) continue;
-        updatedData[field] = value;
-      }
-  
-      // Prevent duplicate verkoop_order
-      if (updatedData.verkoop_order && updatedData.verkoop_order !== existingOrder.verkoop_order) {
-        const duplicateOrder = await prisma.order.findUnique({
-          where: { verkoop_order: updatedData.verkoop_order },
-          select: { id: true },
-        });
-        if (duplicateOrder) {
-          return NextResponse.json({
-            error: 'Order number already exists',
-            field: 'verkoop_order',
-          }, { status: 400 });
-        }
-      }
-  
-      // Update order
-      const updatedOrder = await prisma.order.update({
-        where: { id },
-        data: updatedData,
-      });
-  
-      // Notify via Pusher
-      try {
-        await pusherServer.trigger(CHANNELS.ORDERS, EVENTS.ORDER_UPDATED, {
-          orderId: id,
-          data: updatedOrder,
-        });
-      } catch (pusherError) {
-        console.error('Pusher error:', pusherError);
-      }
-  
-      return NextResponse.json(updatedOrder);
-    } catch (error) {
-      console.error('Update error:', error);
-  
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          const target = error.meta?.target as string[] | undefined;
-          return NextResponse.json({
-            error: 'Unique constraint violation',
-            field: target?.[0] || 'unknown',
-          }, { status: 400 });
-        }
-      }
-  
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    if (!id) {
+      return NextResponse.json({ error: 'Missing order ID' }, { status: 400 });
     }
+
+    // Authenticate user
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Fetch the authenticated user
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Parse request body
+    let data;
+    try {
+      data = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    // Fetch existing order
+    const existingOrder = await prisma.order.findUnique({
+      where: { id },
+      select: { verkoop_order: true },
+    });
+    if (!existingOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    // Validate and sanitize updates
+    const updatedData: Record<string, any> = {};
+    for (const [field, value] of Object.entries(data)) {
+      if (value === null || value === undefined) continue;
+      updatedData[field] = value;
+    }
+
+    // Prevent duplicate verkoop_order
+    if (updatedData.verkoop_order && updatedData.verkoop_order !== existingOrder.verkoop_order) {
+      const duplicateOrder = await prisma.order.findUnique({
+        where: { verkoop_order: updatedData.verkoop_order },
+        select: { id: true },
+      });
+      if (duplicateOrder) {
+        return NextResponse.json({
+          error: 'Order number already exists',
+          field: 'verkoop_order',
+        }, { status: 400 });
+      }
+    }
+
+    // Update order
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: updatedData,
+    });
+
+    // Notify via Pusher
+    try {
+      await pusherServer.trigger(CHANNELS.ORDERS, EVENTS.ORDER_UPDATED, {
+        orderId: id,
+        data: updatedOrder,
+      });
+    } catch (pusherError) {
+      console.error('Pusher error:', pusherError);
+    }
+
+    return NextResponse.json(updatedOrder);
+  } catch (error) {
+    console.error('Update error:', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        const target = error.meta?.target as string[] | undefined;
+        return NextResponse.json({
+          error: 'Unique constraint violation',
+          field: target?.[0] || 'unknown',
+        }, { status: 400 });
+      }
+    }
+
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
