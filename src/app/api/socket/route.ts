@@ -2,14 +2,6 @@
 import { NextResponse } from 'next/server';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 
-// Define types for the error objects
-interface PusherError {
-  message: string;
-  code?: number;
-  status?: number;
-  [key: string]: unknown;
-}
-
 export async function POST(request: Request) {
   try {
     const { event, data } = await request.json();
