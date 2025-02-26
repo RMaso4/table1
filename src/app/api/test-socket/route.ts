@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     let body = {};
     try {
       body = await request.json();
-    } catch (e) {
+    } catch {
       // No body or invalid JSON, use defaults
     }
     

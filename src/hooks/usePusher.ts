@@ -6,7 +6,7 @@ import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
 import { useSession } from 'next-auth/react';
 
 // Define more specific types for our event data
-type OrderData = Record<string, any>;
+type OrderData = Record<string, unknown>;
 
 interface OrderUpdateEvent {
   orderId: string;
@@ -20,6 +20,13 @@ interface NotificationEvent {
   userId: string;
   read: boolean;
   createdAt: string;
+}
+
+// Type for connection error
+interface ConnectionError {
+  message: string;
+  code?: number;
+  type?: string;
 }
 
 export default function usePusher() {
@@ -56,7 +63,7 @@ export default function usePusher() {
         setConnectionError(null);
       });
       
-      pusherClient.connection.bind('error', (err: any) => {
+      pusherClient.connection.bind('error', (err: ConnectionError) => {
         console.error('Pusher connection error:', err);
         setConnectionError(err?.message || 'Connection error');
         setIsConnected(false);
