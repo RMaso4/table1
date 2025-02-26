@@ -2,6 +2,12 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
+// Ensure DATABASE_URL is available
+const DATABASE_URL = process.env.DATABASE_URL || '';
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is not set');
+}
+
 // Configure Prisma client with connection pooling and retry logic
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -12,7 +18,7 @@ export const prisma =
     log: ['warn', 'error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL
+        url: DATABASE_URL
       }
     }
   }).$extends(withAccelerate());

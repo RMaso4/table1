@@ -5,12 +5,18 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+// Ensure DATABASE_URL is available and provide fallback for easy debugging
+const DATABASE_URL = process.env.DATABASE_URL || '';
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL environment variable is not set');
+}
+
 // Create a dedicated Prisma client for authentication to avoid conflicts
 const authPrisma = new PrismaClient({
   log: ['error'],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
+      url: DATABASE_URL
     }
   }
 });
