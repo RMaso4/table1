@@ -28,13 +28,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Cast session.user to include our custom properties 
+    // TypeScript needs this type assertion to understand our extended Session type
+    const user = session.user as {
+      id: string;
+      role: string;
+      name?: string | null;
+      email?: string | null;
+    };
+    
     // Prepare authentication data including user info
     const userData = {
-      user_id: session.user.id,
+      user_id: user.id,
       user_info: {
-        name: session.user.name || session.user.email,
-        email: session.user.email,
-        role: session.user.role
+        name: user.name || user.email,
+        email: user.email,
+        role: user.role
       }
     };
     

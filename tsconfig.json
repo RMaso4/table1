@@ -39,6 +39,7 @@
     "server/socketServer.ts",
     "src/types/**/*.ts",
     "src/types/**/*.d.ts",
+    "src/types/next-auth.d.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [

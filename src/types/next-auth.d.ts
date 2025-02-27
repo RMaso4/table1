@@ -1,6 +1,6 @@
 // src/types/next-auth.d.ts
 import { Role } from '@prisma/client';
-import { DefaultSession, DefaultUser } from 'next-auth';
+import { DefaultSession } from 'next-auth';
 
 // Extend the built-in session types
 declare module 'next-auth' {
@@ -8,14 +8,11 @@ declare module 'next-auth' {
     user: {
       id: string;
       role: Role;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
     } & DefaultSession['user']
   }
 
   // Extend the built-in user types
-  interface User extends DefaultUser {
+  interface User {
     id: string;
     role: Role;
   }
