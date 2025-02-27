@@ -367,55 +367,55 @@ export default function DashboardContent() {
     if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
       return;
     }
-  
+
     const orderId = lastOrderUpdate.orderId;
     const now = Date.now();
-  
+
     // 1. Throttle rapid updates for the same order
     const lastUpdateTime = updateThrottleTimeRef.current.get(orderId) || 0;
     const timeSinceLastUpdate = now - lastUpdateTime;
-  
+
     if (timeSinceLastUpdate < 3000) { // 3 second minimum between updates
       console.log(`Throttling update for ${orderId} - last update was ${timeSinceLastUpdate}ms ago`);
       return;
     }
-  
+
     // 2. Check if this exact update is already being processed
     // Create a combined key of orderId + content hash to identify uniqueness
     const contentKey = `${orderId}-${JSON.stringify(lastOrderUpdate.data)}`;
-  
+
     if (processedUpdatesRef.current.has(contentKey)) {
       console.log('Ignoring duplicate update with key:', contentKey);
       return;
     }
-  
+
     // Mark this update as being processed
     processedUpdatesRef.current.add(contentKey);
     updateThrottleTimeRef.current.set(orderId, now);
-  
+
     // Clear any existing timeout for this order
     if (processingTimeoutsRef.current.has(orderId)) {
       clearTimeout(processingTimeoutsRef.current.get(orderId)!);
     }
-  
+
     // Show toast notification (only when we actually process the update)
     const orderNumber = lastOrderUpdate.data.verkoop_order || orderId;
     setLastUpdateToast(`Order ${orderNumber} updated`);
     setTimeout(() => setLastUpdateToast(null), 3000);
-  
+
     console.log('Processing real-time order update:', lastOrderUpdate);
-  
+
     // Create a new order object from the update data
     const updatedOrderData = {
       ...lastOrderUpdate.data,
       id: orderId // Ensure ID is preserved
     } as Order;
-  
+
     // Update orders with the new data - create a new reference
     setOrders(prevOrders => {
       // Find the order index to update
       const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-  
+
       // If order exists, update it
       if (orderIndex !== -1) {
         const updatedOrders = [...prevOrders];
@@ -424,15 +424,15 @@ export default function DashboardContent() {
           ...updatedOrders[orderIndex],
           ...updatedOrderData,
         };
-  
+
         console.log('Updated order in state:', updatedOrders[orderIndex]);
         return updatedOrders;
       }
-  
+
       // If we have a full order object and it's not in our list yet, add it
       // Only add if we're not filtering (to avoid confusion)
       if (
-        Object.keys(updatedOrderData).length > 2 && // Has more than just id and orderId
+        lastOrderUpdate.data.id &&
         !Object.keys(columnFilters).length &&
         !globalSearchQuery &&
         !activeFilters.length
@@ -440,49 +440,43 @@ export default function DashboardContent() {
         console.log('Adding new order to state:', updatedOrderData);
         return [...prevOrders, updatedOrderData];
       }
-  
+
       // Otherwise, don't change anything
       return prevOrders;
     });
-  
-    // IMPROVED PRIORITY ORDERS UPDATE LOGIC
+
+    // Update priority orders if needed
     setPriorityOrders(prevPriorityOrders => {
-      // Check if this order exists in the priority list
       const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === orderId);
-      
-      // If the order isn't in our priority list, no need to update
-      if (priorityOrderIndex === -1) return prevPriorityOrders;
-      
-      // Order exists in priority list - create a copy to update it
-      const updatedPriorityOrders = [...prevPriorityOrders];
-      
-      // Get the current version of the order from our priority list
-      const currentPriorityOrder = updatedPriorityOrders[priorityOrderIndex];
-      
-      // Create an updated version with the latest changes while preserving all fields
-      updatedPriorityOrders[priorityOrderIndex] = {
-        ...currentPriorityOrder,  // Keep all existing fields
-        ...updatedOrderData,      // Apply new changes
-        id: orderId               // Ensure ID is preserved
-      };
-      
-      console.log('Updated priority order:', updatedPriorityOrders[priorityOrderIndex]);
-      
-      // Since we're modifying the priority orders, update localStorage as well 
-      localStorage.setItem('priorityOrders', JSON.stringify(updatedPriorityOrders));
-      
-      return updatedPriorityOrders;
+
+      if (priorityOrderIndex !== -1) {
+        // Find the updated order reference from the main orders array
+        const updatedOrder = orders.find(order => order.id === orderId);
+
+        // Create a new array with the updated order
+        const updatedPriorityOrders = [...prevPriorityOrders];
+
+        // Use the updated order if found, otherwise create a merged object
+        updatedPriorityOrders[priorityOrderIndex] = updatedOrder || {
+          ...prevPriorityOrders[priorityOrderIndex],
+          ...updatedOrderData
+        };
+
+        return updatedPriorityOrders;
+      }
+
+      return prevPriorityOrders;
     });
-  
+
     // Set a timeout to forget about this update after some time
     // This prevents memory leaks and allows re-processing if the same update comes much later
     const cleanupTimeout = setTimeout(() => {
       processedUpdatesRef.current.delete(contentKey);
       processingTimeoutsRef.current.delete(orderId);
     }, 30000); // Keep track for 30 seconds
-  
+
     processingTimeoutsRef.current.set(orderId, cleanupTimeout);
-  
+
   }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
 
   // Clean up timeouts when component unmounts
