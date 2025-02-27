@@ -28,18 +28,32 @@ export default function Navbar({ onLogout }: NavbarProps) {
   
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
+  const [pagesLoading, setPagesLoading] = useState(true);
   
-  // Load custom pages from localStorage on component mount
+  // Fetch custom pages from API on component mount
   useEffect(() => {
-    const savedPages = localStorage.getItem('customPages');
-    if (savedPages) {
+    const fetchCustomPages = async () => {
+      if (!session?.user) return;
+      
       try {
-        setCustomPages(JSON.parse(savedPages));
+        setPagesLoading(true);
+        const response = await fetch('/api/custom-pages');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCustomPages(data);
+        } else {
+          console.error('Failed to fetch custom pages');
+        }
       } catch (error) {
-        console.error('Error parsing saved custom pages:', error);
+        console.error('Error fetching custom pages:', error);
+      } finally {
+        setPagesLoading(false);
       }
-    }
-  }, []);
+    };
+    
+    fetchCustomPages();
+  }, [session]);
 
   // Base navigation items
   const baseNavItems = [
@@ -51,7 +65,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const navItems = [
     ...baseNavItems,
     ...customPages.map(page => ({ 
-      path: page.path, 
+      path: `/custom/${page.id}`, 
       label: page.name
     }))
   ];
@@ -115,16 +129,18 @@ export default function Navbar({ onLogout }: NavbarProps) {
             </li>
           ))}
           
-          {/* Add button for new pages */}
-          <li>
-            <Link
-              href="/add-page"
-              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-[#29679b]"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Custom Page
-            </Link>
-          </li>
+          {/* Add button for new pages - only for beheerder */}
+          {session?.user?.role === 'BEHEERDER' && (
+            <li>
+              <Link
+                href="/add-page"
+                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-[#29679b]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom Page
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
       

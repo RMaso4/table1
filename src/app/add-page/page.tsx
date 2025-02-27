@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { ChevronLeft, Save, Check } from 'lucide-react';
+import { ChevronLeft, Save, Check, AlertCircle } from 'lucide-react';
 
 // Define the column definition type
 interface ColumnDefinition {
@@ -17,17 +18,38 @@ interface ColumnDefinition {
 interface CustomPage {
   id: string;
   name: string;
-  path: string;
   columns: string[];
+  createdBy: string;
+  createdAt: string;
 }
 
 export default function AddPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [pageName, setPageName] = useState('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [availableColumns, setAvailableColumns] = useState<ColumnDefinition[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [unauthorized, setUnauthorized] = useState(false);
+
+  // Check if user is authorized (must be beheerder)
+  useEffect(() => {
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'BEHEERDER') {
+        setUnauthorized(true);
+        
+        // Redirect after showing unauthorized message
+        const timer = setTimeout(() => {
+          router.push('/dashboard');
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
+    } else if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [session, status, router]);
 
   // Load available columns on component mount
   useEffect(() => {
@@ -100,53 +122,79 @@ export default function AddPage() {
       return false;
     }
     
-    // Check if name is already used
-    const existingPages = JSON.parse(localStorage.getItem('customPages') || '[]');
-    if (existingPages.some((page: CustomPage) => page.name.toLowerCase() === pageName.toLowerCase())) {
-      setError('A page with this name already exists');
-      return false;
-    }
-    
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate the form
     if (!validateForm()) return;
     
     setSaving(true);
     
     try {
-      // Generate a unique ID and path
-      const id = `custom-${Date.now()}`;
-      const path = `/custom/${id}`;
+      // Create the new page via API
+      const response = await fetch('/api/custom-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: pageName,
+          columns: selectedColumns
+        }),
+      });
       
-      // Create the new page object
-      const newPage: CustomPage = {
-        id,
-        name: pageName,
-        path,
-        columns: selectedColumns
-      };
+      // Parse the response
+      const data = await response.json();
       
-      // Retrieve existing pages from localStorage
-      const existingPages = JSON.parse(localStorage.getItem('customPages') || '[]');
+      // Handle errors
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save custom page');
+      }
       
-      // Add the new page
-      const updatedPages = [...existingPages, newPage];
-      
-      // Save back to localStorage
-      localStorage.setItem('customPages', JSON.stringify(updatedPages));
-      
-      // Navigate back to dashboard
+      // On success, navigate back to dashboard
       router.push('/dashboard');
     } catch (error) {
       console.error('Error saving custom page:', error);
-      setError('Failed to save custom page');
-    } finally {
+      setError(error instanceof Error ? error.message : 'Failed to save custom page');
       setSaving(false);
     }
   };
+
+  // Show unauthorized message
+  if (unauthorized) {
+    return (
+      <div className="flex h-screen">
+        <Navbar />
+        <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="bg-red-50 border-l-4 border-red-400 p-6 rounded max-w-lg">
+            <div className="flex items-center">
+              <AlertCircle className="h-6 w-6 text-red-500 mr-3" />
+              <h2 className="text-lg font-medium text-red-800">Unauthorized</h2>
+            </div>
+            <p className="mt-2 text-red-700">
+              Only users with Beheerder role can create custom pages. Redirecting to dashboard...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="flex h-screen">
+        <Navbar />
+        <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+            <p className="mt-4">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">

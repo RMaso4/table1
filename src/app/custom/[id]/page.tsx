@@ -73,36 +73,42 @@ export default function CustomPage() {
     { field: 'updatedAt', title: 'Updated At', type: 'date' }
   ], []);
 
-  // Load page configuration from localStorage
+  // Fetch page configuration from API
   useEffect(() => {
-    const loadPageConfig = () => {
+    const fetchPageConfig = async () => {
       try {
-        const savedPages = JSON.parse(localStorage.getItem('customPages') || '[]');
-        const page = savedPages.find((p: CustomPage) => p.id === pageId);
+        setLoading(true);
+        // First fetch all custom pages
+        const response = await fetch('/api/custom-pages');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch custom pages');
+        }
+        
+        const pages = await response.json();
+        const page = pages.find((p: CustomPage) => p.id === pageId);
         
         if (!page) {
           setError('Custom page not found');
-          return false;
+          
+          // Set a timeout to return to dashboard if page not found
+          const timeout = setTimeout(() => {
+            router.push('/dashboard');
+          }, 3000);
+          
+          return () => clearTimeout(timeout);
         }
         
         setPageConfig(page);
-        return true;
       } catch (error) {
-        console.error('Error loading page configuration:', error);
+        console.error('Error fetching page configuration:', error);
         setError('Failed to load page configuration');
-        return false;
+      } finally {
+        setLoading(false);
       }
     };
 
-    const success = loadPageConfig();
-    if (!success) {
-      // Set a timeout to return to dashboard if page not found
-      const timeout = setTimeout(() => {
-        router.push('/dashboard');
-      }, 3000);
-      
-      return () => clearTimeout(timeout);
-    }
+    fetchPageConfig();
   }, [pageId, router]);
 
   // Fetch orders on component mount
@@ -135,11 +141,11 @@ export default function CustomPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(order => 
-        (typeof order.verkoop_order === 'string' && order.verkoop_order.toLowerCase().includes(query)) ||
-        (typeof order.project === 'string' && order.project.toLowerCase().includes(query)) ||
-        (typeof order.debiteur_klant === 'string' && order.debiteur_klant.toLowerCase().includes(query)) ||
-        (typeof order.material === 'string' && order.material.toLowerCase().includes(query)) ||
-        (typeof order.opmerking === 'string' && order.opmerking.toLowerCase().includes(query))
+        order.verkoop_order?.toLowerCase().includes(query) ||
+        order.project?.toLowerCase().includes(query) ||
+        order.debiteur_klant?.toLowerCase().includes(query) ||
+        order.material?.toLowerCase().includes(query) ||
+        (typeof order.opmerking === 'string' ? order.opmerking.toLowerCase() : '').includes(query)
       );
     }
     
