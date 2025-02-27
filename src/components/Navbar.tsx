@@ -7,8 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from './NotificationPanel';
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import path from 'path';
+import { Plus, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
 
 // Add a type for custom pages
 interface CustomPage {
@@ -26,10 +26,11 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
   
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
-  const [_pagesLoading, setPagesLoading] = useState(true); // Fixed: Added underscore prefix
+  const [pagesLoading, setPagesLoading] = useState(true);
   
   // Fetch custom pages from API on component mount
   useEffect(() => {
@@ -93,8 +94,13 @@ export default function Navbar({ onLogout }: NavbarProps) {
     }
   };
 
+  // Theme toggle function
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
-    <div className="w-64 bg-[#003D73] text-white h-screen flex flex-col">
+    <div className="w-64 bg-[#003D73] dark:bg-[#001a33] text-white h-screen flex flex-col">
       <nav className="flex-1 py-6">
         <div className="px-4 mb-8">
           <Image
@@ -122,8 +128,8 @@ export default function Navbar({ onLogout }: NavbarProps) {
                 className={`
                   block px-4 py-2 text-sm
                   ${pathname === item.path
-                    ? 'bg-[#002D53]'
-                    : 'hover:bg-[#29679b]'}
+                    ? 'bg-[#002D53] dark:bg-[#000d1a]'
+                    : 'hover:bg-[#29679b] dark:hover:bg-[#1a4060]'}
                 `}
               >
                 {item.label}
@@ -136,7 +142,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
             <li>
               <Link
                 href="/add-page"
-                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-[#29679b]"
+                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-[#29679b] dark:hover:bg-[#1a4060]"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Custom Page
@@ -146,19 +152,35 @@ export default function Navbar({ onLogout }: NavbarProps) {
         </ul>
       </nav>
       
-      {/* Notifications and Logout */}
+      {/* Notifications, Theme Toggle and Logout */}
       <div className="p-4 flex items-center justify-between">
         {session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER' ? (
           <NotificationPanel />
         ) : (
           <div></div> // Empty div to maintain flex layout
         )}
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 text-white hover:bg-[#002D53] rounded transition-colors text-sm"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Theme toggle button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full text-white hover:bg-[#002D53] dark:hover:bg-[#000d1a]"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle dark mode"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 text-white hover:bg-[#002D53] dark:hover:bg-[#000d1a] rounded transition-colors text-sm"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );

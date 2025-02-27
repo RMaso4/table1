@@ -43,10 +43,10 @@ export default function ColumnHeader({
   };
 
   return (
-    <th className="px-6 py-3 bg-gray-50">
+    <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between group">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
             {title}
           </span>
           <div className="flex items-center gap-2">
@@ -56,11 +56,11 @@ export default function ColumnHeader({
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 {sortDirection === 'asc' ? (
-                  <ChevronUp className="h-4 w-4 text-gray-400" />
+                  <ChevronUp className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 ) : sortDirection === 'desc' ? (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-400 opacity-50" />
+                  <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500 opacity-50" />
                 )}
               </button>
             )}
@@ -68,7 +68,7 @@ export default function ColumnHeader({
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </button>
           </div>
         </div>
@@ -79,14 +79,14 @@ export default function ColumnHeader({
               type="text"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
               placeholder={`Search ${title.toLowerCase()}...`}
               autoFocus
             />
             {searchTerm && (
               <button
                 onClick={clearSearch}
-                className="absolute right-2 text-gray-400 hover:text-gray-600"
+                className="absolute right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X className="h-4 w-4" />
               </button>

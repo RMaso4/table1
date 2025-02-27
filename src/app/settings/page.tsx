@@ -5,15 +5,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { 
-  Save, 
-  User, 
-  Layout, 
-  Bell, 
-  Database, 
-  Shield, 
-  Globe, 
-  Monitor, 
+import { useTheme } from '@/components/ThemeProvider';
+import {
+  Save,
+  User,
+  Layout,
+  Bell,
+  Database,
+  Shield,
+  Globe,
+  Monitor,
+  Sun,
+  Moon,
   ToggleLeft,
   Check,
   Info,
@@ -114,6 +117,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   // Check if user is authenticated
   useEffect(() => {
@@ -135,7 +139,7 @@ export default function SettingsPage() {
           setLoading(false);
           return;
         }
-        
+
         // Fallback to localStorage
         const storedSettings = localStorage.getItem('userSettings');
         if (storedSettings) {
@@ -165,7 +169,7 @@ export default function SettingsPage() {
   // Check for changes
   useEffect(() => {
     if (loading) return;
-    
+
     const settingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
     setHasChanges(settingsChanged);
   }, [settings, originalSettings, loading]);
@@ -231,7 +235,7 @@ export default function SettingsPage() {
       // Update original settings to match current
       setOriginalSettings(settings);
       setSuccess(true);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccess(false);
@@ -256,22 +260,12 @@ export default function SettingsPage() {
     }
   };
 
-  // Apply theme immediately on change
+  // Apply theme when settings change
   useEffect(() => {
-    if (settings.user.theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (settings.user.theme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else if (settings.user.theme === 'system') {
-      // Check system preference
-      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (isDarkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+    if (settings?.user?.theme) {
+      setTheme(settings.user.theme);
     }
-  }, [settings.user.theme]);
+  }, [settings?.user?.theme, setTheme]);
 
   if (loading || status === 'loading') {
     return (
@@ -290,77 +284,77 @@ export default function SettingsPage() {
   return (
     <div className="flex h-screen">
       <Navbar />
-      <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
         <div className="p-8 flex-grow overflow-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-            <p className="text-gray-600">Manage your application preferences and configurations</p>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your application preferences and configurations</p>
           </div>
 
           {/* Success and Error Messages */}
           {success && (
-            <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded flex justify-between items-center">
+            <div className="mb-6 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-400 p-4 rounded flex justify-between items-center">
               <div className="flex items-center">
-                <Check className="h-5 w-5 text-green-500 mr-2" />
-                <p className="text-green-700">Settings saved successfully</p>
+                <Check className="h-5 w-5 text-green-500 dark:text-green-400 mr-2" />
+                <p className="text-green-700 dark:text-green-400">Settings saved successfully</p>
               </div>
               <button onClick={() => setSuccess(false)}>
-                <X className="h-5 w-5 text-green-700" />
+                <X className="h-5 w-5 text-green-700 dark:text-green-400" />
               </button>
             </div>
           )}
 
           {error && (
-            <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded flex justify-between items-center">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-400 p-4 rounded flex justify-between items-center">
               <div className="flex items-center">
-                <Info className="h-5 w-5 text-red-500 mr-2" />
-                <p className="text-red-700">{error}</p>
+                <Info className="h-5 w-5 text-red-500 dark:text-red-400 mr-2" />
+                <p className="text-red-700 dark:text-red-400">{error}</p>
               </div>
               <button onClick={() => setError(null)}>
-                <X className="h-5 w-5 text-red-700" />
+                <X className="h-5 w-5 text-red-700 dark:text-red-400" />
               </button>
             </div>
           )}
 
           {/* Settings Content */}
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
             {/* Tabs */}
-            <div className="border-b border-gray-200">
+            <div className="border-b border-gray-200 dark:border-gray-700">
               <nav className="flex">
                 <button
                   onClick={() => setActiveTab('user')}
                   className={`px-6 py-4 text-sm font-medium flex items-center ${
                     activeTab === 'user'
-                      ? 'border-b-2 border-blue-500 text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
                   <User className="h-5 w-5 mr-2" />
                   User Preferences
                 </button>
-                
+
                 {canViewSystem && (
                   <button
                     onClick={() => setActiveTab('system')}
                     className={`px-6 py-4 text-sm font-medium flex items-center ${
                       activeTab === 'system'
-                        ? 'border-b-2 border-blue-500 text-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     <Monitor className="h-5 w-5 mr-2" />
                     System Settings
                   </button>
                 )}
-                
+
                 {isAdmin && (
                   <button
                     onClick={() => setActiveTab('admin')}
                     className={`px-6 py-4 text-sm font-medium flex items-center ${
                       activeTab === 'admin'
-                        ? 'border-b-2 border-blue-500 text-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     <Shield className="h-5 w-5 mr-2" />
@@ -375,34 +369,71 @@ export default function SettingsPage() {
               {/* User Preferences */}
               {activeTab === 'user' && (
                 <div className="space-y-8">
-                  <h2 className="text-lg font-medium border-b pb-2">Display Settings</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">Display Settings</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Theme Setting */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Theme
                       </label>
-                      <select
-                        value={settings.user.theme}
-                        onChange={(e) => updateUserSettings('theme', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                      >
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                        <option value="system">System Preference</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setTheme('light');
+                            updateUserSettings('theme', 'light');
+                          }}
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
+                            settings.user.theme === 'light' 
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <Sun className="h-4 w-4" />
+                          <span>Light</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            setTheme('dark');
+                            updateUserSettings('theme', 'dark');
+                          }}
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
+                            settings.user.theme === 'dark' 
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <Moon className="h-4 w-4" />
+                          <span>Dark</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            setTheme('system');
+                            updateUserSettings('theme', 'system');
+                          }}
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
+                            settings.user.theme === 'system' 
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <Monitor className="h-4 w-4" />
+                          <span>System</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Language Setting */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Language
                       </label>
                       <select
                         value={settings.user.language}
                         onChange={(e) => updateUserSettings('language', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="en">English</option>
                         <option value="nl">Dutch</option>
@@ -413,13 +444,13 @@ export default function SettingsPage() {
 
                     {/* Date Format */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Date Format
                       </label>
                       <select
                         value={settings.user.dateFormat}
                         onChange={(e) => updateUserSettings('dateFormat', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                         <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -429,13 +460,13 @@ export default function SettingsPage() {
 
                     {/* Time Format */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Time Format
                       </label>
                       <select
                         value={settings.user.timeFormat}
                         onChange={(e) => updateUserSettings('timeFormat', e.target.value as '12h' | '24h')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="12h">12-hour (AM/PM)</option>
                         <option value="24h">24-hour</option>
@@ -444,20 +475,20 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Table Settings */}
-                  <h2 className="text-lg font-medium border-b pb-2 pt-4">Table Settings</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Table Settings</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Compact Mode */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Compact Table Mode
                       </label>
                       <button
                         type="button"
                         onClick={() => updateUserSettings('tableCompactMode', !settings.user.tableCompactMode)}
                         className={`${
-                          settings.user.tableCompactMode ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.user.tableCompactMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -470,13 +501,13 @@ export default function SettingsPage() {
 
                     {/* Default Page Size */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default Page Size
                       </label>
                       <select
                         value={settings.user.defaultPageSize}
                         onChange={(e) => updateUserSettings('defaultPageSize', parseInt(e.target.value))}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="10">10 rows</option>
                         <option value="25">25 rows</option>
@@ -488,13 +519,13 @@ export default function SettingsPage() {
 
                     {/* Default Sort Column */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default Sort Column
                       </label>
                       <select
                         value={settings.user.defaultSortColumn}
                         onChange={(e) => updateUserSettings('defaultSortColumn', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="verkoop_order">Order #</option>
                         <option value="project">Project</option>
@@ -507,13 +538,13 @@ export default function SettingsPage() {
 
                     {/* Default Sort Direction */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default Sort Direction
                       </label>
                       <select
                         value={settings.user.defaultSortDirection}
                         onChange={(e) => updateUserSettings('defaultSortDirection', e.target.value as 'asc' | 'desc')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="asc">Ascending</option>
                         <option value="desc">Descending</option>
@@ -522,20 +553,20 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Notification Settings */}
-                  <h2 className="text-lg font-medium border-b pb-2 pt-4">Notification Settings</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Notification Settings</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Show Notifications */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Show In-App Notifications
                       </label>
                       <button
                         type="button"
                         onClick={() => updateUserSettings('showNotifications', !settings.user.showNotifications)}
                         className={`${
-                          settings.user.showNotifications ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.user.showNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -548,15 +579,15 @@ export default function SettingsPage() {
 
                     {/* Email Notifications */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Receive Email Notifications
                       </label>
                       <button
                         type="button"
                         onClick={() => updateUserSettings('emailNotifications', !settings.user.emailNotifications)}
                         className={`${
-                          settings.user.emailNotifications ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.user.emailNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -573,18 +604,18 @@ export default function SettingsPage() {
               {/* System Settings */}
               {activeTab === 'system' && canViewSystem && (
                 <div className="space-y-8">
-                  <h2 className="text-lg font-medium border-b pb-2">Real-Time Updates</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">Real-Time Updates</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Update Method */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Update Method
                       </label>
                       <select
                         value={settings.system.updateMethod}
                         onChange={(e) => updateSystemSettings('updateMethod', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="pusher">Pusher (Recommended)</option>
                         <option value="socketio">Socket.IO</option>
@@ -594,15 +625,15 @@ export default function SettingsPage() {
 
                     {/* Real-time Updates Toggle */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Enable Real-Time Updates
                       </label>
                       <button
                         type="button"
                         onClick={() => updateSystemSettings('realTimeUpdates', !settings.system.realTimeUpdates)}
                         className={`${
-                          settings.system.realTimeUpdates ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.system.realTimeUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -616,13 +647,13 @@ export default function SettingsPage() {
                     {/* Polling Interval */}
                     {settings.system.updateMethod === 'polling' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Polling Interval (ms)
                         </label>
                         <select
                           value={settings.system.pollingInterval}
                           onChange={(e) => updateSystemSettings('pollingInterval', parseInt(e.target.value))}
-                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                         >
                           <option value="2000">2 seconds</option>
                           <option value="5000">5 seconds</option>
@@ -634,18 +665,18 @@ export default function SettingsPage() {
                     )}
                   </div>
 
-                  <h2 className="text-lg font-medium border-b pb-2 pt-4">Data Management</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Data Management</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Default Export Format */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default Export Format
                       </label>
                       <select
                         value={settings.system.exportFormat}
                         onChange={(e) => updateSystemSettings('exportFormat', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="csv">CSV (Excel compatible)</option>
                         <option value="tsv">TSV (Tab-separated)</option>
@@ -654,13 +685,13 @@ export default function SettingsPage() {
 
                     {/* Caching Strategy */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Caching Strategy
                       </label>
                       <select
                         value={settings.system.cacheStrategy}
                         onChange={(e) => updateSystemSettings('cacheStrategy', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="aggressive">Aggressive (Maximum performance)</option>
                         <option value="moderate">Moderate (Balanced)</option>
@@ -670,13 +701,13 @@ export default function SettingsPage() {
 
                     {/* Max Cache Age */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Max Cache Age (hours)
                       </label>
                       <select
                         value={settings.system.maxCacheAge}
                         onChange={(e) => updateSystemSettings('maxCacheAge', parseInt(e.target.value))}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="1">1 hour</option>
                         <option value="4">4 hours</option>
@@ -688,15 +719,15 @@ export default function SettingsPage() {
 
                     {/* Auto Save Priority */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Auto-Save Priority Orders
                       </label>
                       <button
                         type="button"
                         onClick={() => updateSystemSettings('autoSavePriority', !settings.system.autoSavePriority)}
                         className={`${
-                          settings.system.autoSavePriority ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.system.autoSavePriority ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -709,15 +740,15 @@ export default function SettingsPage() {
 
                     {/* Priority Offline Mode */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Enable Priority Offline Mode
                       </label>
                       <button
                         type="button"
                         onClick={() => updateSystemSettings('priorityOfflineMode', !settings.system.priorityOfflineMode)}
                         className={`${
-                          settings.system.priorityOfflineMode ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.system.priorityOfflineMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -734,18 +765,18 @@ export default function SettingsPage() {
               {/* Admin Settings */}
               {activeTab === 'admin' && isAdmin && (
                 <div className="space-y-8">
-                  <h2 className="text-lg font-medium border-b pb-2">User Management</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">User Management</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Default Role */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default New User Role
                       </label>
                       <select
                         value={settings.admin.defaultRole}
                         onChange={(e) => updateAdminSettings('defaultRole', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="GENERAL_ACCESS">General Access</option>
                         <option value="SCANNER">Scanner</option>
@@ -757,15 +788,15 @@ export default function SettingsPage() {
 
                     {/* Approval for Changes */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Require Approval for Changes
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('requireApprovalForChanges', !settings.admin.requireApprovalForChanges)}
                         className={`${
-                          settings.admin.requireApprovalForChanges ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.requireApprovalForChanges ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -777,36 +808,36 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-medium border-b pb-2 pt-4">Order Configuration</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Order Configuration</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Order Number Format */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Order Number Format
                       </label>
                       <input
                         type="text"
                         value={settings.admin.orderNumberFormat}
                         onChange={(e) => updateAdminSettings('orderNumberFormat', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Use {'{YYYY}'} for year, {'{MM}'} for month, {'{XXXXX}'} for sequence
                       </p>
                     </div>
 
                     {/* Track Order History */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Track Order Change History
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('trackOrderHistory', !settings.admin.trackOrderHistory)}
                         className={`${
-                          settings.admin.trackOrderHistory ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.trackOrderHistory ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -819,7 +850,7 @@ export default function SettingsPage() {
 
                     {/* Max Priority Orders */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Maximum Priority Orders
                       </label>
                       <input
@@ -828,21 +859,21 @@ export default function SettingsPage() {
                         max="100"
                         value={settings.admin.maxPriorityOrders}
                         onChange={(e) => updateAdminSettings('maxPriorityOrders', parseInt(e.target.value))}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       />
                     </div>
 
                     {/* Allow Custom Pages */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Allow Custom Pages
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('allowCustomPages', !settings.admin.allowCustomPages)}
                         className={`${
-                          settings.admin.allowCustomPages ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.allowCustomPages ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -854,20 +885,20 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-medium border-b pb-2 pt-4">System Maintenance</h2>
-                  
+                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">System Maintenance</h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Audit Log */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Enable Audit Logging
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('auditLogEnabled', !settings.admin.auditLogEnabled)}
                         className={`${
-                          settings.admin.auditLogEnabled ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.auditLogEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -880,15 +911,15 @@ export default function SettingsPage() {
 
                     {/* Auto Backup */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Auto Backup Database
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('autoBackup', !settings.admin.autoBackup)}
                         className={`${
-                          settings.admin.autoBackup ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.autoBackup ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -901,15 +932,15 @@ export default function SettingsPage() {
 
                     {/* Auto Close Notifications */}
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Auto-Close Notifications
                       </label>
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('autoCloseNotifications', !settings.admin.autoCloseNotifications)}
                         className={`${
-                          settings.admin.autoCloseNotifications ? 'bg-blue-600' : 'bg-gray-200'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                          settings.admin.autoCloseNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
@@ -922,13 +953,13 @@ export default function SettingsPage() {
 
                     {/* Notification Retention */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Notification Retention (days)
                       </label>
                       <select
                         value={settings.admin.notificationRetentionDays}
                         onChange={(e) => updateAdminSettings('notificationRetentionDays', parseInt(e.target.value))}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                       >
                         <option value="7">7 days</option>
                         <option value="14">14 days</option>
@@ -943,27 +974,27 @@ export default function SettingsPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between">
               <div>
                 <button
                   type="button"
                   onClick={resetToDefaults}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   Reset to Defaults
                 </button>
-                
+
                 {hasChanges && (
                   <button
                     type="button"
                     onClick={resetSettings}
-                    className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     Discard Changes
                   </button>
                 )}
               </div>
-              
+
               <button
                 type="button"
                 onClick={saveSettings}
@@ -971,8 +1002,8 @@ export default function SettingsPage() {
                 className={`
                   inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
                   ${hasChanges 
-                    ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' 
-                    : 'bg-blue-300 cursor-not-allowed'
+                    ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800' 
+                    : 'bg-blue-300 dark:bg-blue-800/50 cursor-not-allowed'
                   }
                 `}
               >

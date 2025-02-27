@@ -95,11 +95,11 @@ export default function FilterDialog({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div ref={dialogRef} className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+      <div ref={dialogRef} className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Filter Table</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Filter Table</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
               <X className="h-6 w-6" />
             </button>
           </div>
@@ -108,13 +108,13 @@ export default function FilterDialog({
             {filters.map((filter, index) => {
               const column = availableColumns.find(col => col.field === filter.field);
               return (
-                <div key={index} className="flex items-start gap-4 bg-gray-50 p-4 rounded-lg">
+                <div key={index} className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-3 gap-4">
                       <select
                         value={filter.field}
                         onChange={(e) => updateFilter(index, { field: e.target.value })}
-                        className="rounded border border-gray-300 p-2"
+                        className="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                       >
                         {availableColumns.map(col => (
                           <option key={col.field} value={col.field}>{col.title}</option>
@@ -126,7 +126,7 @@ export default function FilterDialog({
                         onChange={(e) => updateFilter(index, {
                           operator: e.target.value as FilterConfig['operator']
                         })}
-                        className="rounded border border-gray-300 p-2"
+                        className="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                       >
                         {getOperatorsByType(column?.type || 'text').map(op => (
                           <option key={op.value} value={op.value}>{op.label}</option>
@@ -138,7 +138,7 @@ export default function FilterDialog({
                           type={column?.type === 'date' ? 'date' : 'text'}
                           value={filter.value?.toString() || ''}
                           onChange={(e) => updateFilter(index, { value: e.target.value })}
-                          className="flex-1 rounded border border-gray-300 p-2"
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                           placeholder="Value"
                         />
                         {filter.operator === 'between' && (
@@ -146,7 +146,7 @@ export default function FilterDialog({
                             type={column?.type === 'date' ? 'date' : 'text'}
                             value={filter.value2 || ''}
                             onChange={(e) => updateFilter(index, { value2: e.target.value })}
-                            className="flex-1 rounded border border-gray-300 p-2"
+                            className="flex-1 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                             placeholder="Value 2"
                           />
                         )}
@@ -155,7 +155,7 @@ export default function FilterDialog({
                   </div>
                   <button
                     onClick={() => removeFilter(index)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -165,7 +165,7 @@ export default function FilterDialog({
 
             <button
               onClick={addFilter}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               <Filter className="h-4 w-4" />
               Add Filter
@@ -175,13 +175,13 @@ export default function FilterDialog({
           <div className="flex justify-end gap-4 mt-6">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             >
               Cancel
             </button>
             <button
               onClick={handleApply}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
             >
               Apply Filters
             </button>

@@ -1040,8 +1040,8 @@ export default function DashboardContent() {
         <Navbar onLogout={handleLogout} />
         <div className="flex-1 p-8 flex items-center justify-center">
           <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-            <p className="mt-4">Loading orders...</p>
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 dark:border-blue-500 border-r-transparent"></div>
+            <p className="mt-4 text-gray-700 dark:text-gray-300">Loading orders...</p>
           </div>
         </div>
       </div>
@@ -1053,12 +1053,12 @@ export default function DashboardContent() {
       <div className="flex h-screen">
         <Navbar onLogout={handleLogout} />
         <div className="flex-1 p-8">
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-            <p className="text-red-700">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-500 p-4 rounded">
+            <p className="text-red-700 dark:text-red-400">{error}</p>
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-800"
           >
             Retry
           </button>
@@ -1070,10 +1070,10 @@ export default function DashboardContent() {
   return (
     <div className="flex h-screen">
       <Navbar onLogout={handleLogout} />
-      <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
         <div className="p-8 flex-grow overflow-auto">
           {lastUpdateToast && (
-            <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
+            <div className="fixed top-4 right-4 bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded shadow z-50">
               {lastUpdateToast}
             </div>
           )}
@@ -1086,9 +1086,9 @@ export default function DashboardContent() {
           />
 
           {/* Main Orders Table */}
-          <div className="bg-white rounded-lg shadow mb-4">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Order Overview</h1>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Overview</h1>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <ExcelExportButton
@@ -1107,11 +1107,11 @@ export default function DashboardContent() {
                   />
 
 
-                  {/* Export Priority Button - DELETE THIS ENTIRE BUTTON BLOCK */}
+                  {/* Export Priority Button */}
                   {priorityOrders.length > 0 && (
                     <button
                       onClick={handleExportPriority}
-                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors"
                       title="Export priority orders to CSV"
                     >
                       <Download className="h-4 w-4" />
@@ -1122,7 +1122,7 @@ export default function DashboardContent() {
 
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800"
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
                 >
                   <Filter className="h-5 w-5" />
                   <span>Filters</span>
@@ -1137,7 +1137,7 @@ export default function DashboardContent() {
                   sortState.field) && (
                     <button
                       onClick={clearAllFilters}
-                      className="text-sm text-gray-500 hover:text-gray-700"
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     >
                       Clear all filters
                     </button>
@@ -1145,11 +1145,11 @@ export default function DashboardContent() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     {/* Priority Action Column */}
-                    <th className="w-12 px-2 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="w-12 px-2 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Priority
                     </th>
 
@@ -1173,10 +1173,10 @@ export default function DashboardContent() {
                     })}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         {/* Priority Action Cell */}
                         <td className="px-2 py-4 whitespace-nowrap">
                           <OrderTableActions
@@ -1190,13 +1190,13 @@ export default function DashboardContent() {
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
                           return (
-                            <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {column.type === 'boolean' ? (
                                 <input
                                   type="checkbox"
                                   checked={order[field as keyof Order] as boolean}
                                   onChange={(e) => handleCellUpdate(order.id, field, e.target.checked)}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
                                 />
                               ) : column.type === 'date' ? (
                                 field === 'updatedAt' ? (
@@ -1236,7 +1236,7 @@ export default function DashboardContent() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columnOrder.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td colSpan={columnOrder.length + 1} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                         {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
                           'No orders match the current filters.' :
                           'No orders found. Add an order to get started.'}
@@ -1247,9 +1247,6 @@ export default function DashboardContent() {
               </table>
             </div>
           </div>
-
-
-          
 
       <FilterDialog
         isOpen={isFilterDialogOpen}

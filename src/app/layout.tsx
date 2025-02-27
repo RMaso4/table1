@@ -1,7 +1,8 @@
-// app/layout.tsx
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "@/components/Providers";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 // Load fonts with preload
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   themeColor: "#003D73", // Match Parthos brand blue
-  colorScheme: "light",
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -40,22 +41,24 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50 text-gray-900 flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 flex flex-col`}
       >
-        {/* Notification container for toast messages */}
-        <div id="toast-container" className="fixed top-4 right-4 z-50"></div>
-        
-        {/* Main content */}
-        <Providers>
-          <main className="flex-grow flex flex-col">
-            {children}
-          </main>
-        </Providers>
-        
-        {/* Footer with minimal info */}
-        <footer className="py-2 px-4 text-xs text-center text-gray-500 border-t border-gray-200">
-          <p>© {new Date().getFullYear()} Parthos Order Management System</p>
-        </footer>
+        <ThemeProvider>
+          {/* Notification container for toast messages */}
+          <div id="toast-container" className="fixed top-4 right-4 z-50"></div>
+          
+          {/* Main content */}
+          <Providers>
+            <main className="flex-grow flex flex-col">
+              {children}
+            </main>
+          </Providers>
+          
+          {/* Footer with minimal info */}
+          <footer className="py-2 px-4 text-xs text-center text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+            <p>© {new Date().getFullYear()} Parthos Order Management System</p>
+          </footer>
+        </ThemeProvider>
       </body>
     </html>
   );
