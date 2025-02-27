@@ -12,15 +12,13 @@ import SearchBar from '@/components/SearchBar';
 import EditableCell from '@/components/EditableCell';
 import FilterDialog from '@/components/FilterDialog';
 import DraggableColumnHeader from '@/components/DraggableColumnHeader';
-import RealTimeTestingTool from '@/components/RealTimeTestingTool';
-import PusherConnectionDebugger from '@/components/PusherConnectionDebugger';
 import PriorityOrdersTable from '@/components/PriorityOrdersTable';
 import OrderTableActions from '@/components/OrderTableActions';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
 
-import { convertToExcelCSV, exportToExcel, createExcelExportOptions } from '@/utils/excelExportUtils';
+import {exportToExcel } from '@/utils/excelExportUtils';
 import ExcelExportButton from '@/components/ExcelExportButton';
 
 // Import types
@@ -826,31 +824,6 @@ export default function DashboardContent() {
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h1 className="text-xl font-semibold text-gray-900">Order Overview</h1>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Real-time updates:</span>
-                  <button
-                    onClick={() => setRealtimeEnabled(!realtimeEnabled)}
-                    className={`px-3 py-1 text-sm rounded ${realtimeEnabled
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-700'
-                      }`}
-                  >
-                    {realtimeEnabled ? 'Enabled' : 'Disabled'}
-                  </button>
-
-                  {isConnected ? (
-                    <span className="flex items-center text-xs text-green-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                      Connected
-                    </span>
-                  ) : (
-                    <span className="flex items-center text-xs text-red-600">
-                      <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                      Disconnected
-                    </span>
-                  )}
-                </div>
-
                 <div className="flex items-center gap-2">
                   <ExcelExportButton
                     data={filteredOrders}
