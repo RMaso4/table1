@@ -1,7 +1,7 @@
 // src/components/EditableCell.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Check } from 'lucide-react';
 
@@ -10,8 +10,8 @@ interface EditableCellProps {
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string; // Used for reference even if not directly accessed
-  orderNumber: string; // Used for reference even if not directly accessed
+  orderId: string;
+  orderNumber: string;
 }
 
 export default function EditableCell({
@@ -19,10 +19,8 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  // Keep these parameters even if not directly used
-  // as they might be needed for future changes
-  orderId: _orderId,
-  orderNumber: _orderNumber
+  orderId,
+  orderNumber
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -32,8 +30,33 @@ export default function EditableCell({
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
   
-  // Local validation to prevent client-side errors
-  const validateInput = (): boolean => {
+  // Format the initial value when the component mounts or value changes
+  useEffect(() => {
+    if (type === 'date' && value) {
+      try {
+        const dateValue = new Date(value as string);
+        if (!isNaN(dateValue.getTime())) {
+          setInputValue(dateValue.toISOString().split('T')[0]);
+        } else {
+          setInputValue('');
+        }
+      } catch (_e) {
+        setInputValue('');
+      }
+    } else {
+      setInputValue(value?.toString() || '');
+    }
+  }, [value, type]);
+
+  // Focus the input when entering edit mode
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  // Memoize the validation function to prevent recreation on each render
+  const validateInput = useCallback((): boolean => {
     // Reset error first
     setError(null);
     
@@ -60,10 +83,10 @@ export default function EditableCell({
       setError('Invalid input');
       return false;
     }
-  };
+  }, [inputValue, type]);
 
-  // Function to check if user has edit permission for the field
-  const canEdit = () => {
+  // Check if user has edit permission for the field
+  const canEdit = useCallback(() => {
     if (status === 'loading') return false;
     if (!session?.user?.role) return false;
     
@@ -78,38 +101,15 @@ export default function EditableCell({
       default:
         return false;
     }
-  };
+  }, [status, session, field]);
 
-  useEffect(() => {
-    if (type === 'date' && value) {
-      try {
-        const dateValue = new Date(value as string);
-        if (!isNaN(dateValue.getTime())) {
-          setInputValue(dateValue.toISOString().split('T')[0]);
-        } else {
-          setInputValue('');
-        }
-      } catch (_e) {
-        setInputValue('');
-      }
-    } else {
-      setInputValue(value?.toString() || '');
-    }
-  }, [value, type]);
-
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isEditing]);
-
-  const handleDoubleClick = () => {
+  const handleDoubleClick = useCallback(() => {
     if (!canEdit()) return;
     setIsEditing(true);
     setError(null);
-  };
+  }, [canEdit]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (inputValue === value?.toString()) {
       setIsEditing(false);
       return;
@@ -134,7 +134,7 @@ export default function EditableCell({
         processedValue = inputValue;
       } else if (type === 'date' && !inputValue) {
         // Empty date field should be null
-        processedValue = '' as unknown as string; // This is a workaround for the type error
+        processedValue = null as unknown as string;
       }
 
       // Call onChange - this already creates notifications on the server side
@@ -152,16 +152,16 @@ export default function EditableCell({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [inputValue, value, validateInput, onChange, type]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     // Only submit if we're not already submitting and there's no error
     if (!isSubmitting && !error) {
       handleSubmit();
     }
-  };
+  }, [isSubmitting, error, handleSubmit]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSubmit();
@@ -171,9 +171,9 @@ export default function EditableCell({
       setInputValue(value?.toString() || '');
       setError(null);
     }
-  };
+  }, [handleSubmit, value]);
 
-  const formatDisplayValue = () => {
+  const formatDisplayValue = useCallback(() => {
     if (value === null || value === undefined || value === '') return '-';
     
     if (type === 'date') {
@@ -186,7 +186,7 @@ export default function EditableCell({
     }
     
     return value;
-  };
+  }, [value, type]);
 
   // If session is still loading, display a simplified non-editable view
   if (status === 'loading') {

@@ -502,151 +502,125 @@ useEffect(() => {
     setActiveFilters(filters);
   };
 
-  const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean) => {
-    try {
-      // Reset any previous errors
-      setError(null);
-      
-      console.log(`Updating cell ${field} for order ${orderId} to:`, value);
+// This function should replace the existing handleCellUpdate in DashboardContent.tsx
+const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean) => {
+  try {
+    // Reset any previous errors
+    setError(null);
+    
+    console.log(`Updating cell ${field} for order ${orderId} to:`, value);
   
-      // Find the order to update
-      const orderToUpdate = orders.find(order => order.id === orderId);
-      if (!orderToUpdate) {
-        throw new Error('Order not found');
-      }
-  
-      // Validate the value before sending to server
-      let processedValue = value;
-      
-      // For date fields
-      const dateFields = [
-        'productie_datum', 'lever_datum', 'startdatum_assemblage', 
-        'start_datum_machinale', 'bruto_zagen', 'pers', 'netto_zagen',
-        'verkantlijmen', 'cnc_start_datum', 'pmt_start_datum', 'lakkerij_datum',
-        'coaten_m1', 'verkantlijmen_order_gereed'
-      ];
-      
-      if (dateFields.includes(field) && value !== null && value !== '') {
-        try {
-          const date = new Date(value as string | number);
-          if (isNaN(date.getTime())) {
-            throw new Error(`Invalid date format for ${field}`);
-          }
-          processedValue = date.toISOString();
-        } catch (e) {
-          throw new Error(`Please enter a valid date for ${field}`);
-        }
-      }
-      
-      // For number fields
-      const numberFields = [
-        'pos', 'height', 'db_waarde', 'mon', 'pho', 'pro', 
-        'ap', 'sp', 'cp', 'wp', 'dwp', 'pc', 'pcp', 'totaal_boards', 'tot'
-      ];
-      
-      if (numberFields.includes(field) && value !== null && value !== '') {
-        const num = Number(value);
-        if (isNaN(num)) {
-          throw new Error(`Please enter a valid number for ${field}`);
-        }
-        processedValue = num;
-      }
-  
-      // Create a proper copy of the order with the updated field for optimistic UI update
-      const newUpdatedOrder = { 
-        ...orderToUpdate, 
-        [field]: processedValue 
-      };
-  
-      // Optimistically update the orders state with the new reference
-      setOrders(prevOrders => 
-        prevOrders.map(order => order.id === orderId ? newUpdatedOrder : order)
-      );
-  
-      // Also update priority orders with the SAME object reference
-      setPriorityOrders(prevOrders => {
-        // Check if the order is in the priority list
-        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-        if (orderIndex === -1) return prevOrders; // Not in the list
-        
-        // Create a new array with the same object reference for the updated order
-        const newPriorityOrders = [...prevOrders];
-        newPriorityOrders[orderIndex] = newUpdatedOrder;
-        return newPriorityOrders;
-      });
-  
-      // Send update to server with error handling
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({ [field]: processedValue }),
-      });
-      
-      // Parse response data
-      const data = await response.json();
-      
-      // Handle error responses
-      if (!response.ok) {
-        // Server returned an error
-        const errorMessage = data.message || data.error || 'Failed to update order';
-        
-        // Revert optimistic update
-        setOrders(prevOrders => 
-          prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
-        );
-        
-        setPriorityOrders(prevOrders => {
-          const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-          if (orderIndex === -1) return prevOrders;
-          
-          const revertedPriorityOrders = [...prevOrders];
-          revertedPriorityOrders[orderIndex] = orderToUpdate;
-          return revertedPriorityOrders;
-        });
-        
-        throw new Error(errorMessage);
-      }
-      
-      // Success case - get the updated order from server
-      console.log('Server confirmed update:', data);
-      
-      // Show a brief success message
-      setLastUpdateToast(`Updated ${field} successfully`);
-      setTimeout(() => setLastUpdateToast(null), 2000);
-      
-    } catch (error) {
-      console.error('Error updating cell:', error);
-      
-      // Show error message
-      setError(error instanceof Error ? error.message : 'Failed to update order');
-      setTimeout(() => setError(null), 5000);
+    // Find the order to update
+    const orderToUpdate = orders.find(order => order.id === orderId);
+    if (!orderToUpdate) {
+      throw new Error('Order not found');
     }
-  };
-
-  const handleColumnDragStart = (e: React.DragEvent, field: string) => {
-    setDraggingColumn(field);
-  };
-
-  const handleColumnDragEnd = () => {
-    setDraggingColumn(null);
-  };
-
-  const handleColumnDragOver = (e: React.DragEvent, field: string) => {
-    e.preventDefault(); // Keep this line
-    if (!draggingColumn || draggingColumn === field) return;
+    
+    // Create a proper copy of the order with the updated field for optimistic UI update
+    const newUpdatedOrder = { 
+      ...orderToUpdate, 
+      [field]: value,
+      updatedAt: new Date().toISOString() // Update the timestamp locally too
+    };
   
-    const newColumnOrder = [...columnOrder];
-    const dragIndex = newColumnOrder.indexOf(draggingColumn);
-    const dropIndex = newColumnOrder.indexOf(field);
+    // Optimistically update the orders state with the new reference
+    setOrders(prevOrders => 
+      prevOrders.map(order => order.id === orderId ? newUpdatedOrder : order)
+    );
   
-    newColumnOrder.splice(dragIndex, 1);
-    newColumnOrder.splice(dropIndex, 0, draggingColumn);
+    // Also update priority orders with the SAME object reference if needed
+    setPriorityOrders(prevOrders => {
+      // Check if the order is in the priority list
+      const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+      if (orderIndex === -1) return prevOrders; // Not in the list
+      
+      // Create a new array with the same object reference for the updated order
+      const newPriorityOrders = [...prevOrders];
+      newPriorityOrders[orderIndex] = newUpdatedOrder;
+      return newPriorityOrders;
+    });
   
-    setColumnOrder(newColumnOrder);
-  };
+    // Prepare the API request
+    const updateData = { [field]: value };
+    
+    // Send update to server with error handling
+    const response = await fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      body: JSON.stringify(updateData),
+    });
+    
+    // Check if response is ok before parsing
+    if (!response.ok) {
+      // Read response body as text first
+      const text = await response.text();
+      
+      // Try to parse as JSON if possible
+      let errorData;
+      try {
+        errorData = JSON.parse(text);
+      } catch {
+        errorData = { error: text || 'Server error' };
+      }
+      
+      // Server returned an error
+      const errorMessage = errorData.error || errorData.message || `Error: ${response.status} ${response.statusText}`;
+      
+      // Revert optimistic update
+      setOrders(prevOrders => 
+        prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
+      );
+      
+      setPriorityOrders(prevOrders => {
+        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+        if (orderIndex === -1) return prevOrders;
+        
+        const revertedPriorityOrders = [...prevOrders];
+        revertedPriorityOrders[orderIndex] = orderToUpdate;
+        return revertedPriorityOrders;
+      });
+      
+      throw new Error(errorMessage);
+    }
+    
+    // Parse response data
+    const data = await response.json();
+    
+    // Success case - update with the data from server
+    console.log('Server confirmed update:', data);
+    
+    // Update orders with server data to ensure consistency
+    setOrders(prevOrders => 
+      prevOrders.map(order => order.id === orderId ? { ...order, ...data } : order)
+    );
+    
+    // Update priority orders too if needed
+    setPriorityOrders(prevOrders => {
+      const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+      if (orderIndex === -1) return prevOrders;
+      
+      const updatedPriorityOrders = [...prevOrders];
+      updatedPriorityOrders[orderIndex] = { ...prevOrders[orderIndex], ...data };
+      return updatedPriorityOrders;
+    });
+    
+    // Show a brief success message
+    setLastUpdateToast(`Updated ${field} successfully`);
+    setTimeout(() => setLastUpdateToast(null), 2000);
+    
+  } catch (error) {
+    console.error('Error updating cell:', error);
+    
+    // Show error message
+    setError(error instanceof Error ? error.message : 'Failed to update order');
+    
+    // Clear error after 5 seconds
+    setTimeout(() => setError(null), 5000);
+  }
+};
   
   // 3. Either use the savePriorityOrdersToBackend function or comment it
   // Example of how to use it (call it after updating priorities):
@@ -698,6 +672,29 @@ useEffect(() => {
   //     setTimeout(() => setError(null), 3000);
   //   }
   // };
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = (e: React.DragEvent<Element>, field: string) => {
+    setDraggingColumn(field);
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent<Element>, field: string) => {
+    e.preventDefault(); // Prevent default to allow drop
+    if (!draggingColumn || draggingColumn === field) return;
+
+    const newColumnOrder = [...columnOrder];
+    const dragIndex = newColumnOrder.indexOf(draggingColumn);
+    const dropIndex = newColumnOrder.indexOf(field);
+
+    newColumnOrder.splice(dragIndex, 1);
+    newColumnOrder.splice(dropIndex, 0, draggingColumn);
+
+    setColumnOrder(newColumnOrder);
+  };
+
+  const handleColumnDragEnd = () => {
+    setDraggingColumn(null);
+  };
 
   // Clear all filters
   const clearAllFilters = () => {
