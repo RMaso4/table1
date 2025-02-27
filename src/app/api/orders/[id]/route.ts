@@ -154,11 +154,10 @@ const createNotification = async (
 
 // PATCH handler for updating an order
 export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest, { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     if (!id) {
       return NextResponse.json({ 
