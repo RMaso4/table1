@@ -203,6 +203,7 @@ export async function PATCH(
 
     // Check if field name is valid to prevent injection
     const validFields = [
+      'aanmaak_datum', 'verkoop_order', // Add these two fields
       'project', 'pos', 'type_artikel', 'debiteur_klant',
       'material', 'kantenband', 'kleur', 'height', 'db_waarde',
       'opmerking', 'productie_datum', 'lever_datum', 'startdatum_assemblage',
