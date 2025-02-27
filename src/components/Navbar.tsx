@@ -43,7 +43,10 @@ export default function Navbar({ onLogout }: NavbarProps) {
         
         if (response.ok) {
           const data = await response.json();
-          setCustomPages(data);
+          setCustomPages(data.map((page: any) => ({
+            ...page,
+            path: `/custom/${page.id}`
+          })));
         } else {
           console.error('Failed to fetch custom pages');
         }

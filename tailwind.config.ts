@@ -7,7 +7,7 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: 'class', // Use class strategy for dark mode
+  darkMode: 'class', // This is important for class-based dark mode
   theme: {
     extend: {
       colors: {
@@ -30,15 +30,6 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
-      },
-      animation: {
-        fadeIn: "fadeIn 0.2s ease-out forwards",
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
-        },
       },
     },
   },

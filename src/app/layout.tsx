@@ -39,9 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
         <ThemeProvider>
           {/* Notification container for toast messages */}

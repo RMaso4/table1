@@ -22,7 +22,7 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(defaultTheme);
   const [mounted, setMounted] = useState(false);
 
-  // Load theme from localStorage or cookie on mount
+  // Load theme from localStorage on mount
   useEffect(() => {
     setMounted(true);
     
@@ -57,7 +57,7 @@ export function ThemeProvider({
     // Apply theme to document
     const root = window.document.documentElement;
     
-    // Remove all theme classes first
+    // Clear existing theme classes
     root.classList.remove('light', 'dark');
     
     // Apply appropriate theme
@@ -73,32 +73,22 @@ export function ThemeProvider({
 
   // Add listener for system theme changes
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || theme !== 'system') return;
     
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      
-      // Initial check
-      const handleChange = (e: MediaQueryListEvent) => {
-        const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(e.matches ? 'dark' : 'light');
-      };
-      
-      // Add event listener
-      mediaQuery.addEventListener('change', handleChange);
-      
-      // Clean up
-      return () => {
-        mediaQuery.removeEventListener('change', handleChange);
-      };
-    }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e: MediaQueryListEvent) => {
+      const root = window.document.documentElement;
+      root.classList.remove('light', 'dark');
+      root.classList.add(e.matches ? 'dark' : 'light');
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
   }, [theme, mounted]);
-
-  // Don't render anything until component has mounted to avoid hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

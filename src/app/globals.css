@@ -47,17 +47,44 @@
   --ring: #1a5999;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply text-foreground bg-background;
+  }
+}
+
+/* Dark mode color overrides for main table components */
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+
+.dark .bg-gray-50 {
+  @apply bg-gray-900;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+
+.dark .text-gray-700 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-900 {
+  @apply text-gray-100;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  @apply hover:bg-gray-700;
 }
 
 @keyframes fadeIn {
