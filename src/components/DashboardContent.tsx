@@ -806,7 +806,7 @@ export default function DashboardContent() {
   return (
     <div className="flex h-screen">
       <Navbar onLogout={handleLogout} />
-      <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
+
         <div className="p-8 flex-grow overflow-auto">
           {lastUpdateToast && (
             <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
@@ -1009,6 +1009,7 @@ export default function DashboardContent() {
             </div>
           </div>
 
+
           {/* Testing Tools test*/}
           <div className="mt-4">
             <details className="border rounded-md bg-white shadow" open>
@@ -1050,7 +1051,7 @@ export default function DashboardContent() {
           </div>
         </div>
       </div>
-
+    
       <FilterDialog
         isOpen={isFilterDialogOpen}
         onClose={() => setIsFilterDialogOpen(false)}
@@ -1058,5 +1059,6 @@ export default function DashboardContent() {
         availableColumns={availableColumns}
       />
     </div>
+  </div>
   );
 }
