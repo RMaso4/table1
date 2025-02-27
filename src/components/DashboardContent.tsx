@@ -108,6 +108,8 @@ export default function DashboardContent() {
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const processedUpdatesRef = useRef(new Set<string>());
+  const processingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const updateThrottleTimeRef = useRef<Map<string, number>>(new Map());
   const [sortState, setSortState] = useState<SortState>({
     field: null,
     direction: null
@@ -365,43 +367,60 @@ export default function DashboardContent() {
 // Replace the existing useEffect for handling real-time order updates with this:
 
 // Then in your useEffect for real-time updates:
+// Then in your useEffect for real-time updates:
 useEffect(() => {
   // Skip if real-time updates are disabled or no update received
   if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
     return;
   }
   
-  console.log('Processing real-time order update:', lastOrderUpdate);
+  const orderId = lastOrderUpdate.orderId;
+  const now = Date.now();
   
-  // Create a unique identifier for this update
-  const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
+  // 1. Throttle rapid updates for the same order
+  const lastUpdateTime = updateThrottleTimeRef.current.get(orderId) || 0;
+  const timeSinceLastUpdate = now - lastUpdateTime;
   
-  // Skip if we've seen this update already 
-  if (processedUpdatesRef.current.has(updateId)) {
-    console.log('DashboardContent: Skipping already processed update', updateId);
+  if (timeSinceLastUpdate < 3000) { // 3 second minimum between updates
+    console.log(`Throttling update for ${orderId} - last update was ${timeSinceLastUpdate}ms ago`);
     return;
   }
   
-  // Mark as processed
-  processedUpdatesRef.current.add(updateId);
+  // 2. Check if this exact update is already being processed
+  // Create a combined key of orderId + content hash to identify uniqueness
+  const contentKey = `${orderId}-${JSON.stringify(lastOrderUpdate.data)}`;
   
-  // Show a toast notification for the update
-  const orderNumber = lastOrderUpdate.data.verkoop_order || lastOrderUpdate.orderId;
+  if (processedUpdatesRef.current.has(contentKey)) {
+    console.log('Ignoring duplicate update with key:', contentKey);
+    return;
+  }
+  
+  // Mark this update as being processed
+  processedUpdatesRef.current.add(contentKey);
+  updateThrottleTimeRef.current.set(orderId, now);
+  
+  // Clear any existing timeout for this order
+  if (processingTimeoutsRef.current.has(orderId)) {
+    clearTimeout(processingTimeoutsRef.current.get(orderId)!);
+  }
+  
+  // Show toast notification (only when we actually process the update)
+  const orderNumber = lastOrderUpdate.data.verkoop_order || orderId;
   setLastUpdateToast(`Order ${orderNumber} updated`);
-  
-  // Clear toast after 3 seconds
   setTimeout(() => setLastUpdateToast(null), 3000);
+  
+  console.log('Processing real-time order update:', lastOrderUpdate);
   
   // Create a new order object from the update data
   const updatedOrderData = {
     ...lastOrderUpdate.data,
-    id: lastOrderUpdate.orderId // Ensure ID is preserved
+    id: orderId // Ensure ID is preserved
   } as Order;
   
   // Update orders with the new data - create a new reference
   setOrders(prevOrders => {
     // Find the order index to update
-    const orderIndex = prevOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+    const orderIndex = prevOrders.findIndex(order => order.id === orderId);
     
     // If order exists, update it
     if (orderIndex !== -1) {
@@ -432,12 +451,13 @@ useEffect(() => {
     return prevOrders;
   });
 
+  // Update priority orders if needed
   setPriorityOrders(prevPriorityOrders => {
-    const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
+    const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === orderId);
     
     if (priorityOrderIndex !== -1) {
       // Find the updated order reference from the main orders array
-      const updatedOrder = orders.find(order => order.id === lastOrderUpdate.orderId);
+      const updatedOrder = orders.find(order => order.id === orderId);
       
       // Create a new array with the updated order
       const updatedPriorityOrders = [...prevPriorityOrders];
@@ -454,45 +474,29 @@ useEffect(() => {
     return prevPriorityOrders;
   });
   
-  // Clean up the processed updates set after some time
-  setTimeout(() => {
-    processedUpdatesRef.current.delete(updateId);
-  }, 30000); // Clear after 30 seconds
+  // Set a timeout to forget about this update after some time
+  // This prevents memory leaks and allows re-processing if the same update comes much later
+  const cleanupTimeout = setTimeout(() => {
+    processedUpdatesRef.current.delete(contentKey);
+    processingTimeoutsRef.current.delete(orderId);
+  }, 30000); // Keep track for 30 seconds
+  
+  processingTimeoutsRef.current.set(orderId, cleanupTimeout);
   
 }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
 
-// Fix for the unused 'data' variable in handleSavePriorityOrdersToBackend
-const savePriorityOrdersToBackend = async () => {
-  try {
-    // In a full implementation, you would save the priority orders to your backend
-    /* Example implementation:
-    const response = await fetch('/api/priority-orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        priorityOrders: priorityOrders.map(order => order.id)
-      }),
+// Clean up timeouts when component unmounts
+useEffect(() => {
+  return () => {
+    // Clear all processing timeouts to prevent memory leaks
+    processingTimeoutsRef.current.forEach(timeout => {
+      clearTimeout(timeout);
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to save priority orders');
-    }
-    
-    // Parse response if needed
-    // const _data = await response.json();
-    */
-
-    // For now we'll just show a success message
-    setLastUpdateToast('Priority order saved');
-    setTimeout(() => setLastUpdateToast(null), 3000);
-  } catch (error) {
-    console.error('Error saving priority orders:', error);
-    setError('Failed to save priority orders');
-    setTimeout(() => setError(null), 3000);
-  }
-};
+    processingTimeoutsRef.current.clear();
+    processedUpdatesRef.current.clear();
+    updateThrottleTimeRef.current.clear();
+  };
+}, []); 
   
   // Handle notifications from real-time updates
   useEffect(() => {

@@ -1,4 +1,4 @@
-// src/hooks/usePusher.ts
+// src/hooks/usePusher.ts - Enhanced with better deduplication
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -18,6 +18,10 @@ interface OrderData {
 interface OrderUpdateEvent {
   orderId: string;
   data: OrderData;
+  _meta?: {
+    processedAt?: string;
+    [key: string]: unknown;
+  };
 }
 
 interface NotificationEvent {
@@ -57,17 +61,39 @@ export default function usePusher() {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const channelsRef = useRef<Record<string, PusherChannel | null>>({});
   
-  // Enhanced duplicate prevention with both ID-based and content-based tracking
+  // Enhanced deduplication with both ID-based and content-based tracking plus timestamps
   const processedOrdersRef = useRef<Set<string>>(new Set());
-  const processedOrderContentRef = useRef<Set<string>>(new Set());
+  const processedContentHashesRef = useRef<Map<string, string>>(new Map());
   const processedNotificationsRef = useRef<Set<string>>(new Set());
   const processedNotificationContentRef = useRef<Set<string>>(new Set());
+  
+  // Track when we last processed an update for each order ID
+  const lastProcessedTimestampRef = useRef<Map<string, number>>(new Map());
   
   // Flag to track if channels are already set up
   const channelsSetupRef = useRef(false);
   
   // Reconnection logic
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Function to generate a content hash for an object (simple but effective)
+  const getContentHash = (obj: Record<string, any>): string => {
+    try {
+      // Create a simplified representation of key properties for comparison
+      const keyProps = {
+        id: obj.id || '',
+        vo: obj.verkoop_order || '',
+        project: obj.project || '',
+        customer: obj.debiteur_klant || '',
+        material: obj.material || '',
+        updated: obj.updatedAt || ''
+      };
+      return JSON.stringify(keyProps);
+    } catch (e) {
+      // Fallback to full stringify if specific properties aren't available
+      return JSON.stringify(obj);
+    }
+  };
   
   const connectToPusher = useCallback(() => {
     if (!session?.user || !REALTIME_CONFIG.USE_PUSHER) return false;
@@ -98,7 +124,7 @@ export default function usePusher() {
     }
   }, [session, connectionAttempts]);
   
-  // Set up channels and event listeners
+  // Set up channels and event listeners with enhanced deduplication
   const setupChannels = useCallback(() => {
     // Only set up channels if Pusher is enabled
     if (!REALTIME_CONFIG.USE_PUSHER) return false;
@@ -132,62 +158,63 @@ export default function usePusher() {
       channelsRef.current.orders = ordersChannel;
       channelsRef.current.notifications = notificationsChannel;
       
-      // Set up order update handler with improved deduplication
+      // IMPROVED: Order update handler with better deduplication
       ordersChannel.bind(EVENTS.ORDER_UPDATED, (data: OrderUpdateEvent) => {
-        if (REALTIME_CONFIG.DEBUG) {
-          console.log('Pusher: Order update received:', data);
-        }
-        
-        // Validate data
         if (!data || !data.orderId || !data.data) {
           console.error('Invalid order update format:', data);
           return;
         }
         
-        // Create a unique content fingerprint for this update
-        const contentFingerprint = `${data.orderId}:${JSON.stringify(data.data)}`;
+        const now = Date.now();
+        const orderId = data.orderId;
         
-        // Check both forms of duplicates
-        if (processedOrdersRef.current.has(data.orderId)) {
+        // Multiple deduplication strategies:
+        
+        // 1. Check if we've seen this exact update already (by order ID)
+        if (processedOrdersRef.current.has(orderId)) {
+          // Check if this update is coming too soon after the last one (throttle)
+          const lastProcessed = lastProcessedTimestampRef.current.get(orderId) || 0;
+          if (now - lastProcessed < 2000) { // 2 second minimum delay between updates for same order
+            if (REALTIME_CONFIG.DEBUG) {
+              console.log(`Throttling rapid updates for order ${orderId} - too soon`);
+            }
+            return;
+          }
+        }
+        
+        // 2. Content-based deduplication 
+        const contentHash = getContentHash(data.data);
+        const existingContentHash = processedContentHashesRef.current.get(orderId);
+        
+        if (existingContentHash && contentHash === String(existingContentHash)) {
           if (REALTIME_CONFIG.DEBUG) {
-            console.log('Skipping duplicate order ID:', data.orderId);
+            console.log(`Skipping duplicate content for order ${orderId}`);
           }
           return;
         }
         
-        if (processedOrderContentRef.current.has(contentFingerprint)) {
-          if (REALTIME_CONFIG.DEBUG) {
-            console.log('Skipping duplicate order content:', contentFingerprint);
-          }
-          return;
+        // If we get here, this is a new unique update we should process
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Processing order update:', { orderId, data: data.data });
         }
         
-        // Mark as processed to prevent duplicates
-        processedOrdersRef.current.add(data.orderId);
-        processedOrderContentRef.current.add(contentFingerprint);
+        // Record that we've processed this order and update
+        processedOrdersRef.current.add(orderId);
+        processedContentHashesRef.current.set(orderId, contentHash);
+        lastProcessedTimestampRef.current.set(orderId, now);
         
-        // Clear this order ID from processed list after a delay to allow future updates
-        setTimeout(() => {
-          processedOrdersRef.current.delete(data.orderId);
-        }, 3000);
-        
-        // Clear content fingerprint after a longer delay
-        setTimeout(() => {
-          processedOrderContentRef.current.delete(contentFingerprint);
-        }, 10000);
-        
-        // Update state with the new data
+        // Update our state with the new data
         setLastOrderUpdate(data);
         setOrderUpdates(prev => [data, ...prev].slice(0, 50));
+        
+        // Schedule cleanup after a delay - significantly longer delay to allow for proper deduplication
+        setTimeout(() => {
+          processedOrdersRef.current.delete(orderId);
+        }, 10000); // 10 seconds
       });
       
       // Set up notification handler with improved deduplication
       notificationsChannel.bind(EVENTS.NOTIFICATION_NEW, (data: NotificationEvent) => {
-        if (REALTIME_CONFIG.DEBUG) {
-          console.log('Pusher: Notification received:', data);
-        }
-        
-        // Validate data
         if (!data || !data.id) {
           console.error('Invalid notification format:', data);
           return;

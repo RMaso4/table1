@@ -1,4 +1,4 @@
-// src/lib/pusher.ts
+// src/lib/pusher.ts - Improved configuration
 import Pusher from 'pusher';
 import PusherClient from 'pusher-js';
 
@@ -39,11 +39,44 @@ export const pusherClient = new PusherClient(
     // Automatically handle reconnection
     activityTimeout: 120000,
     pongTimeout: 30000,
+    // Fix third-party cookie issues
+    authEndpoint: '/api/pusher/auth',
+    // Add cookie params to help with third-party cookie issues
+    auth: {
+      params: {
+        // Add a timestamp to avoid caching
+        _: Date.now()
+      }
+    },
+    // Connection will be managed manually using connect() and disconnect() methods
   }
 );
 
-// Add global error logging
+// Add global error and debug logging
 if (typeof window !== 'undefined') {
+  // Set up custom debug logging
+  const originalLog = console.log;
+  const originalError = console.error;
+  
+  // Only in development, add Pusher prefixes to console logs
+  if (process.env.NODE_ENV === 'development') {
+    console.log = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('Pusher')) {
+        originalLog.apply(console, ['[PUSHER]', ...args]);
+      } else {
+        originalLog.apply(console, args);
+      }
+    };
+    
+    console.error = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('Pusher')) {
+        originalError.apply(console, ['[PUSHER ERROR]', ...args]);
+      } else {
+        originalError.apply(console, args);
+      }
+    };
+  }
+  
   // Log connection issues
   pusherClient.connection.bind('error', (err: Error | { type: string; error: Error }) => {
     console.error('Pusher connection error:', err);
@@ -57,6 +90,11 @@ if (typeof window !== 'undefined') {
   // Log disconnections
   pusherClient.connection.bind('disconnected', () => {
     console.log('Pusher disconnected');
+  });
+  
+  // Help debug subscription issues
+  pusherClient.connection.bind('state_change', (states: {previous: string; current: string}) => {
+    console.log(`Pusher connection state changed from ${states.previous} to ${states.current}`);
   });
 }
 

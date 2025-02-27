@@ -3,9 +3,23 @@ import { NextResponse } from 'next/server';
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 import { REALTIME_CONFIG } from '@/lib/socketConfig';
 
+// Tracking sent events to prevent duplicate processing
+const recentlySentEvents = new Map<string, number>();
+
+// Clean up old events periodically to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamp] of recentlySentEvents.entries()) {
+    if (now - timestamp > 60000) { // 1 minute TTL
+      recentlySentEvents.delete(key);
+    }
+  }
+}, 30000); // Run cleanup every 30 seconds
+
 export async function POST(request: Request) {
   try {
-    const { event, data } = await request.json();
+    const requestBody = await request.json();
+    const { event, data } = requestBody;
     
     // Skip Socket.IO if disabled, but still process with Pusher if enabled
     if (!REALTIME_CONFIG.USE_SOCKET_IO && REALTIME_CONFIG.DEBUG) {
@@ -44,6 +58,34 @@ export async function POST(request: Request) {
             data: data
           };
         }
+        
+        // Generate a deduplication key based on order ID and content
+        const orderId = typeof data === 'object' && data !== null && 'orderId' in data 
+          ? data.orderId 
+          : (data.id || 'unknown');
+          
+        // Create a fingerprint for deduplication
+        const orderFingerprint = `${orderId}-${JSON.stringify(data).slice(0, 100)}`;
+        
+        // Check for duplicate events sent recently
+        const now = Date.now();
+        const lastSent = recentlySentEvents.get(orderFingerprint);
+        
+        if (lastSent && now - lastSent < 3000) { // 3 second throttle
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log(`API: Throttling duplicate order update for ${orderId} (sent ${now - lastSent}ms ago)`);
+          }
+          
+          // Return success to avoid client retries, but don't actually send the event
+          return NextResponse.json({ 
+            success: true,
+            throttled: true,
+            message: `Event "${event}" throttled to prevent duplicates`
+          });
+        }
+        
+        // Remember this event was sent
+        recentlySentEvents.set(orderFingerprint, now);
         break;
         
       case 'notification:new':
@@ -71,7 +113,7 @@ export async function POST(request: Request) {
     // Process with Pusher if enabled
     if (REALTIME_CONFIG.USE_PUSHER) {
       if (REALTIME_CONFIG.DEBUG) {
-        console.log(`API: Triggering Pusher event "${eventName}" on channel "${channel}" with payload:`, payload);
+        console.log(`API: Triggering Pusher event "${eventName}" on channel "${channel}"`);
       }
       
       // Add diagnostic data
@@ -81,7 +123,8 @@ export async function POST(request: Request) {
           processedAt: new Date().toISOString(),
           originalEvent: event,
           triggerChannel: channel,
-          triggerEvent: eventName
+          triggerEvent: eventName,
+          clientTimestamp: Date.now()
         }
       };
       
