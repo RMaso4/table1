@@ -8,7 +8,7 @@ import SearchBar from '@/components/SearchBar';
 import EditableCell from '@/components/EditableCell';
 import { ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Order } from '@/types';
-import { createExportOptions } from '@/utils/excelExportUtils';
+import { createExcelExportOptions } from '@/utils/excelExportUtils';
 
 // Define the custom page type
 interface CustomPage {
@@ -247,7 +247,7 @@ export default function CustomPage() {
       .filter((col): col is ColumnDefinition => col !== undefined);
     
     // Create export utilities
-    const exporter = createExportOptions(
+    const exporter = createExcelExportOptions(
       filteredOrders,
       exportColumns,
       // Success callback
@@ -263,7 +263,7 @@ export default function CustomPage() {
     );
     
     // Export with custom filename
-    exporter.toCSV();
+    exporter.toExcel();
   };
 
   if (loading || !pageConfig) {
