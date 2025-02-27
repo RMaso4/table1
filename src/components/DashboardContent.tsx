@@ -806,7 +806,7 @@ export default function DashboardContent() {
   return (
     <div className="flex h-screen">
       <Navbar onLogout={handleLogout} />
-
+      <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
         <div className="p-8 flex-grow overflow-auto">
           {lastUpdateToast && (
             <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
@@ -1009,6 +1009,50 @@ export default function DashboardContent() {
             </div>
           </div>
 
+
+          {/* Testing Tools */}
+          <div className="mt-4">
+            <details className="border rounded-md bg-white shadow" open>
+              <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
+                Real-time Testing Tools
+              </summary>
+              <div className="p-4">
+                <RealTimeTestingTool />
+              </div>
+            </details>
+          </div>
+
+          {/* Connection Debugger */}
+          <div className="mt-4">
+            <details className="border rounded-md bg-white shadow">
+              <summary className="p-2 cursor-pointer font-medium bg-gray-50 hover:bg-gray-100">
+                Connection Diagnostics
+              </summary>
+              <div className="p-4">
+                <PusherConnectionDebugger />
+              </div>
+            </details>
+          </div>
+
+          {/* Authentication Status */}
+          <div className="bg-white rounded-lg shadow p-6 mb-4 mt-4">
+            <h2 className="text-lg font-semibold mb-2">Authentication Status</h2>
+            <div className="flex gap-4 items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm">Authenticated</span>
+              </div>
+              {session?.user && (
+                <div className="text-sm">
+                  <span className="font-medium">User:</span> {session.user.email} ({session.user.role})
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+
       <FilterDialog
         isOpen={isFilterDialogOpen}
         onClose={() => setIsFilterDialogOpen(false)}
@@ -1016,6 +1060,5 @@ export default function DashboardContent() {
         availableColumns={availableColumns}
       />
     </div>
-  </div>
   );
 }
