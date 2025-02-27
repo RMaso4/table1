@@ -8,7 +8,8 @@ const nextConfig = {
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || '',
   },
-  
+  reactStrictMode: true,
+  swcMinify: false, // Disable minification temporarily
   // Experimental features that work with Next.js 15.1.7
   experimental: {
     // Remove unsupported serverExternalPackages config
