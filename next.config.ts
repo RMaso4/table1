@@ -9,12 +9,10 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || '',
   },
   reactStrictMode: true,
-  swcMinify: false, // Disable minification temporarily
-  // Experimental features that work with Next.js 15.1.7
-  experimental: {
-    // Remove unsupported serverExternalPackages config
-    // If you need this, use a newer version of Next.js or find an alternative
-  },
+  // Remove swcMinify as it's unrecognized according to the build log
+  // experimental: {
+  //   // Empty experimental section
+  // },
 };
 
 module.exports = nextConfig;

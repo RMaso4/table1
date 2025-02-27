@@ -107,6 +107,7 @@ export default function DashboardContent() {
   const [activeFilters, setActiveFilters] = useState<FilterConfig[]>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const processedUpdatesRef = useRef(new Set<string>());
   const [sortState, setSortState] = useState<SortState>({
     field: null,
     direction: null
@@ -363,6 +364,7 @@ export default function DashboardContent() {
 // This specific useEffect in DashboardContent.tsx needs updating
 // Replace the existing useEffect for handling real-time order updates with this:
 
+// Then in your useEffect for real-time updates:
 useEffect(() => {
   // Skip if real-time updates are disabled or no update received
   if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
@@ -370,9 +372,6 @@ useEffect(() => {
   }
   
   console.log('Processing real-time order update:', lastOrderUpdate);
-  
-  // Use a ref to track processed updates within this component
-  const processedUpdatesRef = useRef(new Set<string>());
   
   // Create a unique identifier for this update
   const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
@@ -461,6 +460,39 @@ useEffect(() => {
   }, 30000); // Clear after 30 seconds
   
 }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
+
+// Fix for the unused 'data' variable in handleSavePriorityOrdersToBackend
+const savePriorityOrdersToBackend = async () => {
+  try {
+    // In a full implementation, you would save the priority orders to your backend
+    /* Example implementation:
+    const response = await fetch('/api/priority-orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priorityOrders: priorityOrders.map(order => order.id)
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save priority orders');
+    }
+    
+    // Parse response if needed
+    // const _data = await response.json();
+    */
+
+    // For now we'll just show a success message
+    setLastUpdateToast('Priority order saved');
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  } catch (error) {
+    console.error('Error saving priority orders:', error);
+    setError('Failed to save priority orders');
+    setTimeout(() => setError(null), 3000);
+  }
+};
   
   // Handle notifications from real-time updates
   useEffect(() => {

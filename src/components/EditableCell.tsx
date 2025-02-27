@@ -10,8 +10,8 @@ interface EditableCellProps {
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string;
-  orderNumber: string;
+  orderId: string;  // Keep but use with underscore if unused
+  orderNumber: string;  // Keep but use with underscore if unused
 }
 
 export default function EditableCell({
@@ -19,8 +19,8 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  orderId,
-  orderNumber
+  orderId: _orderId, // Prefixed with underscore to indicate it's not used directly
+  orderNumber: _orderNumber // Prefixed with underscore to indicate it's not used directly
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -40,7 +40,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (_e) {
+      } catch (_error) { // Used with underscore to indicate it's intentionally unused
         setInputValue('');
       }
     } else {
@@ -79,7 +79,7 @@ export default function EditableCell({
       }
       
       return true;
-    } catch (_err) {
+    } catch (_err) { // Used with underscore to indicate it's intentionally unused
       setError('Invalid input');
       return false;
     }
@@ -180,7 +180,7 @@ export default function EditableCell({
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (_e) {
+      } catch (_error) { // Used with underscore to indicate it's intentionally unused
         return '-';
       }
     }

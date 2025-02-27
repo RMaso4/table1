@@ -118,20 +118,20 @@ export default function PriorityOrdersTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((order, index) => (
+            {orders.map((order, rowIndex) => (
               <tr
-                key={`priority-${order.id}-${index}`}
+                key={`priority-${order.id}-${rowIndex}`}
                 draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
+                onDragStart={(e) => handleDragStart(e, rowIndex)}
+                onDragOver={(e) => handleDragOver(e, rowIndex)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
+                onDrop={(e) => handleDrop(e, rowIndex)}
                 onDragEnd={handleDragEnd}
                 className="hover:bg-gray-50 transition-colors duration-150"
               >
                 <td className="px-3 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {index + 1}
+                    {rowIndex + 1}
                   </div>
                 </td>
                 <td

@@ -5,8 +5,11 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+// Define a more specific type for field value instead of any
+type FieldValue = string | number | boolean | Date | null;
+
 // Validate field value before updating
-const validateFieldValue = (field: string, value: any): any => {
+const validateFieldValue = (field: string, value: FieldValue): FieldValue => {
   // Handle null values
   if (value === null || value === undefined) {
     return null;
@@ -31,12 +34,12 @@ const validateFieldValue = (field: string, value: any): any => {
       }
       
       // Otherwise, try to parse it
-      const date = new Date(value);
+      const date = new Date(value as string | number);
       if (isNaN(date.getTime())) {
         throw new Error(`Invalid date format for field ${field}`);
       }
       return date.toISOString();
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`Invalid date format for field ${field}`);
     }
   }
@@ -81,7 +84,7 @@ const createNotification = async (
   orderNumber: string, 
   userId: string, 
   field: string, 
-  value: any
+  value: FieldValue
 ) => {
   try {
     // Find user who made the change
@@ -146,8 +149,8 @@ const createNotification = async (
     );
 
     return await Promise.all(notificationPromises);
-  } catch (error) {
-    console.error('Error creating notification:', error);
+  } catch (_error) {
+    console.error('Error creating notification:', _error);
     return [];
   }
 };
@@ -231,7 +234,7 @@ export async function PATCH(
     // Validate and sanitize the value
     let processedValue;
     try {
-      processedValue = validateFieldValue(field, value);
+      processedValue = validateFieldValue(field, value as FieldValue);
     } catch (error) {
       return NextResponse.json({ 
         error: error instanceof Error ? error.message : 'Invalid value' 

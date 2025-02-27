@@ -12,7 +12,7 @@ interface CustomPageData {
 }
 
 // GET endpoint to fetch all custom pages
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {  // Added underscore to fix unused param warning
   try {
     // Authenticate user (any authenticated user can view custom pages)
     const session = await getServerSession(authOptions);

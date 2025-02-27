@@ -14,14 +14,15 @@ interface ColumnDefinition {
   type: 'text' | 'number' | 'date' | 'boolean';
 }
 
-// Define the custom page type
-interface CustomPage {
-  id: string;
-  name: string;
-  columns: string[];
-  createdBy: string;
-  createdAt: string;
-}
+// Remove or use CustomPage type (or prefix with underscore)
+// Either remove it if not used:
+// interface _CustomPage {
+//   id: string;
+//   name: string;
+//   columns: string[];
+//   createdBy: string;
+//   createdAt: string;
+// }
 
 export default function AddPage() {
   const router = useRouter();
