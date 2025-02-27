@@ -8,6 +8,15 @@ import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
 // Define custom event name for priority orders
 const PRIORITY_EVENT = 'priority:updated';
 
+// Custom interface to type the session user properly
+interface SessionUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  id: string;
+  role: string;
+}
+
 // GET endpoint to fetch priority orders
 export async function GET() {
   try {
@@ -47,6 +56,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Cast session.user to our custom interface to ensure TypeScript knows it has an id property
+    const user = session.user as SessionUser;
+
     // Parse the request body
     const { orderIds } = await request.json();
 
@@ -57,13 +69,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Find user in database to confirm they exist
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     // Clear any existing priority data
     await prisma.priorityOrder.deleteMany({});
 
     // Create new priority order entry
     const priorityOrders = await prisma.priorityOrder.create({
       data: {
-        updatedBy: session.user.id,
+        updatedBy: user.id,
         updatedAt: new Date(),
         orderIds: orderIds,
       },
@@ -76,8 +97,8 @@ export async function POST(request: NextRequest) {
     await pusherServer.trigger(CHANNELS.ORDERS, PRIORITY_EVENT, {
       priorityOrders,
       updatedBy: {
-        id: session.user.id,
-        name: session.user.name || session.user.email,
+        id: user.id,
+        name: user.name || user.email,
       },
       timestamp: new Date().toISOString(),
     });
