@@ -8,7 +8,7 @@ import SearchBar from '@/components/SearchBar';
 import EditableCell from '@/components/EditableCell';
 import { ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Order } from '@/types';
-import { createExportOptions } from '@/utils/exportUtils';
+import { createExportOptions } from '@/utils/excelExportUtils';
 
 // Define the custom page type
 interface CustomPage {

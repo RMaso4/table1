@@ -20,8 +20,8 @@ import OrderTableActions from '@/components/OrderTableActions';
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
 
-// Import export utilities
-import { createExportOptions, ColumnDefinition as ExportColumnDefinition } from '@/utils/exportUtils';
+import { convertToExcelCSV, exportToExcel, createExcelExportOptions } from '@/utils/excelExportUtils';
+import ExcelExportButton from '@/components/ExcelExportButton';
 
 // Import types
 import { Order } from '@/types';
@@ -184,27 +184,24 @@ export default function DashboardContent() {
       .map(field => availableColumns.find(col => col.field === field))
       .filter((col): col is ColumnDefinition => col !== undefined);
     
-    // Create export utilities
-    const exporter = createExportOptions(
-      filteredOrders, 
-      visibleColumns as ExportColumnDefinition[],
-      // Success callback
-      () => {
-        setLastUpdateToast('Export successful');
-        setTimeout(() => setLastUpdateToast(null), 3000);
-      },
-      // Error callback
-      (error) => {
-        setError(`Export failed: ${error.message}`);
-        setTimeout(() => setError(null), 3000);
-      }
-    );
-    
-    // Perform export
-    exporter.toCSV();
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        filteredOrders, 
+        visibleColumns, 
+        `orders-export-${new Date().toISOString().slice(0,10)}.csv`
+      );
+      
+      // Show success toast
+      setLastUpdateToast('Export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
+    }
   };
-
-  // Handle export of priority orders
+  
+  // Replace the existing handleExportPriority function with this:
   const handleExportPriority = () => {
     if (priorityOrders.length === 0) {
       setError('No priority orders to export');
@@ -213,7 +210,7 @@ export default function DashboardContent() {
     }
     
     // Define essential columns for priority export
-    const priorityColumns: ExportColumnDefinition[] = [
+    const priorityColumns: ColumnDefinition[] = [
       { field: 'verkoop_order', title: 'Order #', type: 'text' },
       { field: 'project', title: 'Project', type: 'text' },
       { field: 'debiteur_klant', title: 'Customer', type: 'text' },
@@ -221,24 +218,21 @@ export default function DashboardContent() {
       { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
     ];
     
-    // Create export utilities for priority orders
-    const exporter = createExportOptions(
-      priorityOrders,
-      priorityColumns,
-      // Success callback
-      () => {
-        setLastUpdateToast('Priority export successful');
-        setTimeout(() => setLastUpdateToast(null), 3000);
-      },
-      // Error callback
-      (error) => {
-        setError(`Priority export failed: ${error.message}`);
-        setTimeout(() => setError(null), 3000);
-      }
-    );
-    
-    // Perform export with priority filename
-    exporter.toCSV();
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        priorityOrders,
+        priorityColumns,
+        `priority-orders-export-${new Date().toISOString().slice(0,10)}.csv`
+      );
+      
+      // Show success toast
+      setLastUpdateToast('Priority export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Priority export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   // Load saved column order
@@ -751,6 +745,15 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
     setFilteredOrders(orders);
   };
 
+  // Define essential columns for priority export
+  const priorityColumns: ColumnDefinition[] = [
+    { field: 'verkoop_order', title: 'Order #', type: 'text' },
+    { field: 'project', title: 'Project', type: 'text' },
+    { field: 'debiteur_klant', title: 'Customer', type: 'text' },
+    { field: 'material', title: 'Material', type: 'text' },
+    { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
+  ];
+
   // Logout handler
   const handleLogout = async () => {
     try {
@@ -850,16 +853,36 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {/* Export Button */}
-                  <button
-                    onClick={handleExport}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                    disabled={filteredOrders.length === 0}
-                    title="Export data to CSV"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Exporteren</span>
-                  </button>
+                  <ExcelExportButton
+                    data={filteredOrders}
+                    columns={columnOrder
+                      .map(field => availableColumns.find(col => col.field === field))
+                      .filter((col): col is ColumnDefinition => col !== undefined)}
+                    onSuccess={() => {
+                      setLastUpdateToast('Export successful');
+                      setTimeout(() => setLastUpdateToast(null), 3000);
+                    }}
+                    onError={(error) => {
+                      setError(`Export failed: ${error.message}`);
+                      setTimeout(() => setError(null), 3000);
+                    }}
+                  />
+                  
+                  {priorityOrders.length > 0 && (
+                    <ExcelExportButton
+                      data={priorityOrders}
+                      columns={priorityColumns}
+                      onSuccess={() => {
+                        setLastUpdateToast('Priority export successful');
+                        setTimeout(() => setLastUpdateToast(null), 3000);
+                      }}
+                      onError={(error) => {
+                        setError(`Priority export failed: ${error.message}`);
+                        setTimeout(() => setError(null), 3000);
+                      }}
+                    />
+                  )}
+                
                   
                   {/* Export Priority Button */}
                   {priorityOrders.length > 0 && (
