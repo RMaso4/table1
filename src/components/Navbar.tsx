@@ -6,11 +6,16 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from './NotificationPanel';
+import { useState, useEffect } from 'react';
+import { Plus } from 'lucide-react';
 
-const navItems = [
-  { path: '/dashboard', label: 'Overview' },
-  { path: '/scan', label: 'Scan Orders' }
-];
+// Add a type for custom pages
+interface CustomPage {
+  id: string;
+  name: string;
+  path: string;
+  columns: string[];
+}
 
 interface NavbarProps {
   onLogout?: () => void;
@@ -20,6 +25,36 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  
+  // State for custom pages
+  const [customPages, setCustomPages] = useState<CustomPage[]>([]);
+  
+  // Load custom pages from localStorage on component mount
+  useEffect(() => {
+    const savedPages = localStorage.getItem('customPages');
+    if (savedPages) {
+      try {
+        setCustomPages(JSON.parse(savedPages));
+      } catch (error) {
+        console.error('Error parsing saved custom pages:', error);
+      }
+    }
+  }, []);
+
+  // Base navigation items
+  const baseNavItems = [
+    { path: '/dashboard', label: 'Overview' },
+    { path: '/scan', label: 'Scan Orders' }
+  ];
+  
+  // Combine base items with custom pages
+  const navItems = [
+    ...baseNavItems,
+    ...customPages.map(page => ({ 
+      path: page.path, 
+      label: page.name
+    }))
+  ];
 
   const handleLogout = async () => {
     if (onLogout) {
@@ -79,6 +114,17 @@ export default function Navbar({ onLogout }: NavbarProps) {
               </Link>
             </li>
           ))}
+          
+          {/* Add button for new pages */}
+          <li>
+            <Link
+              href="/add-page"
+              className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-[#29679b]"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Custom Page
+            </Link>
+          </li>
         </ul>
       </nav>
       
