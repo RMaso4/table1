@@ -52,7 +52,7 @@ interface ColumnDefinition {
 export default function DashboardContent() {
   const router = useRouter();
   const { data: session } = useSession();
-  
+
   // Real-time updates state and hook
   const { isConnected, lastOrderUpdate, lastNotification } = usePusher();
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
@@ -148,7 +148,7 @@ export default function DashboardContent() {
 
     // Add the order to the priority list
     setPriorityOrders(prev => [...prev, orderToAdd]);
-    
+
     // Show confirmation toast
     setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
     setTimeout(() => setLastUpdateToast(null), 3000);
@@ -161,7 +161,7 @@ export default function DashboardContent() {
 
     // Remove the order from the priority list
     setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
-    
+
     // Show confirmation toast
     setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
     setTimeout(() => setLastUpdateToast(null), 3000);
@@ -183,15 +183,15 @@ export default function DashboardContent() {
     const visibleColumns = columnOrder
       .map(field => availableColumns.find(col => col.field === field))
       .filter((col): col is ColumnDefinition => col !== undefined);
-    
+
     try {
       // Use the improved Excel export function
       exportToExcel(
-        filteredOrders, 
-        visibleColumns, 
-        `orders-export-${new Date().toISOString().slice(0,10)}.csv`
+        filteredOrders,
+        visibleColumns,
+        `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
       );
-      
+
       // Show success toast
       setLastUpdateToast('Export successful');
       setTimeout(() => setLastUpdateToast(null), 3000);
@@ -200,7 +200,7 @@ export default function DashboardContent() {
       setTimeout(() => setError(null), 3000);
     }
   };
-  
+
   // Replace the existing handleExportPriority function with this:
   const handleExportPriority = () => {
     if (priorityOrders.length === 0) {
@@ -208,7 +208,7 @@ export default function DashboardContent() {
       setTimeout(() => setError(null), 3000);
       return;
     }
-    
+
     // Define essential columns for priority export
     const priorityColumns: ColumnDefinition[] = [
       { field: 'verkoop_order', title: 'Order #', type: 'text' },
@@ -217,15 +217,15 @@ export default function DashboardContent() {
       { field: 'material', title: 'Material', type: 'text' },
       { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
     ];
-    
+
     try {
       // Use the improved Excel export function
       exportToExcel(
         priorityOrders,
         priorityColumns,
-        `priority-orders-export-${new Date().toISOString().slice(0,10)}.csv`
+        `priority-orders-export-${new Date().toISOString().slice(0, 10)}.csv`
       );
-      
+
       // Show success toast
       setLastUpdateToast('Priority export successful');
       setTimeout(() => setLastUpdateToast(null), 3000);
@@ -282,7 +282,7 @@ export default function DashboardContent() {
     activeFilters.forEach(filter => {
       result = result.filter(order => {
         const value = order[filter.field as keyof Order];
-        
+
         switch (filter.operator) {
           case 'equals':
             return value === filter.value;
@@ -293,11 +293,11 @@ export default function DashboardContent() {
           case 'lessThan':
             return value !== null && value !== undefined && filter.value !== null && value < filter.value;
           case 'between':
-            return value !== null && value !== undefined && 
-                   filter.value2 !== undefined && filter.value2 !== null && 
-                   filter.value !== null &&
-                   value >= filter.value && 
-                   value <= filter.value2;
+            return value !== null && value !== undefined &&
+              filter.value2 !== undefined && filter.value2 !== null &&
+              filter.value !== null &&
+              value >= filter.value &&
+              value <= filter.value2;
           default:
             return;
         }
@@ -357,151 +357,151 @@ export default function DashboardContent() {
     fetchOrders();
   }, []);
 
-// This specific useEffect in DashboardContent.tsx needs updating
-// Replace the existing useEffect for handling real-time order updates with this:
+  // This specific useEffect in DashboardContent.tsx needs updating
+  // Replace the existing useEffect for handling real-time order updates with this:
 
-// Then in your useEffect for real-time updates:
-// Then in your useEffect for real-time updates:
-useEffect(() => {
-  // Skip if real-time updates are disabled or no update received
-  if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
-    return;
-  }
-  
-  const orderId = lastOrderUpdate.orderId;
-  const now = Date.now();
-  
-  // 1. Throttle rapid updates for the same order
-  const lastUpdateTime = updateThrottleTimeRef.current.get(orderId) || 0;
-  const timeSinceLastUpdate = now - lastUpdateTime;
-  
-  if (timeSinceLastUpdate < 3000) { // 3 second minimum between updates
-    console.log(`Throttling update for ${orderId} - last update was ${timeSinceLastUpdate}ms ago`);
-    return;
-  }
-  
-  // 2. Check if this exact update is already being processed
-  // Create a combined key of orderId + content hash to identify uniqueness
-  const contentKey = `${orderId}-${JSON.stringify(lastOrderUpdate.data)}`;
-  
-  if (processedUpdatesRef.current.has(contentKey)) {
-    console.log('Ignoring duplicate update with key:', contentKey);
-    return;
-  }
-  
-  // Mark this update as being processed
-  processedUpdatesRef.current.add(contentKey);
-  updateThrottleTimeRef.current.set(orderId, now);
-  
-  // Clear any existing timeout for this order
-  if (processingTimeoutsRef.current.has(orderId)) {
-    clearTimeout(processingTimeoutsRef.current.get(orderId)!);
-  }
-  
-  // Show toast notification (only when we actually process the update)
-  const orderNumber = lastOrderUpdate.data.verkoop_order || orderId;
-  setLastUpdateToast(`Order ${orderNumber} updated`);
-  setTimeout(() => setLastUpdateToast(null), 3000);
-  
-  console.log('Processing real-time order update:', lastOrderUpdate);
-  
-  // Create a new order object from the update data
-  const updatedOrderData = {
-    ...lastOrderUpdate.data,
-    id: orderId // Ensure ID is preserved
-  } as Order;
-  
-  // Update orders with the new data - create a new reference
-  setOrders(prevOrders => {
-    // Find the order index to update
-    const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-    
-    // If order exists, update it
-    if (orderIndex !== -1) {
-      const updatedOrders = [...prevOrders];
-      // Create a merged object with all the current properties + the updated ones
-      updatedOrders[orderIndex] = {
-        ...updatedOrders[orderIndex],
-        ...updatedOrderData,
-      };
-      
-      console.log('Updated order in state:', updatedOrders[orderIndex]);
-      return updatedOrders;
+  // Then in your useEffect for real-time updates:
+  // Then in your useEffect for real-time updates:
+  useEffect(() => {
+    // Skip if real-time updates are disabled or no update received
+    if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
+      return;
     }
-    
-    // If we have a full order object and it's not in our list yet, add it
-    // Only add if we're not filtering (to avoid confusion)
-    if (
-      lastOrderUpdate.data.id &&
-      !Object.keys(columnFilters).length && 
-      !globalSearchQuery && 
-      !activeFilters.length
-    ) {
-      console.log('Adding new order to state:', updatedOrderData);
-      return [...prevOrders, updatedOrderData];
-    }
-    
-    // Otherwise, don't change anything
-    return prevOrders;
-  });
 
-  // Update priority orders if needed
-  setPriorityOrders(prevPriorityOrders => {
-    const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === orderId);
-    
-    if (priorityOrderIndex !== -1) {
-      // Find the updated order reference from the main orders array
-      const updatedOrder = orders.find(order => order.id === orderId);
-      
-      // Create a new array with the updated order
-      const updatedPriorityOrders = [...prevPriorityOrders];
-      
-      // Use the updated order if found, otherwise create a merged object
-      updatedPriorityOrders[priorityOrderIndex] = updatedOrder || {
-        ...prevPriorityOrders[priorityOrderIndex],
-        ...updatedOrderData
-      };
-      
-      return updatedPriorityOrders;
-    }
-    
-    return prevPriorityOrders;
-  });
-  
-  // Set a timeout to forget about this update after some time
-  // This prevents memory leaks and allows re-processing if the same update comes much later
-  const cleanupTimeout = setTimeout(() => {
-    processedUpdatesRef.current.delete(contentKey);
-    processingTimeoutsRef.current.delete(orderId);
-  }, 30000); // Keep track for 30 seconds
-  
-  processingTimeoutsRef.current.set(orderId, cleanupTimeout);
-  
-}, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
+    const orderId = lastOrderUpdate.orderId;
+    const now = Date.now();
 
-// Clean up timeouts when component unmounts
-useEffect(() => {
-  return () => {
-    // Clear all processing timeouts to prevent memory leaks
-    processingTimeoutsRef.current.forEach(timeout => {
-      clearTimeout(timeout);
+    // 1. Throttle rapid updates for the same order
+    const lastUpdateTime = updateThrottleTimeRef.current.get(orderId) || 0;
+    const timeSinceLastUpdate = now - lastUpdateTime;
+
+    if (timeSinceLastUpdate < 3000) { // 3 second minimum between updates
+      console.log(`Throttling update for ${orderId} - last update was ${timeSinceLastUpdate}ms ago`);
+      return;
+    }
+
+    // 2. Check if this exact update is already being processed
+    // Create a combined key of orderId + content hash to identify uniqueness
+    const contentKey = `${orderId}-${JSON.stringify(lastOrderUpdate.data)}`;
+
+    if (processedUpdatesRef.current.has(contentKey)) {
+      console.log('Ignoring duplicate update with key:', contentKey);
+      return;
+    }
+
+    // Mark this update as being processed
+    processedUpdatesRef.current.add(contentKey);
+    updateThrottleTimeRef.current.set(orderId, now);
+
+    // Clear any existing timeout for this order
+    if (processingTimeoutsRef.current.has(orderId)) {
+      clearTimeout(processingTimeoutsRef.current.get(orderId)!);
+    }
+
+    // Show toast notification (only when we actually process the update)
+    const orderNumber = lastOrderUpdate.data.verkoop_order || orderId;
+    setLastUpdateToast(`Order ${orderNumber} updated`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+
+    console.log('Processing real-time order update:', lastOrderUpdate);
+
+    // Create a new order object from the update data
+    const updatedOrderData = {
+      ...lastOrderUpdate.data,
+      id: orderId // Ensure ID is preserved
+    } as Order;
+
+    // Update orders with the new data - create a new reference
+    setOrders(prevOrders => {
+      // Find the order index to update
+      const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+
+      // If order exists, update it
+      if (orderIndex !== -1) {
+        const updatedOrders = [...prevOrders];
+        // Create a merged object with all the current properties + the updated ones
+        updatedOrders[orderIndex] = {
+          ...updatedOrders[orderIndex],
+          ...updatedOrderData,
+        };
+
+        console.log('Updated order in state:', updatedOrders[orderIndex]);
+        return updatedOrders;
+      }
+
+      // If we have a full order object and it's not in our list yet, add it
+      // Only add if we're not filtering (to avoid confusion)
+      if (
+        lastOrderUpdate.data.id &&
+        !Object.keys(columnFilters).length &&
+        !globalSearchQuery &&
+        !activeFilters.length
+      ) {
+        console.log('Adding new order to state:', updatedOrderData);
+        return [...prevOrders, updatedOrderData];
+      }
+
+      // Otherwise, don't change anything
+      return prevOrders;
     });
-    processingTimeoutsRef.current.clear();
-    processedUpdatesRef.current.clear();
-    updateThrottleTimeRef.current.clear();
-  };
-}, []); 
-  
+
+    // Update priority orders if needed
+    setPriorityOrders(prevPriorityOrders => {
+      const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === orderId);
+
+      if (priorityOrderIndex !== -1) {
+        // Find the updated order reference from the main orders array
+        const updatedOrder = orders.find(order => order.id === orderId);
+
+        // Create a new array with the updated order
+        const updatedPriorityOrders = [...prevPriorityOrders];
+
+        // Use the updated order if found, otherwise create a merged object
+        updatedPriorityOrders[priorityOrderIndex] = updatedOrder || {
+          ...prevPriorityOrders[priorityOrderIndex],
+          ...updatedOrderData
+        };
+
+        return updatedPriorityOrders;
+      }
+
+      return prevPriorityOrders;
+    });
+
+    // Set a timeout to forget about this update after some time
+    // This prevents memory leaks and allows re-processing if the same update comes much later
+    const cleanupTimeout = setTimeout(() => {
+      processedUpdatesRef.current.delete(contentKey);
+      processingTimeoutsRef.current.delete(orderId);
+    }, 30000); // Keep track for 30 seconds
+
+    processingTimeoutsRef.current.set(orderId, cleanupTimeout);
+
+  }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
+
+  // Clean up timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear all processing timeouts to prevent memory leaks
+      processingTimeoutsRef.current.forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      processingTimeoutsRef.current.clear();
+      processedUpdatesRef.current.clear();
+      updateThrottleTimeRef.current.clear();
+    };
+  }, []);
+
   // Handle notifications from real-time updates
   useEffect(() => {
     if (realtimeEnabled && lastNotification) {
       // Show a toast or some visual indication of the notification
       const message = lastNotification.message;
       setLastUpdateToast(message);
-      
+
       // Clear toast after 3 seconds
       setTimeout(() => setLastUpdateToast(null), 3000);
-      
+
       console.log('Notification received:', message);
     }
   }, [lastNotification, realtimeEnabled]);
@@ -521,7 +521,7 @@ useEffect(() => {
   const handleColumnSort = (field: string) => {
     setSortState(prev => ({
       field,
-      direction: 
+      direction:
         prev.field === field
           ? prev.direction === 'asc'
             ? 'desc'
@@ -536,152 +536,152 @@ useEffect(() => {
     setActiveFilters(filters);
   };
 
-// Replace the entire handleCellUpdate function in DashboardContent.tsx
+  // Replace the entire handleCellUpdate function in DashboardContent.tsx
 
-const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
-  try {
-    // Reset any previous errors
-    setError(null);
-    
-    console.log(`Updating cell ${field} for order ${orderId} to:`, value);
-  
-    // Find the order to update
-    const orderToUpdate = orders.find(order => order.id === orderId);
-    if (!orderToUpdate) {
-      throw new Error('Order not found');
-    }
-    
-    // Create a copy of the order with the updated field
-    const updatedOrder = { 
-      ...orderToUpdate, 
-      [field]: value,
-      updatedAt: new Date().toISOString() // Update the timestamp locally
-    };
-  
-    // Optimistically update the orders state
-    setOrders(prevOrders => 
-      prevOrders.map(order => order.id === orderId ? updatedOrder : order)
-    );
-  
-    // Also update priority orders if needed
-    setPriorityOrders(prevOrders => {
-      // Check if the order is in the priority list
-      const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-      if (orderIndex === -1) return prevOrders; // Not in the list
-      
-      // Create a new array with updated order
-      const newPriorityOrders = [...prevOrders];
-      newPriorityOrders[orderIndex] = updatedOrder;
-      return newPriorityOrders;
-    });
-  
-    // Prepare the API request data
-    const updateData = { [field]: value };
-    
-    // Make the API request
-    const response = await fetch(`/api/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updateData),
-    });
-    
-    // Check if response is ok
-    if (!response.ok) {
-      // Try to parse error response
-      const errorData = await response.json().catch(() => ({}));
-      
-      // Revert optimistic update on error
-      setOrders(prevOrders => 
-        prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
-      );
-      
-      setPriorityOrders(prevOrders => {
-        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-        if (orderIndex === -1) return prevOrders;
-        
-        const revertedPriorityOrders = [...prevOrders];
-        revertedPriorityOrders[orderIndex] = orderToUpdate;
-        return revertedPriorityOrders;
-      });
-      
-      throw new Error(errorData.error || errorData.message || 'Failed to update order');
-    }
-    
-    // Parse response data
-    const data = await response.json();
-    
-    // If real-time updates are enabled, the update will arrive through Pusher
-    // If disabled, we need to manually trigger a notification here
-    if (!realtimeEnabled) {
-      // Show a brief success message
-      setLastUpdateToast(`Updated ${field} successfully`);
-      setTimeout(() => setLastUpdateToast(null), 2000);
-    }
-    
-    // We should also trigger an event to notify other clients about this update
-    // This will reach this client too via Pusher if real-time is enabled
+  const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
     try {
-      // Use our trigger function directly if available
-      if (typeof window !== 'undefined') {
-        // Trigger the event using the API
-        fetch('/api/socket', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            event: 'order:updated',
-            data: {
-              orderId,
-              data: updatedOrder
-            }
-          })
-        }).catch(err => {
-          console.error('Failed to emit update event:', err);
-        });
+      // Reset any previous errors
+      setError(null);
+
+      console.log(`Updating cell ${field} for order ${orderId} to:`, value);
+
+      // Find the order to update
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (!orderToUpdate) {
+        throw new Error('Order not found');
       }
-    } catch (emitError) {
-      console.warn('Failed to emit update event:', emitError);
-      // Non-critical, don't throw
+
+      // Create a copy of the order with the updated field
+      const updatedOrder = {
+        ...orderToUpdate,
+        [field]: value,
+        updatedAt: new Date().toISOString() // Update the timestamp locally
+      };
+
+      // Optimistically update the orders state
+      setOrders(prevOrders =>
+        prevOrders.map(order => order.id === orderId ? updatedOrder : order)
+      );
+
+      // Also update priority orders if needed
+      setPriorityOrders(prevOrders => {
+        // Check if the order is in the priority list
+        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+        if (orderIndex === -1) return prevOrders; // Not in the list
+
+        // Create a new array with updated order
+        const newPriorityOrders = [...prevOrders];
+        newPriorityOrders[orderIndex] = updatedOrder;
+        return newPriorityOrders;
+      });
+
+      // Prepare the API request data
+      const updateData = { [field]: value };
+
+      // Make the API request
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      // Check if response is ok
+      if (!response.ok) {
+        // Try to parse error response
+        const errorData = await response.json().catch(() => ({}));
+
+        // Revert optimistic update on error
+        setOrders(prevOrders =>
+          prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
+        );
+
+        setPriorityOrders(prevOrders => {
+          const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+          if (orderIndex === -1) return prevOrders;
+
+          const revertedPriorityOrders = [...prevOrders];
+          revertedPriorityOrders[orderIndex] = orderToUpdate;
+          return revertedPriorityOrders;
+        });
+
+        throw new Error(errorData.error || errorData.message || 'Failed to update order');
+      }
+
+      // Parse response data
+      const data = await response.json();
+
+      // If real-time updates are enabled, the update will arrive through Pusher
+      // If disabled, we need to manually trigger a notification here
+      if (!realtimeEnabled) {
+        // Show a brief success message
+        setLastUpdateToast(`Updated ${field} successfully`);
+        setTimeout(() => setLastUpdateToast(null), 2000);
+      }
+
+      // We should also trigger an event to notify other clients about this update
+      // This will reach this client too via Pusher if real-time is enabled
+      try {
+        // Use our trigger function directly if available
+        if (typeof window !== 'undefined') {
+          // Trigger the event using the API
+          fetch('/api/socket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              event: 'order:updated',
+              data: {
+                orderId,
+                data: updatedOrder
+              }
+            })
+          }).catch(err => {
+            console.error('Failed to emit update event:', err);
+          });
+        }
+      } catch (emitError) {
+        console.warn('Failed to emit update event:', emitError);
+        // Non-critical, don't throw
+      }
+
+      return;
+
+    } catch (error) {
+      console.error('Error updating cell:', error);
+
+      // Show error message
+      setError(error instanceof Error ? error.message : 'Failed to update order');
+
+      // Clear error after a delay
+      setTimeout(() => setError(null), 5000);
+
+      return;
     }
-    
-    return;
-    
-  } catch (error) {
-    console.error('Error updating cell:', error);
-    
-    // Show error message
-    setError(error instanceof Error ? error.message : 'Failed to update order');
-    
-    // Clear error after a delay
-    setTimeout(() => setError(null), 5000);
-    
-    return;
-  }
-};
-  
+  };
+
   // 3. Either use the savePriorityOrdersToBackend function or comment it
   // Example of how to use it (call it after updating priorities):
   // const addToPriorityList = (orderId: string) => {
   //   const orderToAdd = orders.find(order => order.id === orderId);
   //   if (!orderToAdd) return;
-  
+
   //   // Check if the order is already in the priority list
   //   if (priorityOrders.some(order => order.id === orderId)) return;
-  
+
   //   // Add the order to the priority list
   //   setPriorityOrders(prev => [...prev, orderToAdd]);
-    
+
   //   // Show confirmation toast
   //   setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
   //   setTimeout(() => setLastUpdateToast(null), 3000);
-    
+
   //   // Save to backend when adding to priority list
   //   savePriorityOrdersToBackend();
   // };
-  
+
   // OR if you're not using it yet, you can comment it out:
   // const savePriorityOrdersToBackend = async () => {
   //   try {
@@ -760,7 +760,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
       const res = await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      
+
       if (res.ok) {
         await signOut({ redirect: false });
         router.push('/login');
@@ -813,14 +813,14 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
               {lastUpdateToast}
             </div>
           )}
-          
+
           {/* Priority Orders Table */}
-          <PriorityOrdersTable 
+          <PriorityOrdersTable
             orders={priorityOrders}
             onRemoveFromPriority={removeFromPriorityList}
             onPriorityOrdersChange={updatePriorityOrders}
           />
-          
+
           {/* Main Orders Table */}
           <div className="bg-white rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -830,15 +830,14 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                   <span className="text-sm text-gray-500">Real-time updates:</span>
                   <button
                     onClick={() => setRealtimeEnabled(!realtimeEnabled)}
-                    className={`px-3 py-1 text-sm rounded ${
-                      realtimeEnabled 
-                        ? 'bg-green-500 text-white' 
+                    className={`px-3 py-1 text-sm rounded ${realtimeEnabled
+                        ? 'bg-green-500 text-white'
                         : 'bg-gray-200 text-gray-700'
-                    }`}
+                      }`}
                   >
                     {realtimeEnabled ? 'Enabled' : 'Disabled'}
                   </button>
-                  
+
                   {isConnected ? (
                     <span className="flex items-center text-xs text-green-600">
                       <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
@@ -851,7 +850,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                     </span>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <ExcelExportButton
                     data={filteredOrders}
@@ -867,7 +866,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                       setTimeout(() => setError(null), 3000);
                     }}
                   />
-                  
+
                   {priorityOrders.length > 0 && (
                     <ExcelExportButton
                       data={priorityOrders}
@@ -882,9 +881,9 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                       }}
                     />
                   )}
-                
-                  
-                  {/* Export Priority Button */}
+
+
+                  {/* Export Priority Button - DELETE THIS ENTIRE BUTTON BLOCK */}
                   {priorityOrders.length > 0 && (
                     <button
                       onClick={handleExportPriority}
@@ -896,7 +895,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                     </button>
                   )}
                 </div>
-                
+
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800"
@@ -904,21 +903,21 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                   <Filter className="h-5 w-5" />
                   <span>Filters</span>
                 </button>
-                <SearchBar 
+                <SearchBar
                   onSearch={handleGlobalSearch}
                   value={globalSearchQuery}
                 />
-                {(activeFilters.length > 0 || 
-                  Object.keys(columnFilters).length > 0 || 
-                  globalSearchQuery || 
+                {(activeFilters.length > 0 ||
+                  Object.keys(columnFilters).length > 0 ||
+                  globalSearchQuery ||
                   sortState.field) && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Clear all filters
-                  </button>
-                )}
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -929,7 +928,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                     <th className="w-12 px-2 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Priority
                     </th>
-                    
+
                     {/* Regular Columns */}
                     {columnOrder.map(field => {
                       const column = availableColumns.find(col => col.field === field)!;
@@ -962,7 +961,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                             onAddToPriority={addToPriorityList}
                           />
                         </td>
-                        
+
                         {/* Regular Data Cells */}
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
@@ -1014,8 +1013,8 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
                   ) : (
                     <tr>
                       <td colSpan={columnOrder.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
-                        {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ? 
-                          'No orders match the current filters.' : 
+                        {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
+                          'No orders match the current filters.' :
                           'No orders found. Add an order to get started.'}
                       </td>
                     </tr>
@@ -1024,7 +1023,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
               </table>
             </div>
           </div>
-          
+
           {/* Testing Tools */}
           <div className="mt-4">
             <details className="border rounded-md bg-white shadow" open>
@@ -1036,7 +1035,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
               </div>
             </details>
           </div>
-          
+
           {/* Connection Debugger */}
           <div className="mt-4">
             <details className="border rounded-md bg-white shadow">
@@ -1048,7 +1047,7 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
               </div>
             </details>
           </div>
-          
+
           {/* Authentication Status */}
           <div className="bg-white rounded-lg shadow p-6 mb-4 mt-4">
             <h2 className="text-lg font-semibold mb-2">Authentication Status</h2>

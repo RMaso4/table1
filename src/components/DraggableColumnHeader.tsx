@@ -51,7 +51,7 @@ export default function DraggableColumnHeader({
   };
 
   return (
-    <th 
+    <th
       className={`px-6 py-3 bg-gray-50 cursor-move ${isDragging ? 'opacity-50' : ''}`}
       draggable
       onDragStart={(e) => onDragStart(e, field)}
@@ -70,7 +70,8 @@ export default function DraggableColumnHeader({
             {sortDirection !== undefined && (
               <button
                 onClick={onSort}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                // Remove opacity-0 and group-hover classes to make always visible
+                className="transition-opacity"
               >
                 {sortDirection === 'asc' ? (
                   <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -83,13 +84,14 @@ export default function DraggableColumnHeader({
             )}
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              // Remove opacity-0 and group-hover classes to make always visible
+              className="transition-opacity"
             >
               <Search className="h-4 w-4 text-gray-400" />
             </button>
           </div>
         </div>
-        
+
         {isSearchOpen && (
           <div ref={searchRef} className="relative flex items-center">
             <input
