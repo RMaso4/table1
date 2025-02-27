@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from './NotificationPanel';
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import path from 'path';
 
 // Add a type for custom pages
 interface CustomPage {
@@ -58,7 +59,8 @@ export default function Navbar({ onLogout }: NavbarProps) {
   // Base navigation items
   const baseNavItems = [
     { path: '/dashboard', label: 'Overview' },
-    { path: '/scan', label: 'Scan Orders' }
+    { path: '/scan', label: 'Scan Orders' },
+    { path: '/Settings', label: 'Settings' }
   ];
   
   // Combine base items with custom pages
