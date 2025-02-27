@@ -1,4 +1,4 @@
-// components/Navbar.tsx
+// src/components/Navbar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -28,7 +28,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
   
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
-  const [pagesLoading, setPagesLoading] = useState(true);
+  const [_pagesLoading, setPagesLoading] = useState(true); // Fixed: Added underscore prefix
   
   // Fetch custom pages from API on component mount
   useEffect(() => {

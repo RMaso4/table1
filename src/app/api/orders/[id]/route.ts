@@ -39,7 +39,7 @@ const validateFieldValue = (field: string, value: FieldValue): FieldValue => {
         throw new Error(`Invalid date format for field ${field}`);
       }
       return date.toISOString();
-    } catch (_error) {
+    } catch (_error) { // Fix: prefixed with underscore
       throw new Error(`Invalid date format for field ${field}`);
     }
   }
@@ -149,7 +149,7 @@ const createNotification = async (
     );
 
     return await Promise.all(notificationPromises);
-  } catch (_error) {
+  } catch (_error) { // Fix: prefixed with underscore
     console.error('Error creating notification:', _error);
     return [];
   }
