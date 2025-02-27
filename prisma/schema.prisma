@@ -97,7 +97,6 @@ model Order {
   updatedAt               DateTime  @updatedAt
   notifications           Notification[]
   // Add virtual relation to PriorityOrder
-  priorityOrders          PriorityOrder[] @relation("OrderToPriorityOrder")
 }
 
 model PriorityOrder {
@@ -106,8 +105,6 @@ model PriorityOrder {
   updatedBy     String
   updatedAt     DateTime
   user          User       @relation(fields: [updatedBy], references: [id])
-  // Add virtual relation to Order
-  orders        Order[]    @relation("OrderToPriorityOrder")
 }
 
 model Notification {

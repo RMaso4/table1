@@ -150,59 +150,75 @@ export default function DashboardContent() {
   }, []);
 
   // Fetch priority orders from API on component mount
-  useEffect(() => {
-    const fetchPriorityOrders = async () => {
-      try {
-        const response = await fetch('/api/priority-orders');
-        if (response.ok) {
-          const data = await response.json();
+useEffect(() => {
+  const fetchPriorityOrders = async () => {
+    try {
+      const response = await fetch('/api/priority-orders');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // If we have orders directly, use them
+        if (data.orders && Array.isArray(data.orders) && data.orders.length > 0) {
+          setPriorityOrders(data.orders);
+          return;
+        }
+        
+        // If we have orderIds, map to full order objects
+        if (data.orderIds && Array.isArray(data.orderIds) && data.orderIds.length > 0) {
+          // Filter out any null/undefined orders when mapping IDs to objects
+          const priorityOrderObjects = data.orderIds
+            .map((id: string) => orders.find(order => order.id === id))
+            .filter((order: Order | undefined): order is Order => order !== undefined);
           
-          // If we have priority orders, set them
-          if (data.orders && Array.isArray(data.orders)) {
-            setPriorityOrders(data.orders);
-          } else if (data.priorityOrders && data.priorityOrders.orders) {
-            setPriorityOrders(data.priorityOrders.orders);
-          } else {
-            // Try to use orderIds to fetch the actual orders
-            if (data.orderIds && Array.isArray(data.orderIds)) {
-              // Map orderIds to actual order objects from the orders state
-              const priorityOrderObjects = data.orderIds
-                .map((id: string) => orders.find(order => order.id === id))
-                .filter((order: Order | undefined) => order !== undefined);
-              
-              setPriorityOrders(priorityOrderObjects);
-            }
-          }
-        } else {
-          // If API fails or isn't available yet, fall back to localStorage
-          const savedPriorityOrders = localStorage.getItem('priorityOrders');
-          if (savedPriorityOrders) {
-            try {
-              const parsedOrders = JSON.parse(savedPriorityOrders);
-              setPriorityOrders(parsedOrders);
-            } catch (error) {
-              console.error('Error parsing saved priority orders:', error);
-            }
+          if (priorityOrderObjects.length > 0) {
+            setPriorityOrders(priorityOrderObjects);
+            return;
           }
         }
-      } catch (error) {
-        console.error('Error fetching priority orders:', error);
         
-        // Fall back to localStorage if API fails
+        // If we have no priority data, look in localStorage as fallback
         const savedPriorityOrders = localStorage.getItem('priorityOrders');
         if (savedPriorityOrders) {
           try {
             const parsedOrders = JSON.parse(savedPriorityOrders);
             setPriorityOrders(parsedOrders);
-          } catch (error) {
-            console.error('Error parsing saved priority orders:', error);
+          } catch (parseError) {
+            console.error('Error parsing saved priority orders:', parseError);
+          }
+        }
+      } else {
+        // Fall back to localStorage
+        console.warn('Failed to fetch priority orders from API, falling back to localStorage');
+        const savedPriorityOrders = localStorage.getItem('priorityOrders');
+        if (savedPriorityOrders) {
+          try {
+            const parsedOrders = JSON.parse(savedPriorityOrders);
+            setPriorityOrders(parsedOrders);
+          } catch (parseError) {
+            console.error('Error parsing saved priority orders:', parseError);
           }
         }
       }
-    };
+    } catch (error) {
+      console.error('Error fetching priority orders:', error);
+      
+      // Fall back to localStorage
+      const savedPriorityOrders = localStorage.getItem('priorityOrders');
+      if (savedPriorityOrders) {
+        try {
+          const parsedOrders = JSON.parse(savedPriorityOrders);
+          setPriorityOrders(parsedOrders);
+        } catch (parseError) {
+          console.error('Error parsing saved priority orders:', parseError);
+        }
+      }
+    }
+  };
 
+  if (orders.length > 0) {
     fetchPriorityOrders();
-  }, [orders]); // Depend on orders to ensure we have the order data when mapping IDs
+  }
+}, [orders]);
 
   // Handle real-time priority updates
   useEffect(() => {
@@ -511,6 +527,14 @@ export default function DashboardContent() {
       // Get just the IDs in the current order
       const orderIds = priorityOrders.map(order => order.id);
       
+      if (orderIds.length === 0) {
+        console.log('No priority orders to save');
+        return;
+      }
+      
+      // Show saving indicator
+      setLastUpdateToast('Saving priority orders...');
+      
       const response = await fetch('/api/priority-orders', {
         method: 'POST',
         headers: {
@@ -520,14 +544,25 @@ export default function DashboardContent() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save priority orders');
+        // Try to get error details
+        let errorDetail = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorDetail = errorData.error || 'Server returned an error';
+        } catch (parseError) {
+          errorDetail = `Status ${response.status} (${response.statusText})`;
+        }
+        
+        throw new Error(`Failed to save priority orders: ${errorDetail}`);
       }
       
-      // No need to show success message here as it will come via real-time
+      // Success - show brief message
+      setLastUpdateToast('Priority orders saved successfully');
+      setTimeout(() => setLastUpdateToast(null), 2000);
     } catch (error) {
       console.error('Error saving priority orders:', error);
-      setError('Failed to save priority orders');
-      setTimeout(() => setError(null), 3000);
+      setError(error instanceof Error ? error.message : 'Failed to save priority orders');
+      setTimeout(() => setError(null), 5000);
     }
   };
 

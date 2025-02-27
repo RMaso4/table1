@@ -28,16 +28,34 @@ export async function GET() {
 
     // Get priority orders from the database
     const priorityData = await prisma.priorityOrder.findFirst({
-      include: {
-        orders: true, // Include the actual order data
-      },
+      orderBy: { updatedAt: 'desc' }
     });
 
     if (!priorityData) {
-      return NextResponse.json({ orders: [] });
+      return NextResponse.json({ orderIds: [] });
     }
 
-    return NextResponse.json(priorityData);
+    // Get the actual order objects based on the stored IDs
+    const orders = await prisma.order.findMany({
+      where: { 
+        id: { 
+          in: priorityData.orderIds 
+        } 
+      }
+    });
+
+    // Sort orders based on the original orderIds array order
+    const sortedOrders = priorityData.orderIds.map(id => 
+      orders.find(order => order.id === id)
+    ).filter(Boolean);
+
+    return NextResponse.json({
+      id: priorityData.id,
+      orderIds: priorityData.orderIds,
+      orders: sortedOrders,
+      updatedBy: priorityData.updatedBy,
+      updatedAt: priorityData.updatedAt
+    });
   } catch (error) {
     console.error('Error fetching priority orders:', error);
     return NextResponse.json(
@@ -69,33 +87,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user in database to confirm they exist
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
+    // Verify the order IDs exist in the database
+    const orderCount = await prisma.order.count({
+      where: {
+        id: {
+          in: orderIds
+        }
+      }
     });
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (orderCount !== orderIds.length) {
+      return NextResponse.json(
+        { error: 'Some order IDs do not exist' },
+        { status: 400 }
+      );
     }
 
-    // Clear any existing priority data
-    await prisma.priorityOrder.deleteMany({});
+    let priorityOrders;
+    
+    // Use upsert instead of create to avoid conflicts
+    try {
+      // First, get the existing record if any
+      const existingPriority = await prisma.priorityOrder.findFirst({
+        orderBy: { updatedAt: 'desc' }
+      });
 
-    // Create new priority order entry
-    const priorityOrders = await prisma.priorityOrder.create({
-      data: {
-        updatedBy: user.id,
-        updatedAt: new Date(),
-        orderIds: orderIds,
-      },
-      include: {
-        orders: true, // Include the related orders
-      },
+      if (existingPriority) {
+        // Update the existing record
+        priorityOrders = await prisma.priorityOrder.update({
+          where: { id: existingPriority.id },
+          data: {
+            orderIds: orderIds,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          }
+        });
+      } else {
+        // Create a new record if none exists
+        priorityOrders = await prisma.priorityOrder.create({
+          data: {
+            orderIds: orderIds,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          }
+        });
+      }
+    } catch (prismaError) {
+      console.error('Prisma error saving priority orders:', prismaError);
+      return NextResponse.json(
+        { error: 'Database error saving priority orders' },
+        { status: 500 }
+      );
+    }
+
+    // Fetch actual orders to include in the response
+    const orders = await prisma.order.findMany({
+      where: { 
+        id: { 
+          in: orderIds 
+        } 
+      }
     });
+
+    // Sort orders based on the original orderIds array order
+    const sortedOrders = orderIds.map(id => 
+      orders.find(order => order.id === id)
+    ).filter(Boolean);
+
+    // Prepare response data with orders included
+    const responseData = {
+      ...priorityOrders,
+      orders: sortedOrders
+    };
 
     // Emit a real-time event to all clients
     await pusherServer.trigger(CHANNELS.ORDERS, PRIORITY_EVENT, {
-      priorityOrders,
+      priorityOrders: responseData,
       updatedBy: {
         id: user.id,
         name: user.name || user.email,
@@ -103,7 +170,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json(priorityOrders);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error updating priority orders:', error);
     return NextResponse.json(
