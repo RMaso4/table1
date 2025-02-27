@@ -867,21 +867,6 @@ export default function DashboardContent() {
                     }}
                   />
 
-                  {priorityOrders.length > 0 && (
-                    <ExcelExportButton
-                      data={priorityOrders}
-                      columns={priorityColumns}
-                      onSuccess={() => {
-                        setLastUpdateToast('Priority export successful');
-                        setTimeout(() => setLastUpdateToast(null), 3000);
-                      }}
-                      onError={(error) => {
-                        setError(`Priority export failed: ${error.message}`);
-                        setTimeout(() => setError(null), 3000);
-                      }}
-                    />
-                  )}
-
 
                   {/* Export Priority Button - DELETE THIS ENTIRE BUTTON BLOCK */}
                   {priorityOrders.length > 0 && (
