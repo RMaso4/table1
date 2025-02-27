@@ -93,6 +93,46 @@ export async function POST(request: Request) {
         eventName = EVENTS.NOTIFICATION_NEW;
         break;
         
+      // Add this new case for priority updates
+      case 'priority:updated':
+        channel = CHANNELS.ORDERS;
+        eventName = EVENTS.PRIORITY_UPDATED;
+        
+        // Ensure proper format and add metadata
+        if (typeof data === 'object' && data !== null) {
+          // Add timestamp if not present
+          if (!data.timestamp) {
+            data.timestamp = new Date().toISOString();
+          }
+          
+          payload = data;
+        }
+        
+        // Generate a simple fingerprint for priority updates
+        if (data.priorityOrders && data.priorityOrders.id) {
+          const priorityId = data.priorityOrders.id;
+          const priorityFingerprint = `priority-${priorityId}`;
+          
+          // Check for duplicate priority updates
+          const now = Date.now();
+          const lastPrioritySent = recentlySentEvents.get(priorityFingerprint);
+          if (lastPrioritySent && now - lastPrioritySent < 5000) { // 5 second throttle
+            if (REALTIME_CONFIG.DEBUG) {
+              console.log(`API: Throttling duplicate priority update (sent ${now - lastPrioritySent}ms ago)`);
+            }
+            
+            return NextResponse.json({ 
+              success: true,
+              throttled: true,
+              message: `Priority update throttled to prevent duplicates`
+            });
+          }
+          
+          // Remember this priority update was sent
+          recentlySentEvents.set(priorityFingerprint, now);
+        }
+        break;
+        
       case 'ping_server':
         // Echo test event - use notifications channel
         channel = CHANNELS.NOTIFICATIONS;

@@ -33,6 +33,22 @@ interface NotificationEvent {
   createdAt: string;
 }
 
+// New interface for priority order updates
+interface PriorityOrderEvent {
+  priorityOrders: {
+    id: string;
+    orderIds: string[];
+    updatedBy: string;
+    updatedAt: string;
+    orders: OrderData[];
+  };
+  updatedBy: {
+    id: string;
+    name: string;
+  };
+  timestamp: string;
+}
+
 // Type for connection errors
 interface PusherConnectionError {
   message: string;
@@ -53,6 +69,7 @@ export default function usePusher() {
   const { data: session } = useSession();
   const [lastOrderUpdate, setLastOrderUpdate] = useState<OrderUpdateEvent | null>(null);
   const [lastNotification, setLastNotification] = useState<NotificationEvent | null>(null);
+  const [lastPriorityUpdate, setLastPriorityUpdate] = useState<PriorityOrderEvent | null>(null);
   const [orderUpdates, setOrderUpdates] = useState<OrderUpdateEvent[]>([]);
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
   
@@ -66,6 +83,7 @@ export default function usePusher() {
   const processedContentHashesRef = useRef<Map<string, string>>(new Map());
   const processedNotificationsRef = useRef<Set<string>>(new Set());
   const processedNotificationContentRef = useRef<Set<string>>(new Set());
+  const processedPriorityUpdatesRef = useRef<Set<string>>(new Set());
   
   // Track when we last processed an update for each order ID
   const lastProcessedTimestampRef = useRef<Map<string, number>>(new Map());
@@ -89,7 +107,7 @@ export default function usePusher() {
         updated: obj.updatedAt || ''
       };
       return JSON.stringify(keyProps);
-    } catch (_e) { // Fix: added underscore prefix
+    } catch (_e) {
       // Fallback to full stringify if specific properties aren't available
       return JSON.stringify(obj);
     }
@@ -258,6 +276,48 @@ export default function usePusher() {
         setLastNotification(data);
         setNotifications(prev => [data, ...prev].slice(0, 50));
       });
+
+      // New - Add priority orders update handler
+      ordersChannel.bind(EVENTS.PRIORITY_UPDATED, (data: PriorityOrderEvent) => {
+        if (!data || !data.priorityOrders) {
+          console.error('Invalid priority update format:', data);
+          return;
+        }
+
+        const updateId = data.priorityOrders.id;
+        const now = Date.now();
+
+        // Simple deduplication for priority updates
+        if (processedPriorityUpdatesRef.current.has(updateId)) {
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping duplicate priority update:', updateId);
+          }
+          return;
+        }
+
+        // Prevent processing updates from current user (they already have the update locally)
+        if (data.updatedBy.id === session?.user?.id) {
+          if (REALTIME_CONFIG.DEBUG) {
+            console.log('Skipping priority update from current user');
+          }
+          return;
+        }
+
+        // Mark as processed to prevent duplicates
+        processedPriorityUpdatesRef.current.add(updateId);
+
+        // Keep processed set from growing unbounded
+        setTimeout(() => {
+          processedPriorityUpdatesRef.current.delete(updateId);
+        }, 60000); // 1 minute
+
+        // Update state with the new priority order data
+        if (REALTIME_CONFIG.DEBUG) {
+          console.log('Processing priority update:', data);
+        }
+        
+        setLastPriorityUpdate(data);
+      });
       
       // Mark channels as set up to prevent duplicate setup
       channelsSetupRef.current = true;
@@ -268,7 +328,7 @@ export default function usePusher() {
       setConnectionError(`Channel setup error: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
-  }, []);
+  }, [session]);
   
   // Main effect to handle Pusher connection
   useEffect(() => {
@@ -392,6 +452,7 @@ export default function usePusher() {
       reconnect: () => false,
       lastOrderUpdate: null,
       lastNotification: null,
+      lastPriorityUpdate: null,
       orderUpdates: [],
       notifications: []
     };
@@ -406,6 +467,7 @@ export default function usePusher() {
     reconnect: connectToPusher,
     lastOrderUpdate,
     lastNotification,
+    lastPriorityUpdate,
     orderUpdates,
     notifications
   };

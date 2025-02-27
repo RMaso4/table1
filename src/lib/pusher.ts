@@ -1,4 +1,4 @@
-// src/lib/pusher.ts - Improved configuration
+// src/lib/pusher.ts - Add priority events
 import Pusher from 'pusher';
 import PusherClient from 'pusher-js';
 
@@ -108,4 +108,5 @@ export const CHANNELS = {
 export const EVENTS = {
   ORDER_UPDATED: 'order:updated',
   NOTIFICATION_NEW: 'notification:new',
+  PRIORITY_UPDATED: 'priority:updated', // New event for priority updates
 };

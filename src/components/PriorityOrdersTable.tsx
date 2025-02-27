@@ -1,8 +1,8 @@
 // src/components/PriorityOrdersTable.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { GripVertical, X } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { GripVertical, X, Users, ArrowUpDown } from 'lucide-react';
 import { Order } from '@/types';
 
 interface PriorityOrdersTableProps {
@@ -17,18 +17,63 @@ export default function PriorityOrdersTable({
   onPriorityOrdersChange,
 }: PriorityOrdersTableProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
+  const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
+  
+  // Store the previous orders for animation
+  const prevOrdersRef = useRef<Order[]>([]);
+  
+  // When orders change due to remote update, animate
+  useEffect(() => {
+    // Don't animate on first render
+    if (prevOrdersRef.current.length === 0) {
+      prevOrdersRef.current = orders;
+      return;
+    }
+    
+    // Check if this is a remote update (not triggered by dragging)
+    const prevIds = prevOrdersRef.current.map(o => o.id);
+    const currentIds = orders.map(o => o.id);
+    
+    // Check if order has changed but contains the same items
+    const hasOrderChanged = JSON.stringify(prevIds) !== JSON.stringify(currentIds) &&
+                           prevIds.length > 0 && currentIds.length > 0;
+    
+    // Show animation only for remote updates when not dragging
+    if (hasOrderChanged && draggedIndex === null) {
+      setIsRemoteUpdate(true);
+      setShowUpdateAnimation(true);
+      
+      // Clear animation after 2 seconds
+      const timer = setTimeout(() => {
+        setShowUpdateAnimation(false);
+        setIsRemoteUpdate(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Update ref for next comparison
+    prevOrdersRef.current = orders;
+  }, [orders, draggedIndex]);
   
   // Safely handle drag start
   const handleDragStart = useCallback((e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    // Don't allow dragging during a remote update animation
+    if (isRemoteUpdate) {
+      e.preventDefault();
+      return;
+    }
+    
     setDraggedIndex(index);
     // Set data transfer for compatibility
     e.dataTransfer.setData('text/plain', index.toString());
     // Set visual effect
     e.currentTarget.classList.add('bg-blue-50');
-  }, []);
+  }, [isRemoteUpdate]);
 
   // Handle drag over
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLTableRowElement>, _index: number) => { // Fixed: Added underscore prefix
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLTableRowElement>, _index: number) => {
     e.preventDefault();
     // Don't need to use index parameter directly, using it in event handlers is sufficient
     e.currentTarget.classList.add('border-t-2', 'border-blue-500');
@@ -83,11 +128,25 @@ export default function PriorityOrdersTable({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow mb-4">
+    <div className={`bg-white rounded-lg shadow mb-4 transition-all duration-500 ${showUpdateAnimation ? 'border-2 border-blue-500' : ''}`}>
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-900">Priority Orders</h2>
-        <div className="text-sm text-gray-500">
-          {orders.length} {orders.length === 1 ? 'order' : 'orders'} prioritized
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900">Priority Orders</h2>
+          {showUpdateAnimation && (
+            <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+              <Users className="h-3 w-3" />
+              <span>Updated by other user</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center text-sm text-gray-500">
+            <ArrowUpDown className="h-4 w-4 mr-1" />
+            <span>Drag to reorder</span>
+          </div>
+          <div className="text-sm text-gray-500">
+            {orders.length} {orders.length === 1 ? 'order' : 'orders'} prioritized
+          </div>
         </div>
       </div>
 
@@ -121,13 +180,14 @@ export default function PriorityOrdersTable({
             {orders.map((order, rowIndex) => (
               <tr
                 key={`priority-${order.id}-${rowIndex}`}
-                draggable
+                draggable={!isRemoteUpdate}
                 onDragStart={(e) => handleDragStart(e, rowIndex)}
                 onDragOver={(e) => handleDragOver(e, rowIndex)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, rowIndex)}
                 onDragEnd={handleDragEnd}
-                className="hover:bg-gray-50 transition-colors duration-150"
+                className={`hover:bg-gray-50 transition-colors duration-150 
+                  ${showUpdateAnimation ? 'animate-pulse bg-blue-50' : ''}`}
               >
                 <td className="px-3 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
@@ -135,9 +195,9 @@ export default function PriorityOrdersTable({
                   </div>
                 </td>
                 <td
-                  className="px-3 py-4 whitespace-nowrap cursor-move"
+                  className={`px-3 py-4 whitespace-nowrap ${isRemoteUpdate ? 'cursor-not-allowed' : 'cursor-move'}`}
                 >
-                  <GripVertical className="h-5 w-5 text-gray-400" />
+                  <GripVertical className={`h-5 w-5 ${isRemoteUpdate ? 'text-gray-300' : 'text-gray-400'}`} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
@@ -171,6 +231,7 @@ export default function PriorityOrdersTable({
                     onClick={() => onRemoveFromPriority(order.id)}
                     className="text-gray-400 hover:text-red-500"
                     title="Remove from priority"
+                    disabled={isRemoteUpdate}
                   >
                     <X className="h-5 w-5" />
                   </button>

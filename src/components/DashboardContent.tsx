@@ -52,7 +52,7 @@ export default function DashboardContent() {
   const { data: session } = useSession();
 
   // Real-time updates state and hook
-  const { isConnected, lastOrderUpdate, lastNotification } = usePusher();
+  const { isConnected, lastOrderUpdate, lastNotification, lastPriorityUpdate } = usePusher();
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
 
   // Priority orders state
@@ -117,213 +117,7 @@ export default function DashboardContent() {
     availableColumns.map(col => col.field)
   );
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
-
-  // Load priority orders from localStorage on component mount
-  useEffect(() => {
-    const savedPriorityOrders = localStorage.getItem('priorityOrders');
-    if (savedPriorityOrders) {
-      try {
-        const parsedOrders = JSON.parse(savedPriorityOrders);
-        setPriorityOrders(parsedOrders);
-      } catch (error) {
-        console.error('Error parsing saved priority orders:', error);
-      }
-    }
-  }, []);
-
-  // Save priority orders to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
-  }, [priorityOrders]);
-
-  // Add an order to the priority list
-  const addToPriorityList = (orderId: string) => {
-    const orderToAdd = orders.find(order => order.id === orderId);
-    if (!orderToAdd) return;
-
-    // Check if the order is already in the priority list
-    if (priorityOrders.some(order => order.id === orderId)) return;
-
-    // Add the order to the priority list
-    setPriorityOrders(prev => [...prev, orderToAdd]);
-
-    // Show confirmation toast
-    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
-    setTimeout(() => setLastUpdateToast(null), 3000);
-  };
-
-  // Remove an order from the priority list
-  const removeFromPriorityList = (orderId: string) => {
-    const orderToRemove = priorityOrders.find(order => order.id === orderId);
-    if (!orderToRemove) return;
-
-    // Remove the order from the priority list
-    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
-
-    // Show confirmation toast
-    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
-    setTimeout(() => setLastUpdateToast(null), 3000);
-  };
-
-  // Update priority orders (used for reordering)
-  const updatePriorityOrders = (newOrders: Order[]) => {
-    setPriorityOrders(newOrders);
-  };
-
-  // Check if an order is in the priority list
-  const isOrderPrioritized = (orderId: string) => {
-    return priorityOrders.some(order => order.id === orderId);
-  };
-
-  // Handle export functionality
-  const handleExport = () => {
-    // Get visible columns in their current order
-    const visibleColumns = columnOrder
-      .map(field => availableColumns.find(col => col.field === field))
-      .filter((col): col is ColumnDefinition => col !== undefined);
-
-    try {
-      // Use the improved Excel export function
-      exportToExcel(
-        filteredOrders,
-        visibleColumns,
-        `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
-      );
-
-      // Show success toast
-      setLastUpdateToast('Export successful');
-      setTimeout(() => setLastUpdateToast(null), 3000);
-    } catch (error) {
-      setError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  // Replace the existing handleExportPriority function with this:
-  const handleExportPriority = () => {
-    if (priorityOrders.length === 0) {
-      setError('No priority orders to export');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    // Define essential columns for priority export
-    const priorityColumns: ColumnDefinition[] = [
-      { field: 'verkoop_order', title: 'Order #', type: 'text' },
-      { field: 'project', title: 'Project', type: 'text' },
-      { field: 'debiteur_klant', title: 'Customer', type: 'text' },
-      { field: 'material', title: 'Material', type: 'text' },
-      { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
-    ];
-
-    try {
-      // Use the improved Excel export function
-      exportToExcel(
-        priorityOrders,
-        priorityColumns,
-        `priority-orders-export-${new Date().toISOString().slice(0, 10)}.csv`
-      );
-
-      // Show success toast
-      setLastUpdateToast('Priority export successful');
-      setTimeout(() => setLastUpdateToast(null), 3000);
-    } catch (error) {
-      setError(`Priority export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  // Load saved column order
-  useEffect(() => {
-    const savedOrder = localStorage.getItem('columnOrder');
-    if (savedOrder) {
-      try {
-        setColumnOrder(JSON.parse(savedOrder));
-      } catch (error) {
-        console.error('Error parsing saved column order:', error);
-        setColumnOrder(availableColumns.map(col => col.field));
-      }
-    }
-  }, [availableColumns]);
-
-  // Save column order to localStorage
-  useEffect(() => {
-    localStorage.setItem('columnOrder', JSON.stringify(columnOrder));
-  }, [columnOrder]);
-
-  // Memoized filtering function
-  const applyFilters = useCallback(() => {
-    let result = [...orders];
-
-    // Apply column filters
-    Object.entries(columnFilters).forEach(([field, filterValue]) => {
-      if (filterValue) {
-        result = result.filter(order => {
-          const value = order[field as keyof Order];
-          if (value === null || value === undefined) return false;
-          return String(value).toLowerCase().includes(filterValue.toLowerCase());
-        });
-      }
-    });
-
-    // Apply global search
-    if (globalSearchQuery) {
-      const searchLower = globalSearchQuery.toLowerCase();
-      result = result.filter(order =>
-        order.verkoop_order.toLowerCase().includes(searchLower) ||
-        order.project?.toLowerCase().includes(searchLower) ||
-        order.debiteur_klant.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply advanced filters
-    activeFilters.forEach(filter => {
-      result = result.filter(order => {
-        const value = order[filter.field as keyof Order];
-
-        switch (filter.operator) {
-          case 'equals':
-            return value === filter.value;
-          case 'contains':
-            return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
-          case 'greaterThan':
-            return value !== null && value !== undefined && filter.value !== null && value > filter.value;
-          case 'lessThan':
-            return value !== null && value !== undefined && filter.value !== null && value < filter.value;
-          case 'between':
-            return value !== null && value !== undefined &&
-              filter.value2 !== undefined && filter.value2 !== null &&
-              filter.value !== null &&
-              value >= filter.value &&
-              value <= filter.value2;
-          default:
-            return;
-        }
-      });
-    });
-
-    // Apply sorting if a sort field is selected
-    if (sortState.field) {
-      result.sort((a, b) => {
-        const aValue = a[sortState.field as keyof Order];
-        const bValue = b[sortState.field as keyof Order];
-
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-
-        if (aValue < bValue) return sortState.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortState.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    setFilteredOrders(result);
-  }, [orders, columnFilters, globalSearchQuery, activeFilters, sortState]);
-
-  // Apply filters whenever dependencies change
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
+  const isInitialMount = useRef(true);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -355,11 +149,126 @@ export default function DashboardContent() {
     fetchOrders();
   }, []);
 
-  // This specific useEffect in DashboardContent.tsx needs updating
-  // Replace the existing useEffect for handling real-time order updates with this:
+  // Fetch priority orders from API on component mount
+  useEffect(() => {
+    const fetchPriorityOrders = async () => {
+      try {
+        const response = await fetch('/api/priority-orders');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If we have priority orders, set them
+          if (data.orders && Array.isArray(data.orders)) {
+            setPriorityOrders(data.orders);
+          } else if (data.priorityOrders && data.priorityOrders.orders) {
+            setPriorityOrders(data.priorityOrders.orders);
+          } else {
+            // Try to use orderIds to fetch the actual orders
+            if (data.orderIds && Array.isArray(data.orderIds)) {
+              // Map orderIds to actual order objects from the orders state
+              const priorityOrderObjects = data.orderIds
+                .map((id: string) => orders.find(order => order.id === id))
+                .filter((order: Order | undefined) => order !== undefined);
+              
+              setPriorityOrders(priorityOrderObjects);
+            }
+          }
+        } else {
+          // If API fails or isn't available yet, fall back to localStorage
+          const savedPriorityOrders = localStorage.getItem('priorityOrders');
+          if (savedPriorityOrders) {
+            try {
+              const parsedOrders = JSON.parse(savedPriorityOrders);
+              setPriorityOrders(parsedOrders);
+            } catch (error) {
+              console.error('Error parsing saved priority orders:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching priority orders:', error);
+        
+        // Fall back to localStorage if API fails
+        const savedPriorityOrders = localStorage.getItem('priorityOrders');
+        if (savedPriorityOrders) {
+          try {
+            const parsedOrders = JSON.parse(savedPriorityOrders);
+            setPriorityOrders(parsedOrders);
+          } catch (error) {
+            console.error('Error parsing saved priority orders:', error);
+          }
+        }
+      }
+    };
 
-  // Then in your useEffect for real-time updates:
-  // Then in your useEffect for real-time updates:
+    fetchPriorityOrders();
+  }, [orders]); // Depend on orders to ensure we have the order data when mapping IDs
+
+  // Handle real-time priority updates
+  useEffect(() => {
+    if (!lastPriorityUpdate || !realtimeEnabled) return;
+    
+    try {
+      // Extract the priority orders data
+      const { priorityOrders: priorityData } = lastPriorityUpdate;
+      
+      if (!priorityData || !priorityData.orderIds) {
+        console.error('Invalid priority update format');
+        return;
+      }
+      
+      // Show toast notification
+      const userName = lastPriorityUpdate.updatedBy.name || 'Another user';
+      setLastUpdateToast(`${userName} updated the priority order list`);
+      setTimeout(() => setLastUpdateToast(null), 3000);
+      
+      console.log('Processing real-time priority order update:', priorityData);
+      
+      // If we have orders, map them to ensure all required properties
+      if (priorityData.orders && Array.isArray(priorityData.orders) && priorityData.orders.length > 0) {
+        const completeOrders = priorityData.orders.map(orderData => ({
+          ...orderData,
+          type_artikel: orderData.type_artikel || '',
+          material: orderData.material || '',
+          bruto_zagen: orderData.bruto_zagen || null,
+          pers: orderData.pers || null,
+          // Add any other required properties with default values
+        })) as Order[];
+        setPriorityOrders(completeOrders);
+      } else {
+        // Map orderIds to actual order objects from the orders state
+        const priorityOrderObjects = priorityData.orderIds
+          .map(id => orders.find(order => order.id === id))
+          .filter((order): order is Order => order !== undefined);
+        
+        if (priorityOrderObjects.length > 0) {
+          setPriorityOrders(priorityOrderObjects);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing priority update:', error);
+    }
+  }, [lastPriorityUpdate, realtimeEnabled, orders]);
+  
+  // Save priority orders to both API and localStorage when they change
+  useEffect(() => {
+    // Save to localStorage as backup
+    localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+    
+    // Don't send API updates when the component first mounts
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    // Only save to API if we have changes and aren't in the middle of processing
+    // a real-time update
+    if (priorityOrders.length > 0 && !lastPriorityUpdate) {
+      savePriorityOrdersToBackend();
+    }
+  }, [priorityOrders, lastPriorityUpdate]);
+
+  // Handle real-time order updates
   useEffect(() => {
     // Skip if real-time updates are disabled or no update received
     if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
@@ -504,6 +413,124 @@ export default function DashboardContent() {
     }
   }, [lastNotification, realtimeEnabled]);
 
+  // Load saved column order
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('columnOrder');
+    if (savedOrder) {
+      try {
+        setColumnOrder(JSON.parse(savedOrder));
+      } catch (error) {
+        console.error('Error parsing saved column order:', error);
+        setColumnOrder(availableColumns.map(col => col.field));
+      }
+    }
+  }, [availableColumns]);
+
+  // Save column order to localStorage
+  useEffect(() => {
+    localStorage.setItem('columnOrder', JSON.stringify(columnOrder));
+  }, [columnOrder]);
+
+  // Memoized filtering function
+  const applyFilters = useCallback(() => {
+    let result = [...orders];
+    
+    // Apply column filters
+    Object.entries(columnFilters).forEach(([field, filterValue]) => {
+      if (filterValue) {
+        result = result.filter(order => {
+          const value = order[field as keyof Order];
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(filterValue.toLowerCase());
+        });
+      }
+    });
+
+    // Apply global search
+    if (globalSearchQuery) {
+      const searchLower = globalSearchQuery.toLowerCase();
+      result = result.filter(order =>
+        order.verkoop_order.toLowerCase().includes(searchLower) ||
+        order.project?.toLowerCase().includes(searchLower) ||
+        order.debiteur_klant.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply advanced filters
+    activeFilters.forEach(filter => {
+      result = result.filter(order => {
+        const value = order[filter.field as keyof Order];
+
+        switch (filter.operator) {
+          case 'equals':
+            return value === filter.value;
+          case 'contains':
+            return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
+          case 'greaterThan':
+            return value !== null && value !== undefined && filter.value !== null && value > filter.value;
+          case 'lessThan':
+            return value !== null && value !== undefined && filter.value !== null && value < filter.value;
+          case 'between':
+            return value !== null && value !== undefined &&
+              filter.value2 !== undefined && filter.value2 !== null &&
+              filter.value !== null &&
+              value >= filter.value &&
+              value <= filter.value2;
+          default:
+            return;
+        }
+      });
+    });
+
+    // Apply sorting if a sort field is selected
+    if (sortState.field) {
+      result.sort((a, b) => {
+        const aValue = a[sortState.field as keyof Order];
+        const bValue = b[sortState.field as keyof Order];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (aValue < bValue) return sortState.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortState.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    setFilteredOrders(result);
+  }, [orders, columnFilters, globalSearchQuery, activeFilters, sortState]);
+
+  // Apply filters whenever dependencies change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  // Save priority orders to the backend
+  const savePriorityOrdersToBackend = async () => {
+    try {
+      // Get just the IDs in the current order
+      const orderIds = priorityOrders.map(order => order.id);
+      
+      const response = await fetch('/api/priority-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderIds }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save priority orders');
+      }
+      
+      // No need to show success message here as it will come via real-time
+    } catch (error) {
+      console.error('Error saving priority orders:', error);
+      setError('Failed to save priority orders');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   // Handler functions
   const handleGlobalSearch = (query: string) => {
     setGlobalSearchQuery(query);
@@ -534,7 +561,49 @@ export default function DashboardContent() {
     setActiveFilters(filters);
   };
 
-  // Replace the entire handleCellUpdate function in DashboardContent.tsx
+  // Add an order to the priority list
+  const addToPriorityList = (orderId: string) => {
+    const orderToAdd = orders.find(order => order.id === orderId);
+    if (!orderToAdd) return;
+
+    // Check if the order is already in the priority list
+    if (priorityOrders.some(order => order.id === orderId)) return;
+
+    // Add the order to the priority list
+    setPriorityOrders(prev => [...prev, orderToAdd]);
+
+    // Show confirmation toast
+    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+    
+    // The useEffect will handle saving to the backend
+  };
+
+  // Remove an order from the priority list
+  const removeFromPriorityList = (orderId: string) => {
+    const orderToRemove = priorityOrders.find(order => order.id === orderId);
+    if (!orderToRemove) return;
+
+    // Remove the order from the priority list
+    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
+
+    // Show confirmation toast
+    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+    
+    // The useEffect will handle saving to the backend
+  };
+
+  // Update priority orders (used for reordering)
+  const updatePriorityOrders = (newOrders: Order[]) => {
+    setPriorityOrders(newOrders);
+    // The useEffect will handle saving to the backend
+  };
+
+  // Check if an order is in the priority list
+  const isOrderPrioritized = (orderId: string) => {
+    return priorityOrders.some(order => order.id === orderId);
+  };
 
   const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
     try {
@@ -660,56 +729,62 @@ export default function DashboardContent() {
     }
   };
 
-  // 3. Either use the savePriorityOrdersToBackend function or comment it
-  // Example of how to use it (call it after updating priorities):
-  // const addToPriorityList = (orderId: string) => {
-  //   const orderToAdd = orders.find(order => order.id === orderId);
-  //   if (!orderToAdd) return;
+  // Handle export functionality
+  const handleExport = () => {
+    // Get visible columns in their current order
+    const visibleColumns = columnOrder
+      .map(field => availableColumns.find(col => col.field === field))
+      .filter((col): col is ColumnDefinition => col !== undefined);
 
-  //   // Check if the order is already in the priority list
-  //   if (priorityOrders.some(order => order.id === orderId)) return;
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        filteredOrders,
+        visibleColumns,
+        `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
+      );
 
-  //   // Add the order to the priority list
-  //   setPriorityOrders(prev => [...prev, orderToAdd]);
+      // Show success toast
+      setLastUpdateToast('Export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
 
-  //   // Show confirmation toast
-  //   setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
-  //   setTimeout(() => setLastUpdateToast(null), 3000);
+  const handleExportPriority = () => {
+    if (priorityOrders.length === 0) {
+      setError('No priority orders to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
 
-  //   // Save to backend when adding to priority list
-  //   savePriorityOrdersToBackend();
-  // };
+    // Define essential columns for priority export
+    const priorityColumns: ColumnDefinition[] = [
+      { field: 'verkoop_order', title: 'Order #', type: 'text' },
+      { field: 'project', title: 'Project', type: 'text' },
+      { field: 'debiteur_klant', title: 'Customer', type: 'text' },
+      { field: 'material', title: 'Material', type: 'text' },
+      { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
+    ];
 
-  // OR if you're not using it yet, you can comment it out:
-  // const savePriorityOrdersToBackend = async () => {
-  //   try {
-  //     // In a full implementation, you would save the priority orders to your backend
-  //     // For now, we're just using localStorage, but here's how you could implement it:
-  //     /*
-  //     const response = await fetch('/api/priority-orders', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         priorityOrders: priorityOrders.map(order => order.id)
-  //       }),
-  //     });
-  //
-  //     if (!response.ok) {
-  //       throw new Error('Failed to save priority orders');
-  //     }
-  //     */
-  //
-  //     // For now we'll just show a success message
-  //     setLastUpdateToast('Priority order saved');
-  //     setTimeout(() => setLastUpdateToast(null), 3000);
-  //   } catch (error) {
-  //     console.error('Error saving priority orders:', error);
-  //     setError('Failed to save priority orders');
-  //     setTimeout(() => setError(null), 3000);
-  //   }
-  // };
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        priorityOrders,
+        priorityColumns,
+        `priority-orders-export-${new Date().toISOString().slice(0, 10)}.csv`
+      );
+
+      // Show success toast
+      setLastUpdateToast('Priority export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Priority export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
 
   // Column drag and drop handlers
   const handleColumnDragStart = (e: React.DragEvent<Element>, field: string) => {
@@ -742,15 +817,6 @@ export default function DashboardContent() {
     setSortState({ field: null, direction: null });
     setFilteredOrders(orders);
   };
-
-  // Define essential columns for priority export
-  const priorityColumns: ColumnDefinition[] = [
-    { field: 'verkoop_order', title: 'Order #', type: 'text' },
-    { field: 'project', title: 'Project', type: 'text' },
-    { field: 'debiteur_klant', title: 'Customer', type: 'text' },
-    { field: 'material', title: 'Material', type: 'text' },
-    { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
-  ];
 
   // Logout handler
   const handleLogout = async () => {
