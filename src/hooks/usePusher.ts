@@ -1,4 +1,4 @@
-// src/hooks/usePusher.ts - Enhanced with better deduplication
+// src/hooks/usePusher.ts
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -77,7 +77,7 @@ export default function usePusher() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Function to generate a content hash for an object (simple but effective)
-  const getContentHash = (obj: Record<string, any>): string => {
+  const getContentHash = (obj: Record<string, unknown>): string => {
     try {
       // Create a simplified representation of key properties for comparison
       const keyProps = {
@@ -89,7 +89,7 @@ export default function usePusher() {
         updated: obj.updatedAt || ''
       };
       return JSON.stringify(keyProps);
-    } catch (e) {
+    } catch (_e) { // Fix: added underscore prefix
       // Fallback to full stringify if specific properties aren't available
       return JSON.stringify(obj);
     }

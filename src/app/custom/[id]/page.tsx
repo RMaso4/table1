@@ -1,6 +1,4 @@
 // src/app/custom/[id]/page.tsx
-// Add to the existing component (replace the entire file)
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -47,7 +45,7 @@ function DeleteConfirmationDialog({
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Page</h3>
         <p className="text-gray-600 mb-6">
-          Are you sure you want to delete the page "{pageName}"? This action cannot be undone.
+          Are you sure you want to delete the page &quot;{pageName}&quot;? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-4">
           <button

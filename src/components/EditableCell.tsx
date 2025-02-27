@@ -40,7 +40,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (_error) { // Used with underscore to indicate it's intentionally unused
+      } catch (_error) { // Fixed: Added underscore prefix
         setInputValue('');
       }
     } else {
@@ -79,7 +79,7 @@ export default function EditableCell({
       }
       
       return true;
-    } catch (_err) { // Used with underscore to indicate it's intentionally unused
+    } catch (_err) { // Fixed: Added underscore prefix
       setError('Invalid input');
       return false;
     }
@@ -180,7 +180,7 @@ export default function EditableCell({
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (_error) { // Used with underscore to indicate it's intentionally unused
+      } catch (_error) { // Fixed: Added underscore prefix
         return '-';
       }
     }

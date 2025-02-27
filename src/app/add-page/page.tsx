@@ -42,7 +42,7 @@ function DeleteConfirmationDialog({
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Page</h3>
         <p className="text-gray-600 mb-6">
-          Are you sure you want to delete the page "{pageName}"? This action cannot be undone.
+          Are you sure you want to delete the page &quot;{pageName}&quot;? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-4">
           <button
@@ -394,7 +394,6 @@ export default function AddPage() {
                     </div>
                     <button
                       onClick={() => {
-                        setDeletingPage(page.id);
                         setPageToDelete(page);
                         setShowDeleteConfirmation(true);
                       }}
@@ -412,7 +411,7 @@ export default function AddPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">No custom pages found.</p>
+              <p className="text-gray-500">No custom pages created yet.</p>
             )}
           </div>
           
@@ -447,7 +446,7 @@ export default function AddPage() {
         </div>
       </div>
       
-      {/* Delete confirmation dialog */}
+      {/* Delete Confirmation Dialog */}
       {pageToDelete && (
         <DeleteConfirmationDialog
           isOpen={showDeleteConfirmation}

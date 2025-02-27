@@ -26,8 +26,8 @@ export async function GET(_request: NextRequest) {  // Added underscore to fix u
     });
 
     return NextResponse.json(customPages);
-  } catch (error) {
-    console.error('Error fetching custom pages:', error);
+  } catch (_error) {  // Added underscore to fix unused variable warning
+    console.error('Error fetching custom pages:', _error);
     return NextResponse.json(
       { error: 'Failed to fetch custom pages' },
       { status: 500 }
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(customPage, { status: 201 });
-  } catch (error) {
-    console.error('Error creating custom page:', error);
+  } catch (_error) {  // Added underscore to fix unused variable warning
+    console.error('Error creating custom page:', _error);
     return NextResponse.json(
       { error: 'Failed to create custom page' },
       { status: 500 }
@@ -136,8 +136,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting custom page:', error);
+  } catch (_error) {  // Added underscore to fix unused variable warning
+    console.error('Error deleting custom page:', _error);
     return NextResponse.json(
       { error: 'Failed to delete custom page' },
       { status: 500 }
