@@ -60,7 +60,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const baseNavItems = [
     { path: '/dashboard', label: 'Overview' },
     { path: '/scan', label: 'Scan Orders' },
-    { path: '/Settings', label: 'Settings' }
+    { path: '/settings', label: 'Settings' }
   ];
   
   // Combine base items with custom pages
