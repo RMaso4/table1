@@ -1,4 +1,6 @@
 // src/app/custom/[id]/page.tsx
+// Add to the existing component (replace the entire file)
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,7 +8,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SearchBar from '@/components/SearchBar';
 import EditableCell from '@/components/EditableCell';
-import { ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Trash2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { Order } from '@/types';
 import { createExcelExportOptions } from '@/utils/excelExportUtils';
 
@@ -25,9 +28,50 @@ interface ColumnDefinition {
   type: 'text' | 'number' | 'date' | 'boolean';
 }
 
+// Confirmation dialog component
+function DeleteConfirmationDialog({ 
+  isOpen, 
+  pageName, 
+  onConfirm, 
+  onCancel 
+}: { 
+  isOpen: boolean; 
+  pageName: string; 
+  onConfirm: () => void; 
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Page</h3>
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete the page "{pageName}"? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-800"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const pageId = params?.id as string;
   
   // State variables
@@ -45,6 +89,11 @@ export default function CustomPage() {
     direction: null
   });
   const [toast, setToast] = useState<string | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Check if user is a beheerder
+  const isBeheerder = session?.user?.role === 'BEHEERDER';
 
   // Column definitions (same as in AddPage)
   const allColumns = useMemo<ColumnDefinition[]>(() => [
@@ -182,6 +231,43 @@ export default function CustomPage() {
     }));
   };
 
+  // Handle page deletion
+  const deletePage = async () => {
+    if (!pageConfig) return;
+    
+    try {
+      setIsDeleting(true);
+      setError(null);
+      
+      const response = await fetch('/api/custom-pages', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: pageConfig.id }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete page');
+      }
+      
+      // Success - redirect to dashboard
+      setToast(`Page "${pageConfig.name}" deleted successfully`);
+      
+      // Redirect after a brief delay to show the success message
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error deleting page:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete page');
+      setIsDeleting(false);
+      setShowDeleteConfirmation(false);
+    }
+  };
+
   // Handle cell update
   const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean) => {
     try {
@@ -313,6 +399,18 @@ export default function CustomPage() {
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h1 className="text-xl font-semibold text-gray-900">{pageConfig.name}</h1>
               <div className="flex items-center gap-4">
+                {/* Only show delete button for beheerder users */}
+                {isBeheerder && (
+                  <button
+                    onClick={() => setShowDeleteConfirmation(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{isDeleting ? 'Deleting...' : 'Delete Page'}</span>
+                  </button>
+                )}
+                
                 <button
                   onClick={handleExport}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -416,6 +514,14 @@ export default function CustomPage() {
           </div>
         </div>
       </div>
+      
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        pageName={pageConfig.name}
+        onConfirm={deletePage}
+        onCancel={() => setShowDeleteConfirmation(false)}
+      />
     </div>
   );
 }

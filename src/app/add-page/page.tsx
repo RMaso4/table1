@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { ChevronLeft, Save, Check, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, Plus, AlertCircle, Check } from 'lucide-react';
 
 // Define the column definition type
 interface ColumnDefinition {
@@ -14,15 +14,54 @@ interface ColumnDefinition {
   type: 'text' | 'number' | 'date' | 'boolean';
 }
 
-// Remove or use CustomPage type (or prefix with underscore)
-// Either remove it if not used:
-// interface _CustomPage {
-//   id: string;
-//   name: string;
-//   columns: string[];
-//   createdBy: string;
-//   createdAt: string;
-// }
+// Define the custom page type
+interface CustomPage {
+  id: string;
+  name: string;
+  columns: string[];
+  createdBy: string;
+  createdAt: string;
+}
+
+// Confirmation dialog component
+function DeleteConfirmationDialog({ 
+  isOpen, 
+  pageName, 
+  onConfirm, 
+  onCancel 
+}: { 
+  isOpen: boolean; 
+  pageName: string; 
+  onConfirm: () => void; 
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Page</h3>
+        <p className="text-gray-600 mb-6">
+          Are you sure you want to delete the page "{pageName}"? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-800"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AddPage() {
   const router = useRouter();
@@ -33,6 +72,11 @@ export default function AddPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [existingPages, setExistingPages] = useState<CustomPage[]>([]);
+  const [deletingPage, setDeletingPage] = useState<string | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [pageToDelete, setPageToDelete] = useState<CustomPage | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Check if user is authorized (must be beheerder)
   useEffect(() => {
@@ -84,6 +128,25 @@ export default function AddPage() {
     
     // Select some default columns
     setSelectedColumns(['verkoop_order', 'project', 'debiteur_klant', 'material', 'lever_datum']);
+  }, []);
+
+  // Fetch existing custom pages
+  useEffect(() => {
+    const fetchExistingPages = async () => {
+      try {
+        const response = await fetch('/api/custom-pages');
+        if (response.ok) {
+          const data = await response.json();
+          setExistingPages(data);
+        } else {
+          console.error('Failed to fetch custom pages');
+        }
+      } catch (error) {
+        console.error('Error fetching custom pages:', error);
+      }
+    };
+
+    fetchExistingPages();
   }, []);
 
   const handleToggleColumn = (field: string) => {
@@ -162,6 +225,41 @@ export default function AddPage() {
     }
   };
 
+  // Handle page deletion
+  const deletePage = async (pageId: string) => {
+    try {
+      setDeletingPage(pageId);
+      
+      const response = await fetch('/api/custom-pages', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: pageId }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete page');
+      }
+      
+      // Update the existing pages list
+      setExistingPages(prevPages => prevPages.filter(page => page.id !== pageId));
+      
+      // Show success message
+      setToast('Page deleted successfully');
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Error deleting page:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete page');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setDeletingPage(null);
+      setShowDeleteConfirmation(false);
+      setPageToDelete(null);
+    }
+  };
+
   // Show unauthorized message
   if (unauthorized) {
     return (
@@ -202,6 +300,12 @@ export default function AddPage() {
       <Navbar />
       <div className="flex-1 bg-gray-50 overflow-hidden flex flex-col">
         <div className="p-8 flex-grow overflow-auto">
+          {toast && (
+            <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow z-50">
+              {toast}
+            </div>
+          )}
+          
           <div className="mb-6 flex items-center">
             <button
               onClick={() => router.push('/dashboard')}
@@ -271,6 +375,47 @@ export default function AddPage() {
             </div>
           </div>
           
+          {/* Existing Custom Pages Section */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-medium mb-4">Existing Custom Pages</h2>
+            
+            {existingPages.length > 0 ? (
+              <div className="space-y-2">
+                {existingPages.map(page => (
+                  <div 
+                    key={page.id} 
+                    className="flex justify-between items-center p-3 border rounded-md hover:bg-gray-50"
+                  >
+                    <div>
+                      <span className="font-medium">{page.name}</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        ({page.columns.length} columns)
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setDeletingPage(page.id);
+                        setPageToDelete(page);
+                        setShowDeleteConfirmation(true);
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                      title="Delete custom page"
+                      disabled={deletingPage === page.id}
+                    >
+                      {deletingPage === page.id ? (
+                        <span className="h-5 w-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin inline-block"></span>
+                      ) : (
+                        <Trash2 className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No custom pages found.</p>
+            )}
+          </div>
+          
           <div className="flex justify-end">
             <button
               onClick={() => router.push('/dashboard')}
@@ -301,6 +446,19 @@ export default function AddPage() {
           </div>
         </div>
       </div>
+      
+      {/* Delete confirmation dialog */}
+      {pageToDelete && (
+        <DeleteConfirmationDialog
+          isOpen={showDeleteConfirmation}
+          pageName={pageToDelete.name}
+          onConfirm={() => deletePage(pageToDelete.id)}
+          onCancel={() => {
+            setShowDeleteConfirmation(false);
+            setPageToDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 }
