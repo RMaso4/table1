@@ -36,6 +36,9 @@ export default function PusherConnectionDebugger() {
       }
     };
     
+    // Get initial state
+    connectionStateHandler(pusherClient.connection.state);
+    
     // Log all connection events
     pusherClient.connection.bind('state_change', (states: { current: string }) => {
       connectionStateHandler(states.current);
@@ -58,9 +61,6 @@ export default function PusherConnectionDebugger() {
       console.error('Pusher connection error:', err);
       setErrorMessage(err?.message || 'Unknown connection error');
     });
-    
-    // Get initial state
-    connectionStateHandler(pusherClient.connection.state);
     
     // Manual connection if not connected
     if (pusherClient.connection.state !== 'connected') {

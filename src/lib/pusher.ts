@@ -39,12 +39,6 @@ export const pusherClient = new PusherClient(
     // Automatically handle reconnection
     activityTimeout: 120000,
     pongTimeout: 30000,
-    // Add a custom header for debugging
-    auth: {
-      headers: {
-        'X-App-Version': '1.0.0'
-      }
-    }
   }
 );
 

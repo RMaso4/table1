@@ -1,9 +1,8 @@
+// src/components/RealTimeTestingTool.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import usePusher from '@/hooks/usePusher';
-// Remove unused imports
-// import { CHANNELS, EVENTS } from '@/lib/pusher';
 import PusherConnectionDebugger from './PusherConnectionDebugger';
 
 // Define types for the test result

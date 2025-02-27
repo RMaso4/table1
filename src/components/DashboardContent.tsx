@@ -302,7 +302,7 @@ export default function DashboardContent() {
                    value >= filter.value && 
                    value <= filter.value2;
           default:
-            return true;
+            return;
         }
       });
     });
@@ -360,7 +360,9 @@ export default function DashboardContent() {
     fetchOrders();
   }, []);
 
-  // Handle real-time updates for orders
+// This specific useEffect in DashboardContent.tsx needs updating
+// Replace the existing useEffect for handling real-time order updates with this:
+
 useEffect(() => {
   // Skip if real-time updates are disabled or no update received
   if (!realtimeEnabled || !lastOrderUpdate || !lastOrderUpdate.orderId || !lastOrderUpdate.data) {
@@ -369,11 +371,11 @@ useEffect(() => {
   
   console.log('Processing real-time order update:', lastOrderUpdate);
   
-  // Create a unique identifier for this update to track in component state
-  const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
-  
   // Use a ref to track processed updates within this component
   const processedUpdatesRef = useRef(new Set<string>());
+  
+  // Create a unique identifier for this update
+  const updateId = `${lastOrderUpdate.orderId}-${Date.now()}`;
   
   // Skip if we've seen this update already 
   if (processedUpdatesRef.current.has(updateId)) {
@@ -431,31 +433,33 @@ useEffect(() => {
     return prevOrders;
   });
 
-  // Also update priority orders if the updated order is in the priority list
-  // Make sure to use the SAME object reference created above to avoid React errors
   setPriorityOrders(prevPriorityOrders => {
     const priorityOrderIndex = prevPriorityOrders.findIndex(order => order.id === lastOrderUpdate.orderId);
     
     if (priorityOrderIndex !== -1) {
-      // Find the updated order in the orders array that we just updated
-      // This ensures consistent references between the two arrays
-      const mainOrdersUpdated = orders.find(order => order.id === lastOrderUpdate.orderId);
-      
-      // If we don't find it (shouldn't happen), create a new merged object
-      const updatedOrder = mainOrdersUpdated || {
-        ...prevPriorityOrders[priorityOrderIndex],
-        ...updatedOrderData
-      };
+      // Find the updated order reference from the main orders array
+      const updatedOrder = orders.find(order => order.id === lastOrderUpdate.orderId);
       
       // Create a new array with the updated order
       const updatedPriorityOrders = [...prevPriorityOrders];
-      updatedPriorityOrders[priorityOrderIndex] = updatedOrder;
+      
+      // Use the updated order if found, otherwise create a merged object
+      updatedPriorityOrders[priorityOrderIndex] = updatedOrder || {
+        ...prevPriorityOrders[priorityOrderIndex],
+        ...updatedOrderData
+      };
       
       return updatedPriorityOrders;
     }
     
     return prevPriorityOrders;
   });
+  
+  // Clean up the processed updates set after some time
+  setTimeout(() => {
+    processedUpdatesRef.current.delete(updateId);
+  }, 30000); // Clear after 30 seconds
+  
 }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
   
   // Handle notifications from real-time updates
@@ -502,8 +506,9 @@ useEffect(() => {
     setActiveFilters(filters);
   };
 
-// This function should replace the existing handleCellUpdate in DashboardContent.tsx
-const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean) => {
+// Replace the entire handleCellUpdate function in DashboardContent.tsx
+
+const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
   try {
     // Reset any previous errors
     setError(null);
@@ -516,60 +521,48 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
       throw new Error('Order not found');
     }
     
-    // Create a proper copy of the order with the updated field for optimistic UI update
-    const newUpdatedOrder = { 
+    // Create a copy of the order with the updated field
+    const updatedOrder = { 
       ...orderToUpdate, 
       [field]: value,
-      updatedAt: new Date().toISOString() // Update the timestamp locally too
+      updatedAt: new Date().toISOString() // Update the timestamp locally
     };
   
-    // Optimistically update the orders state with the new reference
+    // Optimistically update the orders state
     setOrders(prevOrders => 
-      prevOrders.map(order => order.id === orderId ? newUpdatedOrder : order)
+      prevOrders.map(order => order.id === orderId ? updatedOrder : order)
     );
   
-    // Also update priority orders with the SAME object reference if needed
+    // Also update priority orders if needed
     setPriorityOrders(prevOrders => {
       // Check if the order is in the priority list
       const orderIndex = prevOrders.findIndex(order => order.id === orderId);
       if (orderIndex === -1) return prevOrders; // Not in the list
       
-      // Create a new array with the same object reference for the updated order
+      // Create a new array with updated order
       const newPriorityOrders = [...prevOrders];
-      newPriorityOrders[orderIndex] = newUpdatedOrder;
+      newPriorityOrders[orderIndex] = updatedOrder;
       return newPriorityOrders;
     });
   
-    // Prepare the API request
+    // Prepare the API request data
     const updateData = { [field]: value };
     
-    // Send update to server with error handling
+    // Make the API request
     const response = await fetch(`/api/orders/${orderId}`, {
       method: 'PATCH',
       headers: { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(updateData),
     });
     
-    // Check if response is ok before parsing
+    // Check if response is ok
     if (!response.ok) {
-      // Read response body as text first
-      const text = await response.text();
+      // Try to parse error response
+      const errorData = await response.json().catch(() => ({}));
       
-      // Try to parse as JSON if possible
-      let errorData;
-      try {
-        errorData = JSON.parse(text);
-      } catch {
-        errorData = { error: text || 'Server error' };
-      }
-      
-      // Server returned an error
-      const errorMessage = errorData.error || errorData.message || `Error: ${response.status} ${response.statusText}`;
-      
-      // Revert optimistic update
+      // Revert optimistic update on error
       setOrders(prevOrders => 
         prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
       );
@@ -583,33 +576,48 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
         return revertedPriorityOrders;
       });
       
-      throw new Error(errorMessage);
+      throw new Error(errorData.error || errorData.message || 'Failed to update order');
     }
     
     // Parse response data
     const data = await response.json();
     
-    // Success case - update with the data from server
-    console.log('Server confirmed update:', data);
+    // If real-time updates are enabled, the update will arrive through Pusher
+    // If disabled, we need to manually trigger a notification here
+    if (!realtimeEnabled) {
+      // Show a brief success message
+      setLastUpdateToast(`Updated ${field} successfully`);
+      setTimeout(() => setLastUpdateToast(null), 2000);
+    }
     
-    // Update orders with server data to ensure consistency
-    setOrders(prevOrders => 
-      prevOrders.map(order => order.id === orderId ? { ...order, ...data } : order)
-    );
+    // We should also trigger an event to notify other clients about this update
+    // This will reach this client too via Pusher if real-time is enabled
+    try {
+      // Use our trigger function directly if available
+      if (typeof window !== 'undefined') {
+        // Trigger the event using the API
+        fetch('/api/socket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event: 'order:updated',
+            data: {
+              orderId,
+              data: updatedOrder
+            }
+          })
+        }).catch(err => {
+          console.error('Failed to emit update event:', err);
+        });
+      }
+    } catch (emitError) {
+      console.warn('Failed to emit update event:', emitError);
+      // Non-critical, don't throw
+    }
     
-    // Update priority orders too if needed
-    setPriorityOrders(prevOrders => {
-      const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-      if (orderIndex === -1) return prevOrders;
-      
-      const updatedPriorityOrders = [...prevOrders];
-      updatedPriorityOrders[orderIndex] = { ...prevOrders[orderIndex], ...data };
-      return updatedPriorityOrders;
-    });
-    
-    // Show a brief success message
-    setLastUpdateToast(`Updated ${field} successfully`);
-    setTimeout(() => setLastUpdateToast(null), 2000);
+    return;
     
   } catch (error) {
     console.error('Error updating cell:', error);
@@ -617,8 +625,10 @@ const handleCellUpdate = async (orderId: string, field: string, value: string | 
     // Show error message
     setError(error instanceof Error ? error.message : 'Failed to update order');
     
-    // Clear error after 5 seconds
+    // Clear error after a delay
     setTimeout(() => setError(null), 5000);
+    
+    return;
   }
 };
   

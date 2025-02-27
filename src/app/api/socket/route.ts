@@ -101,59 +101,8 @@ export async function POST(request: Request) {
     
     // Process with Socket.IO if enabled
     if (REALTIME_CONFIG.USE_SOCKET_IO) {
-      // Store socket service in a variable
-      let socketService = null;
-      
-      // Dynamically import socket service
-      try {
-        // Use dynamic import for server-side
-        const imported = await import('../../../../server/socketService.js');
-        socketService = {
-          getIO: imported.getIO,
-          emitOrderUpdate: async (orderId: string, orderData: unknown) => 
-            Promise.resolve(imported.emitOrderUpdate(orderId, orderData)),
-          emitNotification: async (data: unknown) => 
-            Promise.resolve(imported.emitNotification(data))
-        };
-        
-        if (REALTIME_CONFIG.DEBUG) {
-          console.log('Socket service imported successfully');
-        }
-      } catch (error) {
-        console.error('Failed to import socket service:', error);
-        // Continue with Pusher if available, otherwise return error
-        if (!REALTIME_CONFIG.USE_PUSHER) {
-          return NextResponse.json({ error: 'Socket service not available' }, { status: 500 });
-        }
-      }
-      
-      // If socket service was successfully imported, use it
-      if (socketService) {
-        const io = socketService.getIO();
-        if (!io) {
-          if (REALTIME_CONFIG.DEBUG) {
-            console.error('Socket.IO server not initialized');
-          }
-          // Continue with Pusher if available, otherwise return error
-          if (!REALTIME_CONFIG.USE_PUSHER) {
-            return NextResponse.json({ error: 'Socket.IO server not initialized' }, { status: 500 });
-          }
-        } else {
-          // Process the event with Socket.IO
-          switch (event) {
-            case 'order:updated':
-              const { orderId, orderData } = data;
-              await socketService.emitOrderUpdate(orderId, orderData);
-              break;
-            case 'notification:new':
-              await socketService.emitNotification(data);
-              break;
-            default:
-              // Already handled above
-              break;
-          }
-        }
-      }
+      // Skip this part since we've disabled Socket.IO in the config
+      console.log('Socket.IO is disabled, skipping Socket.IO processing');
     }
     
     return NextResponse.json({ 
