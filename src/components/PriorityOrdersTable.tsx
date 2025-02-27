@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { GripVertical, X, Users, ArrowUpDown } from 'lucide-react';
+import { GripVertical, X, Users, ArrowUpDown, CloudOff } from 'lucide-react';
 import { Order } from '@/types';
 
 interface PriorityOrdersTableProps {
@@ -19,6 +19,7 @@ export default function PriorityOrdersTable({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
   const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   
   // Store the previous orders for animation
   const prevOrdersRef = useRef<Order[]>([]);
@@ -57,6 +58,24 @@ export default function PriorityOrdersTable({
     prevOrdersRef.current = orders;
   }, [orders, draggedIndex]);
   
+  useEffect(() => {
+    // Check if server saving is disabled by looking for a flag in localStorage
+    const fallbackMode = localStorage.getItem('priorityFallbackMode') === 'true';
+    setIsUsingFallback(fallbackMode);
+    
+    // Listen for changes to the fallback mode
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'priorityFallbackMode') {
+        setIsUsingFallback(e.newValue === 'true');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   // Safely handle drag start
   const handleDragStart = useCallback((e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     // Don't allow dragging during a remote update animation
@@ -233,6 +252,12 @@ export default function PriorityOrdersTable({
                     title="Remove from priority"
                     disabled={isRemoteUpdate}
                   >
+                    {isUsingFallback && (
+                      <div className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex items-center gap-1">
+                        <CloudOff className="h-3 w-3" />
+                        <span>Offline mode</span>
+                      </div>
+                    )}
                     <X className="h-5 w-5" />
                   </button>
                 </td>

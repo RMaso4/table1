@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, Download } from 'lucide-react';
+import { Filter, Download, CloudOff } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 // Import custom components
@@ -57,6 +57,7 @@ export default function DashboardContent() {
 
   // Priority orders state
   const [priorityOrders, setPriorityOrders] = useState<Order[]>([]);
+  const [isServerSavingDisabled, setIsServerSavingDisabled] = useState(false);
 
   // Available columns configuration (memoized to prevent unnecessary re-renders)
   const availableColumns = useMemo<ColumnDefinition[]>(() => [
@@ -118,6 +119,100 @@ export default function DashboardContent() {
   );
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
   const isInitialMount = useRef(true);
+  const isRetrying = useRef(false);
+
+  // Function to enable fallback mode
+  const enableFallbackMode = () => {
+    setIsServerSavingDisabled(true);
+    localStorage.setItem('priorityFallbackMode', 'true');
+    
+    // Broadcast this change to other tabs
+    try {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'priorityFallbackMode',
+        newValue: 'true',
+        url: window.location.href
+      }));
+    } catch (e) {
+      console.warn('Failed to dispatch storage event', e);
+    }
+    
+    console.warn('Priority orders fallback mode enabled');
+  };
+
+  // Function to disable fallback mode
+  const disableFallbackMode = () => {
+    setIsServerSavingDisabled(false);
+    localStorage.setItem('priorityFallbackMode', 'false');
+    
+    // Broadcast this change to other tabs
+    try {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'priorityFallbackMode',
+        newValue: 'false',
+        url: window.location.href
+      }));
+    } catch (e) {
+      console.warn('Failed to dispatch storage event', e);
+    }
+    
+    console.log('Priority orders fallback mode disabled');
+  };
+
+  // Function to attempt server sync
+  const attemptServerSync = async () => {
+    // Skip if already syncing or retrying
+    if (loading || isRetrying.current) return;
+    
+    try {
+      isRetrying.current = true;
+      
+      // Get current priority order IDs
+      const orderIds = priorityOrders.map(order => order.id);
+      
+      if (orderIds.length === 0) {
+        disableFallbackMode();
+        isRetrying.current = false;
+        return;
+      }
+      
+      // Show syncing indicator
+      setLastUpdateToast('Syncing priority orders with server...');
+      
+      // Attempt to post to server
+      const response = await fetch('/api/priority-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderIds }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      
+      // Server sync successful
+      disableFallbackMode();
+      setLastUpdateToast('Priority orders synced with server');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      console.error('Server sync failed:', error);
+      setError('Failed to sync with server. Still using offline mode.');
+      setTimeout(() => setError(null), 5000);
+      enableFallbackMode();
+    } finally {
+      isRetrying.current = false;
+    }
+  };
+
+  // Check for initial fallback mode on mount
+  useEffect(() => {
+    const fallbackMode = localStorage.getItem('priorityFallbackMode') === 'true';
+    if (fallbackMode) {
+      setIsServerSavingDisabled(true);
+    }
+  }, []);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -150,18 +245,11 @@ export default function DashboardContent() {
   }, []);
 
   // Fetch priority orders from API on component mount
-useEffect(() => {
   const fetchPriorityOrders = async () => {
     try {
       const response = await fetch('/api/priority-orders');
       if (response.ok) {
         const data = await response.json();
-        
-        // If we have orders directly, use them
-        if (data.orders && Array.isArray(data.orders) && data.orders.length > 0) {
-          setPriorityOrders(data.orders);
-          return;
-        }
         
         // If we have orderIds, map to full order objects
         if (data.orderIds && Array.isArray(data.orderIds) && data.orderIds.length > 0) {
@@ -172,35 +260,39 @@ useEffect(() => {
           
           if (priorityOrderObjects.length > 0) {
             setPriorityOrders(priorityOrderObjects);
+            // If we successfully fetch from API, disable fallback mode
+            disableFallbackMode();
             return;
           }
         }
-        
-        // If we have no priority data, look in localStorage as fallback
-        const savedPriorityOrders = localStorage.getItem('priorityOrders');
-        if (savedPriorityOrders) {
-          try {
-            const parsedOrders = JSON.parse(savedPriorityOrders);
-            setPriorityOrders(parsedOrders);
-          } catch (parseError) {
-            console.error('Error parsing saved priority orders:', parseError);
-          }
-        }
       } else {
-        // Fall back to localStorage
-        console.warn('Failed to fetch priority orders from API, falling back to localStorage');
-        const savedPriorityOrders = localStorage.getItem('priorityOrders');
-        if (savedPriorityOrders) {
-          try {
-            const parsedOrders = JSON.parse(savedPriorityOrders);
-            setPriorityOrders(parsedOrders);
-          } catch (parseError) {
-            console.error('Error parsing saved priority orders:', parseError);
-          }
+        // If server returns error, enable fallback mode
+        enableFallbackMode();
+      }
+      
+      // Fall back to localStorage if API fails or returns empty results
+      const savedPriorityOrders = localStorage.getItem('priorityOrders');
+      if (savedPriorityOrders) {
+        try {
+          const parsedOrders = JSON.parse(savedPriorityOrders);
+          
+          // Reconcile with current orders to ensure we have the latest data
+          const reconciledOrders = parsedOrders
+            .map((savedOrder: any) => {
+              // Try to find this order in the current orders list to get latest data
+              const currentOrder = orders.find(o => o.id === savedOrder.id);
+              return currentOrder || savedOrder;
+            })
+            .filter(Boolean);
+          
+          setPriorityOrders(reconciledOrders);
+        } catch (parseError) {
+          console.error('Error parsing saved priority orders:', parseError);
         }
       }
     } catch (error) {
       console.error('Error fetching priority orders:', error);
+      enableFallbackMode();
       
       // Fall back to localStorage
       const savedPriorityOrders = localStorage.getItem('priorityOrders');
@@ -215,10 +307,12 @@ useEffect(() => {
     }
   };
 
-  if (orders.length > 0) {
-    fetchPriorityOrders();
-  }
-}, [orders]);
+  // Load priority orders when orders are available
+  useEffect(() => {
+    if (orders.length > 0) {
+      fetchPriorityOrders();
+    }
+  }, [orders]);
 
   // Handle real-time priority updates
   useEffect(() => {
@@ -240,17 +334,12 @@ useEffect(() => {
       
       console.log('Processing real-time priority order update:', priorityData);
       
-      // If we have orders, map them to ensure all required properties
+      // If we have orders, map them to ensure they match the Order type
       if (priorityData.orders && Array.isArray(priorityData.orders) && priorityData.orders.length > 0) {
-        const completeOrders = priorityData.orders.map(orderData => ({
-          ...orderData,
-          type_artikel: orderData.type_artikel || '',
-          material: orderData.material || '',
-          bruto_zagen: orderData.bruto_zagen || null,
-          pers: orderData.pers || null,
-          // Add any other required properties with default values
-        })) as Order[];
-        setPriorityOrders(completeOrders);
+        const fullOrders = priorityData.orders
+          .map(orderData => orders.find(order => order.id === orderData.id))
+          .filter((order): order is Order => order !== undefined);
+        setPriorityOrders(fullOrders);
       } else {
         // Map orderIds to actual order objects from the orders state
         const priorityOrderObjects = priorityData.orderIds
@@ -261,6 +350,9 @@ useEffect(() => {
           setPriorityOrders(priorityOrderObjects);
         }
       }
+      
+      // Save to localStorage as backup
+      localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
     } catch (error) {
       console.error('Error processing priority update:', error);
     }
@@ -277,12 +369,135 @@ useEffect(() => {
       return;
     }
     
-    // Only save to API if we have changes and aren't in the middle of processing
-    // a real-time update
-    if (priorityOrders.length > 0 && !lastPriorityUpdate) {
+    // Only save to API if we have changes, aren't in the middle of processing
+    // a real-time update, and server saving isn't disabled
+    if (priorityOrders.length > 0 && !lastPriorityUpdate && !isServerSavingDisabled) {
       savePriorityOrdersToBackend();
     }
-  }, [priorityOrders, lastPriorityUpdate]);
+  }, [priorityOrders, lastPriorityUpdate, isServerSavingDisabled]);
+
+  // Enhanced savePriorityOrdersToBackend function with fallback mechanisms
+  const savePriorityOrdersToBackend = async () => {
+    try {
+      // If server saving is disabled from previous errors, just use localStorage
+      if (isServerSavingDisabled) {
+        localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+        console.log('Using localStorage fallback for priority orders');
+        return;
+      }
+      
+      // Get just the IDs in the current order
+      const orderIds = priorityOrders.map(order => order.id);
+      
+      if (orderIds.length === 0) {
+        console.log('No priority orders to save');
+        return;
+      }
+      
+      // Show saving indicator
+      setLastUpdateToast('Saving priority orders...');
+      
+      // Set a timeout to abort if taking too long
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Saving priority orders timed out')), 8000);
+      });
+      
+      // Actual API request
+      const fetchPromise = fetch('/api/priority-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderIds }),
+      });
+      
+      // Use Promise.race to implement a timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+      
+      if (!response.ok) {
+        // Try to get error details
+        let errorDetail = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorDetail = errorData.error || 'Server returned an error';
+        } catch (parseError) {
+          errorDetail = `Status ${response.status} (${response.statusText})`;
+        }
+        
+        throw new Error(`Failed to save priority orders: ${errorDetail}`);
+      }
+      
+      // Parse response
+      await response.json();
+      
+      // Success - show brief message
+      setLastUpdateToast('Priority orders saved');
+      setTimeout(() => setLastUpdateToast(null), 2000);
+      
+      // Always save to localStorage as a backup
+      localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+    } catch (error) {
+      console.error('Error saving priority orders:', error);
+      
+      // Show error to user
+      setError(error instanceof Error ? error.message : 'Failed to save priority orders');
+      setTimeout(() => setError(null), 5000);
+      
+      // Fallback to localStorage
+      localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+      
+      // Enable fallback mode if there's a server or database error
+      if (error instanceof Error && 
+          (error.message.includes('Database error') || 
+           error.message.includes('timed out') || 
+           error.message.includes('500'))) {
+        enableFallbackMode();
+      }
+      
+      // Try to emit directly via socket API as a fallback
+      try {
+        if (isConnected) {  // Only try if we have a connection
+          await fetch('/api/socket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              event: 'priority:updated',
+              data: {
+                priorityOrders: {
+                  id: 'local-' + Date.now(),
+                  orderIds: priorityOrders.map(order => order.id),
+                  orders: priorityOrders,
+                  updatedBy: session?.user?.id || 'unknown',
+                  updatedAt: new Date().toISOString()
+                },
+                updatedBy: {
+                  id: session?.user?.id || 'unknown',
+                  name: session?.user?.name || session?.user?.email || 'Current User'
+                },
+                timestamp: new Date().toISOString()
+              }
+            })
+          });
+        }
+      } catch (socketError) {
+        console.error('Failed to emit fallback priority update:', socketError);
+      }
+    }
+  };
+
+  // When connection status changes, try to sync with server
+  useEffect(() => {
+    if (isConnected && isServerSavingDisabled && !isRetrying.current) {
+      // Try to reconnect after a slight delay
+      const timer = setTimeout(() => {
+        attemptServerSync();
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, isServerSavingDisabled]);
 
   // Handle real-time order updates
   useEffect(() => {
@@ -493,7 +708,7 @@ useEffect(() => {
               value >= filter.value &&
               value <= filter.value2;
           default:
-            return;
+            return true;
         }
       });
     });
@@ -521,49 +736,43 @@ useEffect(() => {
     applyFilters();
   }, [applyFilters]);
 
-  // Save priority orders to the backend
-  const savePriorityOrdersToBackend = async () => {
-    try {
-      // Get just the IDs in the current order
-      const orderIds = priorityOrders.map(order => order.id);
-      
-      if (orderIds.length === 0) {
-        console.log('No priority orders to save');
-        return;
-      }
-      
-      // Show saving indicator
-      setLastUpdateToast('Saving priority orders...');
-      
-      const response = await fetch('/api/priority-orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ orderIds }),
-      });
-      
-      if (!response.ok) {
-        // Try to get error details
-        let errorDetail = 'Unknown error';
-        try {
-          const errorData = await response.json();
-          errorDetail = errorData.error || 'Server returned an error';
-        } catch (parseError) {
-          errorDetail = `Status ${response.status} (${response.statusText})`;
-        }
-        
-        throw new Error(`Failed to save priority orders: ${errorDetail}`);
-      }
-      
-      // Success - show brief message
-      setLastUpdateToast('Priority orders saved successfully');
-      setTimeout(() => setLastUpdateToast(null), 2000);
-    } catch (error) {
-      console.error('Error saving priority orders:', error);
-      setError(error instanceof Error ? error.message : 'Failed to save priority orders');
-      setTimeout(() => setError(null), 5000);
-    }
+  // Add an order to the priority list
+  const addToPriorityList = (orderId: string) => {
+    const orderToAdd = orders.find(order => order.id === orderId);
+    if (!orderToAdd) return;
+
+    // Check if the order is already in the priority list
+    if (priorityOrders.some(order => order.id === orderId)) return;
+
+    // Add the order to the priority list
+    setPriorityOrders(prev => [...prev, orderToAdd]);
+
+    // Show confirmation toast
+    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Remove an order from the priority list
+  const removeFromPriorityList = (orderId: string) => {
+    const orderToRemove = priorityOrders.find(order => order.id === orderId);
+    if (!orderToRemove) return;
+
+    // Remove the order from the priority list
+    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
+
+    // Show confirmation toast
+    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Update priority orders (used for reordering)
+  const updatePriorityOrders = (newOrders: Order[]) => {
+    setPriorityOrders(newOrders);
+  };
+
+  // Check if an order is in the priority list
+  const isOrderPrioritized = (orderId: string) => {
+    return priorityOrders.some(order => order.id === orderId);
   };
 
   // Handler functions
@@ -594,50 +803,6 @@ useEffect(() => {
 
   const handleApplyFilters = (filters: FilterConfig[]) => {
     setActiveFilters(filters);
-  };
-
-  // Add an order to the priority list
-  const addToPriorityList = (orderId: string) => {
-    const orderToAdd = orders.find(order => order.id === orderId);
-    if (!orderToAdd) return;
-
-    // Check if the order is already in the priority list
-    if (priorityOrders.some(order => order.id === orderId)) return;
-
-    // Add the order to the priority list
-    setPriorityOrders(prev => [...prev, orderToAdd]);
-
-    // Show confirmation toast
-    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
-    setTimeout(() => setLastUpdateToast(null), 3000);
-    
-    // The useEffect will handle saving to the backend
-  };
-
-  // Remove an order from the priority list
-  const removeFromPriorityList = (orderId: string) => {
-    const orderToRemove = priorityOrders.find(order => order.id === orderId);
-    if (!orderToRemove) return;
-
-    // Remove the order from the priority list
-    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
-
-    // Show confirmation toast
-    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
-    setTimeout(() => setLastUpdateToast(null), 3000);
-    
-    // The useEffect will handle saving to the backend
-  };
-
-  // Update priority orders (used for reordering)
-  const updatePriorityOrders = (newOrders: Order[]) => {
-    setPriorityOrders(newOrders);
-    // The useEffect will handle saving to the backend
-  };
-
-  // Check if an order is in the priority list
-  const isOrderPrioritized = (orderId: string) => {
-    return priorityOrders.some(order => order.id === orderId);
   };
 
   const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
