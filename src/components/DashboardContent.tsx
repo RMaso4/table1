@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, Download, CloudOff } from 'lucide-react';
+import { Filter, Download } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 // Import custom components
@@ -54,11 +54,11 @@ interface ColumnDefinition {
 export function DashboardContent() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { compact, pageSize, defaultSort, getTableClasses, getTableCellClasses } = useTableSettingsContext();
+  const { pageSize, defaultSort, getTableClasses, getTableCellClasses } = useTableSettingsContext();
 
   // Real-time updates state and hook
   const { isConnected, lastOrderUpdate, lastNotification, lastPriorityUpdate } = usePusher();
-  const [realtimeEnabled, setRealtimeEnabled] = useState(true);
+  const [realtimeEnabled] = useState(true);
 
   // Priority orders state
   const [priorityOrders, setPriorityOrders] = useState<Order[]>([]);
