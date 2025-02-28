@@ -75,7 +75,7 @@ export default function useSettings(): UseSettingsReturn {
             };
             setSettings(merged);
             setOriginalSettings(merged);
-          } catch (parseError) {
+          } catch (_parseError) {
             setError('Failed to load settings');
             // Fall back to default settings
             setSettings(defaultSettings);

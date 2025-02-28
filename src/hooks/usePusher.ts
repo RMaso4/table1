@@ -183,7 +183,7 @@ export default function usePusher() {
           return;
         }
         
-        const now = Date.now();
+        const _now = Date.now();
         const orderId = data.orderId;
         
         // Multiple deduplication strategies:
@@ -192,7 +192,7 @@ export default function usePusher() {
         if (processedOrdersRef.current.has(orderId)) {
           // Check if this update is coming too soon after the last one (throttle)
           const lastProcessed = lastProcessedTimestampRef.current.get(orderId) || 0;
-          if (now - lastProcessed < 2000) { // 2 second minimum delay between updates for same order
+          if (_now - lastProcessed < 2000) { // 2 second minimum delay between updates for same order
             if (REALTIME_CONFIG.DEBUG) {
               console.log(`Throttling rapid updates for order ${orderId} - too soon`);
             }
@@ -219,7 +219,7 @@ export default function usePusher() {
         // Record that we've processed this order and update
         processedOrdersRef.current.add(orderId);
         processedContentHashesRef.current.set(orderId, contentHash);
-        lastProcessedTimestampRef.current.set(orderId, now);
+        lastProcessedTimestampRef.current.set(orderId, _now);
         
         // Update our state with the new data
         setLastOrderUpdate(data);

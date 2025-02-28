@@ -19,7 +19,7 @@ export default function PriorityOrdersTable({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
   const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [_isUsingFallback, setIsUsingFallback] = useState(false);
   
   // Store the previous orders for animation
   const prevOrdersRef = useRef<Order[]>([]);
