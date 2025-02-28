@@ -21,7 +21,7 @@ import { paginateData } from '@/utils/paginationUtils';
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
 
-import {exportToExcel } from '@/utils/excelExportUtils';
+import { exportToExcel } from '@/utils/excelExportUtils';
 import ExcelExportButton from '@/components/ExcelExportButton';
 
 // Import types
@@ -50,7 +50,8 @@ interface ColumnDefinition {
   type: 'text' | 'number' | 'date' | 'boolean';
 }
 
-function DashboardContent() {
+// Changed from default export to named export
+export function DashboardContent() {
   const router = useRouter();
   const { data: session } = useSession();
   const { compact, pageSize, defaultSort, getTableClasses, getTableCellClasses } = useTableSettingsContext();
@@ -770,7 +771,6 @@ function DashboardContent() {
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
-
   // Add an order to the priority list
   const addToPriorityList = (orderId: string) => {
     const orderToAdd = orders.find(order => order.id === orderId);
@@ -1209,7 +1209,7 @@ function DashboardContent() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredOrders.length > 0 ? (
-                    paginateData(filteredOrders, currentPage, itemsPerPage).map((order) => (
+                    paginatedOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         {/* Priority Action Cell */}
                         <td className={getTableCellClasses()}>

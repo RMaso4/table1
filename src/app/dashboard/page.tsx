@@ -1,46 +1,29 @@
-// app/dashboard/page.tsx
+// src/app/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import DashboardContent from '@/components/DashboardContent';
+import { DashboardContent } from '@/components/DashboardContent';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { status } = useSession(); // Removed unused 'session' variable
-  const [hasCustomToken, setHasCustomToken] = useState(false);
+  const { status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
 
   // Check authentication on load
   useEffect(() => {
-    // Check for custom token
-    const checkToken = () => {
-      const token = document.cookie.includes('token=');
-      setHasCustomToken(token);
-      return token;
-    };
-
-    // Only redirect if not authenticated through either method
-    const isNextAuthAuth = status === 'authenticated';
-    const isTokenAuth = checkToken();
-    const hasAuth = isNextAuthAuth || isTokenAuth;
-
-    if (status !== 'loading') {
-      setAuthInitialized(true);
-      
-      if (!hasAuth) {
-        console.log('No authentication found, redirecting to login');
-        router.push('/login');
-      } else {
-        setIsLoading(false);
-      }
+    // Only redirect if not authenticated and not loading
+    if (status === 'unauthenticated') {
+      console.log('No authentication found, redirecting to login');
+      router.push('/login');
+    } else if (status !== 'loading') {
+      setIsLoading(false);
     }
   }, [status, router]);
 
   // Show loading state
-  if (isLoading || status === 'loading' || !authInitialized) {
+  if (isLoading || status === 'loading') {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
@@ -52,7 +35,7 @@ export default function Dashboard() {
   }
 
   // Main content - only render when authenticated
-  if (status === 'authenticated' || hasCustomToken) {
+  if (status === 'authenticated') {
     return <DashboardContent />;
   }
 
