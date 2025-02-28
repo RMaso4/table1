@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
+import TableSettingsSection from '@/components/TableSettingsSection';
 import { useTheme } from '@/components/ThemeProvider';
 import {
   Save,
@@ -442,32 +443,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Table Settings */}
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Table Settings</h2>
+                {/* Table Settings */}
+                <TableSettingsSection 
+                  settings={settings.user} 
+                  updateUserSetting={updateUserSettings} 
+                />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Compact Mode */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Compact Table Mode
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => updateUserSettings('tableCompactMode', !settings.user.tableCompactMode)}
-                        className={`${
-                          settings.user.tableCompactMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${
-                            settings.user.tableCompactMode ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Default Page Size */}
+                {/* Default Page Size */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Default Page Size
@@ -517,7 +499,6 @@ export default function SettingsPage() {
                         <option value="asc">Ascending</option>
                         <option value="desc">Descending</option>
                       </select>
-                    </div>
                   </div>
 
                   {/* Notification Settings */}

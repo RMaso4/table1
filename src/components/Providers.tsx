@@ -1,10 +1,12 @@
-// components/Providers.tsx
+// src/components/Providers.tsx
 'use client';
 
 import { SessionProvider } from "next-auth/react";
 import { useState, useEffect } from 'react';
+import { SettingsProvider } from './SettingsProvider';
+import { TableSettingsProvider } from './TableSettingsProvider';
 
-// Custom provider that handles session synchronization
+// Enhanced provider with all app providers
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
@@ -19,7 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       // Helper to check for cookies
       const getCookie = (name: string) => {
         const cookies = document.cookie.split(';');
-        for (const cookie of cookies) { // Changed 'let' to 'const'
+        for (const cookie of cookies) {
           const [cookieName, cookieValue] = cookie.trim().split('=');
           if (cookieName === name) {
             return cookieValue;
@@ -39,17 +41,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [mounted]);
 
-  // Configure the session provider with more aggressive settings
   return (
     <SessionProvider 
-      // Force session refresh on mount
       refetchOnWindowFocus={true}
-      // Check session more frequently
       refetchInterval={5 * 60} // 5 minutes
-      // Don't reuse stale sessions
       refetchWhenOffline={false}
     >
-      {mounted ? children : null}
+      <SettingsProvider>
+        <TableSettingsProvider>
+          {mounted ? children : null}
+        </TableSettingsProvider>
+      </SettingsProvider>
     </SessionProvider>
   );
 }

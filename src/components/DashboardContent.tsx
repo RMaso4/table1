@@ -14,6 +14,9 @@ import FilterDialog from '@/components/FilterDialog';
 import DraggableColumnHeader from '@/components/DraggableColumnHeader';
 import PriorityOrdersTable from '@/components/PriorityOrdersTable';
 import OrderTableActions from '@/components/OrderTableActions';
+import { useTableSettingsContext } from '@/components/TableSettingsProvider';
+import Pagination from '@/components/Pagination';
+import { paginateData } from '@/utils/paginationUtils';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
@@ -47,9 +50,10 @@ interface ColumnDefinition {
   type: 'text' | 'number' | 'date' | 'boolean';
 }
 
-export default function DashboardContent() {
+function DashboardContent() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { compact, pageSize, defaultSort, getTableClasses, getTableCellClasses } = useTableSettingsContext();
 
   // Real-time updates state and hook
   const { isConnected, lastOrderUpdate, lastNotification, lastPriorityUpdate } = usePusher();
@@ -110,8 +114,8 @@ export default function DashboardContent() {
   const processingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const updateThrottleTimeRef = useRef<Map<string, number>>(new Map());
   const [sortState, setSortState] = useState<SortState>({
-    field: null,
-    direction: null
+    field: defaultSort.field,
+    direction: defaultSort.direction
   });
   const [draggingColumn, setDraggingColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>(
@@ -120,6 +124,8 @@ export default function DashboardContent() {
   const [lastUpdateToast, setLastUpdateToast] = useState<string | null>(null);
   const isInitialMount = useRef(true);
   const isRetrying = useRef(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(pageSize);
 
   // Function to enable fallback mode
   const enableFallbackMode = () => {
@@ -212,6 +218,8 @@ export default function DashboardContent() {
     localStorage.setItem('priorityFallbackMode', 'false');
     setIsServerSavingDisabled(false);
   }, []);
+
+  const paginatedOrders = paginateData(filteredOrders, currentPage, itemsPerPage);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -498,6 +506,21 @@ export default function DashboardContent() {
     
     return () => clearInterval(intervalId);
   }, []);
+
+   // Update sort state when default settings change
+   useEffect(() => {
+    if (!sortState.field && defaultSort.field) {
+      setSortState({
+        field: defaultSort.field,
+        direction: defaultSort.direction
+      });
+    }
+  }, [defaultSort, sortState.field]);
+
+  // Update items per page when settings change
+  useEffect(() => {
+    setItemsPerPage(pageSize);
+  }, [pageSize]);
 
   // When connection status changes, try to sync with server
   useEffect(() => {
@@ -1118,7 +1141,6 @@ export default function DashboardContent() {
                     }}
                   />
 
-
                   {/* Export Priority Button */}
                   {priorityOrders.length > 0 && (
                     <button
@@ -1157,7 +1179,7 @@ export default function DashboardContent() {
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <table className={getTableClasses()}>
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     {/* Priority Action Column */}
@@ -1187,10 +1209,10 @@ export default function DashboardContent() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredOrders.length > 0 ? (
-                    filteredOrders.map((order) => (
+                    paginateData(filteredOrders, currentPage, itemsPerPage).map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         {/* Priority Action Cell */}
-                        <td className="px-2 py-4 whitespace-nowrap">
+                        <td className={getTableCellClasses()}>
                           <OrderTableActions
                             orderId={order.id}
                             isPrioritized={isOrderPrioritized(order.id)}
@@ -1202,7 +1224,7 @@ export default function DashboardContent() {
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
                           return (
-                            <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                            <td key={field} className={getTableCellClasses()}>
                               {column.type === 'boolean' ? (
                                 <input
                                   type="checkbox"
@@ -1248,7 +1270,7 @@ export default function DashboardContent() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columnOrder.length + 1} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <td colSpan={columnOrder.length + 1} className={`${getTableCellClasses()} text-center text-sm text-gray-500 dark:text-gray-400`}>
                         {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
                           'No orders match the current filters.' :
                           'No orders found. Add an order to get started.'}
@@ -1258,16 +1280,30 @@ export default function DashboardContent() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {filteredOrders.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination 
+                  currentPage={currentPage}
+                  totalItems={filteredOrders.length}
+                  pageSize={itemsPerPage}
+                  onChange={setCurrentPage}
+                  onPageSizeChange={setItemsPerPage}
+                  showPageSizeChanger={true}
+                />
+              </div>
+            )}
           </div>
 
-      <FilterDialog
-        isOpen={isFilterDialogOpen}
-        onClose={() => setIsFilterDialogOpen(false)}
-        onApplyFilters={handleApplyFilters}
-        availableColumns={availableColumns}
-      />
+          <FilterDialog
+            isOpen={isFilterDialogOpen}
+            onClose={() => setIsFilterDialogOpen(false)}
+            onApplyFilters={handleApplyFilters}
+            availableColumns={availableColumns}
+          />
+        </div>
+      </div>
     </div>
-  </div>
-</div>
   );
 }

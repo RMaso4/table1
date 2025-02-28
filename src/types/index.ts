@@ -17,6 +17,11 @@ declare module 'next-auth' {
   }
 }
 
+export interface SortState {
+  field: string | null;
+  direction: 'asc' | 'desc' | null;
+}
+
 declare module 'next-auth/jwt' {
     interface JWT {
       role: string;
