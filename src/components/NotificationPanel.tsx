@@ -36,19 +36,19 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, message, onConfir
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Action</h3>
-        <p className="text-sm text-gray-600 mb-6">{message}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Confirm Action</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">{message}</p>
         <div className="flex justify-end space-x-4">
           <button
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md text-sm"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-800 dark:text-gray-200"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded"
           >
             Delete
           </button>
@@ -440,18 +440,18 @@ export default function NotificationPanel() {
           {/* Popup Content */}
           <div 
             ref={notificationPanelRef}
-            className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col animate-fadeIn"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col animate-fadeIn"
             onClick={e => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
               <div className="flex items-center gap-4">
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
                 </div>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   aria-label="Close notifications"
                 >
                   <X className="h-5 w-5" />
@@ -461,14 +461,14 @@ export default function NotificationPanel() {
             
             {/* Actions Toolbar */}
             {notifications.length > 0 && (
-              <div className="border-b border-gray-200 p-2 bg-gray-50 flex justify-between items-center">
+              <div className="border-b border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-750 flex justify-between items-center">
                 <div className="flex gap-2">
                   <button
                     onClick={toggleSelectionMode}
                     className={`px-3 py-1 text-xs rounded-md ${
                       isSelectionMode 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                   >
                     {isSelectionMode ? 'Cancel Selection' : 'Select Multiple'}
@@ -478,7 +478,7 @@ export default function NotificationPanel() {
                     <>
                       <button
                         onClick={toggleSelectAll}
-                        className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md"
+                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md"
                         >
                           {selectedNotifications.size === notifications.length 
                             ? 'Deselect All' 
@@ -501,7 +501,7 @@ export default function NotificationPanel() {
                   {unreadCount > 0 && !isSelectionMode && (
                     <button
                       onClick={markAllAsRead}
-                      className="text-xs text-blue-600 hover:text-blue-800"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                     >
                       Mark all as read
                     </button>
@@ -513,20 +513,20 @@ export default function NotificationPanel() {
                 {isLoading ? (
                   <div className="p-6 text-center">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
-                    <p className="mt-2 text-gray-600">Loading notifications...</p>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">Loading notifications...</p>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     <p>No notifications</p>
                     <p className="text-sm mt-2">You&apos;ll see updates here when there&apos;s activity.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     {notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 hover:bg-gray-50 ${
-                          !notification.read ? 'bg-blue-50' : ''
+                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                         }`}
                       >
                         <div className="flex items-start">
@@ -539,7 +539,7 @@ export default function NotificationPanel() {
                               <div className={`h-5 w-5 rounded border ${
                                 selectedNotifications.has(notification.id)
                                   ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
-                                  : 'border-gray-300'
+                                  : 'border-gray-300 dark:border-gray-600'
                               }`}>
                                 {selectedNotifications.has(notification.id) && (
                                   <Check className="h-3 w-3 text-white" />
@@ -555,8 +555,8 @@ export default function NotificationPanel() {
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <p className="text-sm text-gray-800">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-sm text-gray-800 dark:text-gray-200">{notification.message}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   {formatTime(notification.createdAt)}
                                 </p>
                               </div>
@@ -570,7 +570,7 @@ export default function NotificationPanel() {
                           {!isSelectionMode && (
                             <button
                               onClick={() => confirmDeleteNotification(notification.id)}
-                              className="ml-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                              className="ml-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
                               aria-label="Delete notification"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -595,4 +595,4 @@ export default function NotificationPanel() {
         />
       </div>
     );
-  }
+}

@@ -87,6 +87,23 @@ body {
   @apply hover:bg-gray-700;
 }
 
+.dark .bg-gray-750 {
+  background-color: #1e2433;
+}
+
+/* Notification panel dark mode styles */
+.dark .bg-blue-900\/20 {
+  background-color: rgba(30, 64, 175, 0.2);
+}
+
+.dark .hover\:bg-gray-700:hover {
+  background-color: #374151;
+}
+
+.dark .hover\:bg-gray-600:hover {
+  background-color: #4b5563;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
