@@ -1,10 +1,11 @@
 // src/components/NotificationPanel.tsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Trash2, Check } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { pusherClient, CHANNELS, EVENTS } from '@/lib/pusher';
 import { REALTIME_CONFIG } from '@/lib/socketConfig';
+import { formatDateTime } from '@/utils/settingsUtils';
+import useSettings from '@/hooks/useSettings';
 
 interface Notification {
   id: string;
@@ -58,6 +59,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ isOpen, message, onConfir
 };
 
 export default function NotificationPanel() {
+  const { userSettings } = useSettings();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -78,6 +80,9 @@ export default function NotificationPanel() {
   });
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
+  // Check if notifications are enabled in user settings
+  const notificationsEnabled = userSettings.showNotifications !== false;
+
   // Close popup when pressing Escape key
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
@@ -91,7 +96,8 @@ export default function NotificationPanel() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!session?.user || !REALTIME_CONFIG.USE_PUSHER) return;
+    // Skip if notifications are disabled in user settings
+    if (!notificationsEnabled || !session?.user || !REALTIME_CONFIG.USE_PUSHER) return;
     
     const channel = pusherClient.subscribe(CHANNELS.NOTIFICATIONS);
     
@@ -170,15 +176,15 @@ export default function NotificationPanel() {
       channel.unbind_all();
       pusherClient.unsubscribe(CHANNELS.NOTIFICATIONS);
     };
-  }, [session]);
+  }, [session, notificationsEnabled]);
 
   // Fetch notifications on initial load
   useEffect(() => {
-    // Only fetch if user is authenticated
-    if (session?.user) {
+    // Only fetch if notifications are enabled and user is authenticated
+    if (notificationsEnabled && session?.user) {
       fetchNotifications();
     }
-  }, [session]);
+  }, [session, notificationsEnabled]);
 
   const fetchNotifications = async () => {
     setIsLoading(true);
@@ -383,20 +389,14 @@ export default function NotificationPanel() {
 
   // Request notification permission
   useEffect(() => {
-    if (Notification && Notification.permission === 'default') {
+    if (Notification && Notification.permission === 'default' && notificationsEnabled) {
       Notification.requestPermission();
     }
-  }, []);
+  }, [notificationsEnabled]);
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true,
-      day: 'numeric',
-      month: 'short'
-    }).format(date);
+    // Use the utility function that respects user settings
+    return formatDateTime(new Date(dateString), userSettings);
   };
 
   // Close popup when clicking outside the content
@@ -414,6 +414,11 @@ export default function NotificationPanel() {
       setSelectedNotifications(new Set());
     }
   };
+
+  // If notifications are disabled in user settings, don't show the panel
+  if (!notificationsEnabled) {
+    return null;
+  }
 
   return (
     <div className="relative">

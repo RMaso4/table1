@@ -17,7 +17,6 @@ import {
   Info,
   X,
   AlertTriangle,
-  Lock
 } from 'lucide-react';
 
 // Define types for settings
@@ -27,7 +26,6 @@ interface UserSettings {
   tableCompactMode: boolean;
   defaultPageSize: number;
   showNotifications: boolean;
-  emailNotifications: boolean;
   defaultSortColumn: string;
   defaultSortDirection: 'asc' | 'desc';
   defaultColumns: string[];
@@ -35,21 +33,11 @@ interface UserSettings {
   timeFormat: '12h' | '24h';
 }
 
-interface SystemSettings {
-  updateMethod: 'pusher' | 'socketio' | 'polling';
-  realTimeUpdates: boolean;
-  pollingInterval: number;
-  exportFormat: 'csv' | 'tsv';
-  autoSavePriority: boolean;
-  cacheStrategy: 'aggressive' | 'moderate' | 'minimal';
-  priorityOfflineMode: boolean;
-  maxCacheAge: number;
-}
+// Removed SystemSettings interface
 
 interface AdminSettings {
   defaultRole: string;
   requireApprovalForChanges: boolean;
-  orderNumberFormat: string;
   trackOrderHistory: boolean;
   autoCloseNotifications: boolean;
   notificationRetentionDays: number;
@@ -61,7 +49,6 @@ interface AdminSettings {
 
 interface AllSettings {
   user: UserSettings;
-  system: SystemSettings;
   admin: AdminSettings;
 }
 
@@ -72,27 +59,15 @@ const defaultSettings: AllSettings = {
     tableCompactMode: false,
     defaultPageSize: 50,
     showNotifications: true,
-    emailNotifications: false,
     defaultSortColumn: 'lever_datum',
     defaultSortDirection: 'asc',
     defaultColumns: ['verkoop_order', 'project', 'debiteur_klant', 'material', 'lever_datum'],
     dateFormat: 'MM/DD/YYYY',
     timeFormat: '24h'
   },
-  system: {
-    updateMethod: 'pusher',
-    realTimeUpdates: true,
-    pollingInterval: 5000,
-    exportFormat: 'csv',
-    autoSavePriority: true,
-    cacheStrategy: 'moderate',
-    priorityOfflineMode: false,
-    maxCacheAge: 24 // hours
-  },
   admin: {
     defaultRole: 'GENERAL_ACCESS',
     requireApprovalForChanges: false,
-    orderNumberFormat: 'ORD-{YYYY}-{XXXXX}',
     trackOrderHistory: true,
     autoCloseNotifications: true,
     notificationRetentionDays: 30,
@@ -144,7 +119,6 @@ export default function SettingsPage() {
           // Merge with defaults to ensure we have all properties
           const merged = {
             user: { ...defaultSettings.user, ...parsedSettings.user },
-            system: { ...defaultSettings.system, ...parsedSettings.system },
             admin: { ...defaultSettings.admin, ...parsedSettings.admin }
           };
           setSettings(merged);
@@ -173,7 +147,6 @@ export default function SettingsPage() {
 
   // Handle user role-based access
   const isAdmin = session?.user?.role === 'BEHEERDER';
-  const canViewSystem = isAdmin || session?.user?.role === 'PLANNER';
 
   // Update settings handlers
   const updateUserSettings = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
@@ -181,16 +154,6 @@ export default function SettingsPage() {
       ...prev,
       user: {
         ...prev.user,
-        [key]: value
-      }
-    }));
-  };
-
-  const updateSystemSettings = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => {
-    setSettings(prev => ({
-      ...prev,
-      system: {
-        ...prev.system,
         [key]: value
       }
     }));
@@ -217,11 +180,6 @@ export default function SettingsPage() {
       const settingsToSave: Partial<AllSettings> = {
         user: settings.user
       };
-
-      // Only include system settings if user is PLANNER or BEHEERDER
-      if (session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER') {
-        settingsToSave.system = settings.system;
-      }
 
       // Only include admin settings if user is BEHEERDER
       if (session?.user?.role === 'BEHEERDER') {
@@ -336,9 +294,7 @@ export default function SettingsPage() {
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 p-4 rounded flex items-center">
               <Info className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
               <p className="text-blue-700 dark:text-blue-400">
-                {canViewSystem 
-                  ? "You have PLANNER access. Some admin settings can only be modified by users with BEHEERDER role."
-                  : "You have limited access. System and admin settings can only be viewed and modified by PLANNER and BEHEERDER roles."}
+                Some admin settings can only be modified by users with BEHEERDER role.
               </p>
             </div>
           )}
@@ -359,20 +315,6 @@ export default function SettingsPage() {
                   <User className="h-5 w-5 mr-2" />
                   User Preferences
                 </button>
-
-                {canViewSystem && (
-                  <button
-                    onClick={() => setActiveTab('system')}
-                    className={`px-6 py-4 text-sm font-medium flex items-center ${
-                      activeTab === 'system'
-                        ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    <Monitor className="h-5 w-5 mr-2" />
-                    System Settings
-                  </button>
-                )}
 
                 {isAdmin && (
                   <button
@@ -602,212 +544,6 @@ export default function SettingsPage() {
                         />
                       </button>
                     </div>
-
-                    {/* Email Notifications */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Receive Email Notifications
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => updateUserSettings('emailNotifications', !settings.user.emailNotifications)}
-                        className={`${
-                          settings.user.emailNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${
-                            settings.user.emailNotifications ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* System Settings */}
-              {activeTab === 'system' && canViewSystem && (
-                <div className="space-y-8">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">Real-Time Updates</h2>
-                    {!canViewSystem && (
-                      <div className="flex items-center gap-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded">
-                        <Lock className="h-3 w-3 mr-1" />
-                        Requires PLANNER or BEHEERDER role
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Update Method */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Update Method
-                      </label>
-                      <select
-                        value={settings.system.updateMethod}
-                        onChange={(e) => updateSystemSettings('updateMethod', e.target.value as 'pusher' | 'socketio' | 'polling')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                        disabled={!canViewSystem}
-                      >
-                        <option value="pusher">Pusher (Recommended)</option>
-                        <option value="socketio">Socket.IO</option>
-                        <option value="polling">Polling</option>
-                      </select>
-                    </div>
-
-                    {/* Real-time Updates Toggle */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Enable Real-Time Updates
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => updateSystemSettings('realTimeUpdates', !settings.system.realTimeUpdates)}
-                        className={`${
-                          settings.system.realTimeUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                        disabled={!canViewSystem}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${
-                            settings.system.realTimeUpdates ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Polling Interval */}
-                    {settings.system.updateMethod === 'polling' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Polling Interval (ms)
-                        </label>
-                        <select
-                          value={settings.system.pollingInterval}
-                          onChange={(e) => updateSystemSettings('pollingInterval', parseInt(e.target.value))}
-                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                          disabled={!canViewSystem}
-                        >
-                          <option value="2000">2 seconds</option>
-                          <option value="5000">5 seconds</option>
-                          <option value="10000">10 seconds</option>
-                          <option value="30000">30 seconds</option>
-                          <option value="60000">60 seconds</option>
-                        </select>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Data Management</h2>
-                    {!canViewSystem && (
-                      <div className="flex items-center gap-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded">
-                        <Lock className="h-3 w-3 mr-1" />
-                        Requires PLANNER or BEHEERDER role
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Default Export Format */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Default Export Format
-                      </label>
-                      <select
-                        value={settings.system.exportFormat}
-                        onChange={(e) => updateSystemSettings('exportFormat', e.target.value as 'csv' | 'tsv')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                        disabled={!canViewSystem}
-                      >
-                        <option value="csv">CSV (Excel compatible)</option>
-                        <option value="tsv">TSV (Tab-separated)</option>
-                      </select>
-                    </div>
-
-                    {/* Caching Strategy */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Caching Strategy
-                      </label>
-                      <select
-                        value={settings.system.cacheStrategy}
-                        onChange={(e) => updateSystemSettings('cacheStrategy', e.target.value as 'aggressive' | 'moderate' | 'minimal')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                        disabled={!canViewSystem}
-                      >
-                        <option value="aggressive">Aggressive (Maximum performance)</option>
-                        <option value="moderate">Moderate (Balanced)</option>
-                        <option value="minimal">Minimal (Always fresh data)</option>
-                      </select>
-                    </div>
-
-                    {/* Max Cache Age */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Max Cache Age (hours)
-                      </label>
-                      <select
-                        value={settings.system.maxCacheAge}
-                        onChange={(e) => updateSystemSettings('maxCacheAge', parseInt(e.target.value))}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                        disabled={!canViewSystem}
-                      >
-                        <option value="1">1 hour</option>
-                        <option value="4">4 hours</option>
-                        <option value="12">12 hours</option>
-                        <option value="24">24 hours</option>
-                        <option value="48">48 hours</option>
-                      </select>
-                    </div>
-
-                    {/* Auto Save Priority */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Auto-Save Priority Orders
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => updateSystemSettings('autoSavePriority', !settings.system.autoSavePriority)}
-                        className={`${
-                          settings.system.autoSavePriority ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                        disabled={!canViewSystem}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${
-                            settings.system.autoSavePriority ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Priority Offline Mode */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Enable Priority Offline Mode
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => updateSystemSettings('priorityOfflineMode', !settings.system.priorityOfflineMode)}
-                        className={`${
-                          settings.system.priorityOfflineMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
-                        disabled={!canViewSystem}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`${
-                            settings.system.priorityOfflineMode ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                        />
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -873,22 +609,6 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Order Number Format */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Order Number Format
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.admin.orderNumberFormat}
-                        onChange={(e) => updateAdminSettings('orderNumberFormat', e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Use {'{YYYY}'} for year, {'{MM}'} for month, {'{XXXXX}'} for sequence
-                      </p>
-                    </div>
-
                     {/* Track Order History */}
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">

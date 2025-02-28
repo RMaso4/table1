@@ -11,7 +11,6 @@ interface UserSettings {
   tableCompactMode: boolean;
   defaultPageSize: number;
   showNotifications: boolean;
-  emailNotifications: boolean;
   defaultSortColumn: string;
   defaultSortDirection: 'asc' | 'desc';
   defaultColumns: string[];
@@ -19,21 +18,9 @@ interface UserSettings {
   timeFormat: '12h' | '24h';
 }
 
-interface SystemSettings {
-  updateMethod: 'pusher' | 'socketio' | 'polling';
-  realTimeUpdates: boolean;
-  pollingInterval: number;
-  exportFormat: 'csv' | 'tsv';
-  autoSavePriority: boolean;
-  cacheStrategy: 'aggressive' | 'moderate' | 'minimal';
-  priorityOfflineMode: boolean;
-  maxCacheAge: number;
-}
-
 interface AdminSettings {
   defaultRole: string;
   requireApprovalForChanges: boolean;
-  orderNumberFormat: string;
   trackOrderHistory: boolean;
   autoCloseNotifications: boolean;
   notificationRetentionDays: number;
@@ -45,7 +32,6 @@ interface AdminSettings {
 
 interface AllSettings {
   user: UserSettings;
-  system: SystemSettings;
   admin: AdminSettings;
 }
 
@@ -57,27 +43,15 @@ const defaultSettings: AllSettings = {
     tableCompactMode: false,
     defaultPageSize: 50,
     showNotifications: true,
-    emailNotifications: false,
     defaultSortColumn: 'lever_datum',
     defaultSortDirection: 'asc',
     defaultColumns: ['verkoop_order', 'project', 'debiteur_klant', 'material', 'lever_datum'],
     dateFormat: 'MM/DD/YYYY',
     timeFormat: '24h'
   },
-  system: {
-    updateMethod: 'pusher',
-    realTimeUpdates: true,
-    pollingInterval: 5000,
-    exportFormat: 'csv',
-    autoSavePriority: true,
-    cacheStrategy: 'moderate',
-    priorityOfflineMode: false,
-    maxCacheAge: 24 // hours
-  },
   admin: {
     defaultRole: 'GENERAL_ACCESS',
     requireApprovalForChanges: false,
-    orderNumberFormat: 'ORD-{YYYY}-{XXXXX}',
     trackOrderHistory: true,
     autoCloseNotifications: true,
     notificationRetentionDays: 30,
@@ -116,7 +90,6 @@ export async function GET() {
         // Merge with defaults to ensure all properties exist
         const mergedSettings: AllSettings = {
           user: { ...defaultSettings.user, ...storedSettings.user },
-          system: { ...defaultSettings.system, ...storedSettings.system },
           admin: { ...defaultSettings.admin, ...storedSettings.admin }
         };
         
@@ -174,14 +147,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check permissions for system and admin settings with clearer error messages
-    if (settings.system && user.role !== 'PLANNER' && user.role !== 'BEHEERDER') {
-      return NextResponse.json(
-        { error: 'Only PLANNER or BEHEERDER roles can modify system settings.' },
-        { status: 403 }
-      );
-    }
-
+    // Check permissions for admin settings with clearer error messages
     if (settings.admin && user.role !== 'BEHEERDER') {
       return NextResponse.json(
         { error: 'Only BEHEERDER role can modify admin settings.' },
@@ -193,10 +159,6 @@ export async function POST(request: NextRequest) {
     const settingsToSave: Partial<AllSettings> = {
       user: settings.user
     };
-
-    if (user.role === 'PLANNER' || user.role === 'BEHEERDER') {
-      settingsToSave.system = settings.system;
-    }
 
     if (user.role === 'BEHEERDER') {
       settingsToSave.admin = settings.admin;
