@@ -1,5 +1,4 @@
 // src/components/NotificationPanel.tsx
-'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Trash2, Check } from 'lucide-react';
@@ -461,14 +460,14 @@ export default function NotificationPanel() {
             
             {/* Actions Toolbar */}
             {notifications.length > 0 && (
-              <div className="border-b border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-750 flex justify-between items-center">
+              <div className="border-b border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-700 flex justify-between items-center">
                 <div className="flex gap-2">
                   <button
                     onClick={toggleSelectionMode}
                     className={`px-3 py-1 text-xs rounded-md ${
                       isSelectionMode 
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
-                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' 
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     {isSelectionMode ? 'Cancel Selection' : 'Select Multiple'}
@@ -478,7 +477,7 @@ export default function NotificationPanel() {
                     <>
                       <button
                         onClick={toggleSelectAll}
-                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md"
+                        className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md"
                         >
                           {selectedNotifications.size === notifications.length 
                             ? 'Deselect All' 
@@ -570,7 +569,7 @@ export default function NotificationPanel() {
                           {!isSelectionMode && (
                             <button
                               onClick={() => confirmDeleteNotification(notification.id)}
-                              className="ml-2 p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                              className="ml-2 p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                               aria-label="Delete notification"
                             >
                               <Trash2 className="h-4 w-4" />
