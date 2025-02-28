@@ -252,7 +252,7 @@ export default function PriorityOrdersTable({
                     title="Remove from priority"
                     disabled={isRemoteUpdate}
                   >
-                    {isUsingFallback && (
+                    {false && ( // Always hide the offline indicator
                       <div className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex items-center gap-1">
                         <CloudOff className="h-3 w-3" />
                         <span>Offline mode</span>

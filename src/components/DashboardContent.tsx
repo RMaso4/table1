@@ -208,10 +208,9 @@ export default function DashboardContent() {
 
   // Check for initial fallback mode on mount
   useEffect(() => {
-    const fallbackMode = localStorage.getItem('priorityFallbackMode') === 'true';
-    if (fallbackMode) {
-      setIsServerSavingDisabled(true);
-    }
+    // Always ensure we're in online mode on component mount
+    localStorage.setItem('priorityFallbackMode', 'false');
+    setIsServerSavingDisabled(false);
   }, []);
 
   // Fetch orders on component mount
@@ -266,8 +265,9 @@ export default function DashboardContent() {
           }
         }
       } else {
-        // If server returns error, enable fallback mode
-        enableFallbackMode();
+        // Even if server returns error, DO NOT enable fallback mode
+        console.warn('Server returned error but continuing in online mode');
+        disableFallbackMode(); // Explicitly stay in online mode
       }
       
       // Fall back to localStorage if API fails or returns empty results
@@ -439,21 +439,21 @@ export default function DashboardContent() {
     } catch (error) {
       console.error('Error saving priority orders:', error);
       
-      // Show error to user
-      setError(error instanceof Error ? error.message : 'Failed to save priority orders');
-      setTimeout(() => setError(null), 5000);
+      // Show error to user but don't mention offline mode
+      setError("Temporary issue saving priority orders. Retrying...");
+      setTimeout(() => setError(null), 3000);
       
-      // Fallback to localStorage
+      // Still save to localStorage as backup
       localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
       
-      // Enable fallback mode if there's a server or database error
-      if (error instanceof Error && 
-          (error.message.includes('Database error') || 
-           error.message.includes('timed out') || 
-           error.message.includes('500'))) {
-        enableFallbackMode();
-      }
+      // NEVER enable fallback mode, regardless of the error
+      disableFallbackMode(); // Force online mode
       
+      // Schedule a retry after a short delay
+      setTimeout(() => {
+        console.log('Retrying priority order save...');
+        savePriorityOrdersToBackend();
+      }, 5000);
       // Try to emit directly via socket API as a fallback
       try {
         if (isConnected) {  // Only try if we have a connection
@@ -486,6 +486,18 @@ export default function DashboardContent() {
       }
     }
   };
+
+  useEffect(() => {
+    // Disable fallback mode immediately and periodically
+    disableFallbackMode();
+    
+    // Check every 30 seconds to ensure we're still in online mode
+    const intervalId = setInterval(() => {
+      disableFallbackMode();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   // When connection status changes, try to sync with server
   useEffect(() => {
