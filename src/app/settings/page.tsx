@@ -9,18 +9,15 @@ import { useTheme } from '@/components/ThemeProvider';
 import {
   Save,
   User,
-  Layout,
-  Bell,
-  Database,
   Shield,
-  Globe,
   Monitor,
   Sun,
   Moon,
-  ToggleLeft,
   Check,
   Info,
-  X
+  X,
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 
 // Define types for settings
@@ -117,7 +114,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   // Check if user is authenticated
   useEffect(() => {
@@ -179,7 +176,7 @@ export default function SettingsPage() {
   const canViewSystem = isAdmin || session?.user?.role === 'PLANNER';
 
   // Update settings handlers
-  const updateUserSettings = (key: keyof UserSettings, value: any) => {
+  const updateUserSettings = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     setSettings(prev => ({
       ...prev,
       user: {
@@ -189,7 +186,7 @@ export default function SettingsPage() {
     }));
   };
 
-  const updateSystemSettings = (key: keyof SystemSettings, value: any) => {
+  const updateSystemSettings = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => {
     setSettings(prev => ({
       ...prev,
       system: {
@@ -199,7 +196,7 @@ export default function SettingsPage() {
     }));
   };
 
-  const updateAdminSettings = (key: keyof AdminSettings, value: any) => {
+  const updateAdminSettings = <K extends keyof AdminSettings>(key: K, value: AdminSettings[K]) => {
     setSettings(prev => ({
       ...prev,
       admin: {
@@ -216,20 +213,37 @@ export default function SettingsPage() {
     setSuccess(false);
 
     try {
-      // Try to save to API
+      // Build settings object based on user's role
+      const settingsToSave: Partial<AllSettings> = {
+        user: settings.user
+      };
+
+      // Only include system settings if user is PLANNER or BEHEERDER
+      if (session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER') {
+        settingsToSave.system = settings.system;
+      }
+
+      // Only include admin settings if user is BEHEERDER
+      if (session?.user?.role === 'BEHEERDER') {
+        settingsToSave.admin = settings.admin;
+      }
+
+      // Try to save to API - only send what user has permission to modify
       const response = await fetch('/api/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settingsToSave),
       });
 
       // Also save to localStorage as fallback
       localStorage.setItem('userSettings', JSON.stringify(settings));
 
       if (!response.ok) {
-        throw new Error('Failed to save settings to server');
+        // Try to get error details from response
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save settings to server');
       }
 
       // Update original settings to match current
@@ -242,7 +256,7 @@ export default function SettingsPage() {
       }, 3000);
     } catch (error) {
       console.error('Error saving settings:', error);
-      setError('Settings saved locally but could not be saved to the server');
+      setError(error instanceof Error ? error.message : 'Settings saved locally but could not be saved to the server');
     } finally {
       setSaving(false);
     }
@@ -314,6 +328,18 @@ export default function SettingsPage() {
               <button onClick={() => setError(null)}>
                 <X className="h-5 w-5 text-red-700 dark:text-red-400" />
               </button>
+            </div>
+          )}
+
+          {/* Role-based Access Banner */}
+          {!isAdmin && (
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 p-4 rounded flex items-center">
+              <Info className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
+              <p className="text-blue-700 dark:text-blue-400">
+                {canViewSystem 
+                  ? "You have PLANNER access. Some admin settings can only be modified by users with BEHEERDER role."
+                  : "You have limited access. System and admin settings can only be viewed and modified by PLANNER and BEHEERDER roles."}
+              </p>
             </div>
           )}
 
@@ -604,7 +630,15 @@ export default function SettingsPage() {
               {/* System Settings */}
               {activeTab === 'system' && canViewSystem && (
                 <div className="space-y-8">
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">Real-Time Updates</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">Real-Time Updates</h2>
+                    {!canViewSystem && (
+                      <div className="flex items-center gap-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Requires PLANNER or BEHEERDER role
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Update Method */}
@@ -614,8 +648,9 @@ export default function SettingsPage() {
                       </label>
                       <select
                         value={settings.system.updateMethod}
-                        onChange={(e) => updateSystemSettings('updateMethod', e.target.value)}
+                        onChange={(e) => updateSystemSettings('updateMethod', e.target.value as 'pusher' | 'socketio' | 'polling')}
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        disabled={!canViewSystem}
                       >
                         <option value="pusher">Pusher (Recommended)</option>
                         <option value="socketio">Socket.IO</option>
@@ -634,6 +669,7 @@ export default function SettingsPage() {
                         className={`${
                           settings.system.realTimeUpdates ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        disabled={!canViewSystem}
                       >
                         <span
                           aria-hidden="true"
@@ -654,6 +690,7 @@ export default function SettingsPage() {
                           value={settings.system.pollingInterval}
                           onChange={(e) => updateSystemSettings('pollingInterval', parseInt(e.target.value))}
                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                          disabled={!canViewSystem}
                         >
                           <option value="2000">2 seconds</option>
                           <option value="5000">5 seconds</option>
@@ -665,7 +702,15 @@ export default function SettingsPage() {
                     )}
                   </div>
 
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Data Management</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Data Management</h2>
+                    {!canViewSystem && (
+                      <div className="flex items-center gap-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Requires PLANNER or BEHEERDER role
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Default Export Format */}
@@ -675,8 +720,9 @@ export default function SettingsPage() {
                       </label>
                       <select
                         value={settings.system.exportFormat}
-                        onChange={(e) => updateSystemSettings('exportFormat', e.target.value)}
+                        onChange={(e) => updateSystemSettings('exportFormat', e.target.value as 'csv' | 'tsv')}
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        disabled={!canViewSystem}
                       >
                         <option value="csv">CSV (Excel compatible)</option>
                         <option value="tsv">TSV (Tab-separated)</option>
@@ -690,8 +736,9 @@ export default function SettingsPage() {
                       </label>
                       <select
                         value={settings.system.cacheStrategy}
-                        onChange={(e) => updateSystemSettings('cacheStrategy', e.target.value)}
+                        onChange={(e) => updateSystemSettings('cacheStrategy', e.target.value as 'aggressive' | 'moderate' | 'minimal')}
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        disabled={!canViewSystem}
                       >
                         <option value="aggressive">Aggressive (Maximum performance)</option>
                         <option value="moderate">Moderate (Balanced)</option>
@@ -708,6 +755,7 @@ export default function SettingsPage() {
                         value={settings.system.maxCacheAge}
                         onChange={(e) => updateSystemSettings('maxCacheAge', parseInt(e.target.value))}
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        disabled={!canViewSystem}
                       >
                         <option value="1">1 hour</option>
                         <option value="4">4 hours</option>
@@ -728,6 +776,7 @@ export default function SettingsPage() {
                         className={`${
                           settings.system.autoSavePriority ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        disabled={!canViewSystem}
                       >
                         <span
                           aria-hidden="true"
@@ -749,6 +798,7 @@ export default function SettingsPage() {
                         className={`${
                           settings.system.priorityOfflineMode ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
                         } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        disabled={!canViewSystem}
                       >
                         <span
                           aria-hidden="true"
@@ -765,7 +815,13 @@ export default function SettingsPage() {
               {/* Admin Settings */}
               {activeTab === 'admin' && isAdmin && (
                 <div className="space-y-8">
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">User Management</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2">User Management</h2>
+                    <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                      <Shield className="h-3 w-3 mr-1" />
+                      BEHEERDER access only
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Default Role */}
@@ -808,7 +864,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Order Configuration</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">Order Configuration</h2>
+                    <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                      <Shield className="h-3 w-3 mr-1" />
+                      BEHEERDER access only
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Order Number Format */}
@@ -885,7 +947,13 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">System Maintenance</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-2 pt-4">System Maintenance</h2>
+                    <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                      <Shield className="h-3 w-3 mr-1" />
+                      BEHEERDER access only
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Audit Log */}
@@ -995,30 +1063,38 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={saveSettings}
-                disabled={!hasChanges || saving}
-                className={`
-                  inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
-                  ${hasChanges 
-                    ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800' 
-                    : 'bg-blue-300 dark:bg-blue-800/50 cursor-not-allowed'
-                  }
-                `}
-              >
-                {saving ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Settings
-                  </>
+              <div className="flex items-center gap-4">
+                {!isAdmin && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1 text-yellow-500" />
+                    Some settings require administrator privileges
+                  </div>
                 )}
-              </button>
+                <button
+                  type="button"
+                  onClick={saveSettings}
+                  disabled={!hasChanges || saving}
+                  className={`
+                    inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
+                    ${hasChanges 
+                      ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800' 
+                      : 'bg-blue-300 dark:bg-blue-800/50 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {saving ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Settings
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
 
 // Define types for settings
 interface UserSettings {
@@ -146,40 +145,46 @@ export async function POST(request: NextRequest) {
     // Authenticate user
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in again.' }, 
+        { status: 401 }
+      );
     }
 
     // Get user from database to check role
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email! }
+      where: { email: session.user.email! },
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'User not found in database. Please contact support.' }, 
+        { status: 404 }
+      );
     }
 
     // Parse the request body
-    const settings: AllSettings = await request.json();
+    const settings = await request.json();
     
     // Validate settings structure
     if (!settings || !settings.user) {
       return NextResponse.json(
-        { error: 'Invalid settings format' },
+        { error: 'Invalid settings format. Please try again.' },
         { status: 400 }
       );
     }
 
-    // Check permissions for system and admin settings
-    if (settings.system && user.role !== Role.PLANNER && user.role !== Role.BEHEERDER) {
+    // Check permissions for system and admin settings with clearer error messages
+    if (settings.system && user.role !== 'PLANNER' && user.role !== 'BEHEERDER') {
       return NextResponse.json(
-        { error: 'You do not have permission to change system settings' },
+        { error: 'Only PLANNER or BEHEERDER roles can modify system settings.' },
         { status: 403 }
       );
     }
 
-    if (settings.admin && user.role !== Role.BEHEERDER) {
+    if (settings.admin && user.role !== 'BEHEERDER') {
       return NextResponse.json(
-        { error: 'You do not have permission to change admin settings' },
+        { error: 'Only BEHEERDER role can modify admin settings.' },
         { status: 403 }
       );
     }
@@ -189,11 +194,11 @@ export async function POST(request: NextRequest) {
       user: settings.user
     };
 
-    if (user.role === Role.PLANNER || user.role === Role.BEHEERDER) {
+    if (user.role === 'PLANNER' || user.role === 'BEHEERDER') {
       settingsToSave.system = settings.system;
     }
 
-    if (user.role === Role.BEHEERDER) {
+    if (user.role === 'BEHEERDER') {
       settingsToSave.admin = settings.admin;
     }
 
@@ -205,11 +210,15 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ success: true, settings: settingsToSave });
+    return NextResponse.json({ 
+      success: true, 
+      settings: settingsToSave,
+      message: 'Settings saved successfully'
+    });
   } catch (error) {
     console.error('Error updating settings:', error);
     return NextResponse.json(
-      { error: 'Failed to update settings' },
+      { error: 'Failed to update settings. Please try again later.' },
       { status: 500 }
     );
   }
