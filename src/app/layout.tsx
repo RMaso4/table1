@@ -1,5 +1,5 @@
 // src/app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "@/components/Providers";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -18,17 +18,22 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-// Improved metadata
+// Updated metadata (without viewport, themeColor, and colorScheme)
 export const metadata: Metadata = {
   title: "Parthos Order Management System",
   description: "Manufacturing workflow management and real-time order tracking system",
   keywords: ["manufacturing", "order management", "workflow", "Parthos", "real-time"],
   authors: [{ name: "Parthos", url: "https://parthos.com" }],
-  viewport: "width=device-width, initial-scale=1",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-icon.png",
   },
+};
+
+// Separate viewport export
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#003D73", // Match Parthos brand blue
   colorScheme: "light dark",
 };
