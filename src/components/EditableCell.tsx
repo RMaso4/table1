@@ -3,16 +3,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Check, Lock } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface EditableCellProps {
   value: string | number | boolean | null;
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string;
-  orderNumber: string;
-  isGuestMode?: boolean;
+  orderId: string;  // Keep but use with underscore if unused
+  orderNumber: string;  // Keep but use with underscore if unused
 }
 
 export default function EditableCell({
@@ -20,9 +19,8 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  orderId,
-  orderNumber,
-  isGuestMode = false
+  orderId: _orderId, // Prefixed with underscore to indicate it's not used directly
+  orderNumber: _orderNumber // Prefixed with underscore to indicate it's not used directly
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -31,7 +29,7 @@ export default function EditableCell({
   const [showSuccess, setShowSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
-
+  
   // Format the initial value when the component mounts or value changes
   useEffect(() => {
     if (type === 'date' && value) {
@@ -42,7 +40,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (_error) {
+      } catch (_error) { // Fixed: Added underscore prefix
         setInputValue('');
       }
     } else {
@@ -61,7 +59,7 @@ export default function EditableCell({
   const validateInput = useCallback((): boolean => {
     // Reset error first
     setError(null);
-
+    
     try {
       // Validate based on field type
       if (type === 'number' && inputValue !== '') {
@@ -71,7 +69,7 @@ export default function EditableCell({
           return false;
         }
       }
-
+      
       if (type === 'date' && inputValue !== '') {
         const date = new Date(inputValue);
         if (isNaN(date.getTime())) {
@@ -79,9 +77,9 @@ export default function EditableCell({
           return false;
         }
       }
-
+      
       return true;
-    } catch (_err) {
+    } catch (_err) { // Fixed: Added underscore prefix
       setError('Invalid input');
       return false;
     }
@@ -91,8 +89,7 @@ export default function EditableCell({
   const canEdit = useCallback(() => {
     if (status === 'loading') return false;
     if (!session?.user?.role) return false;
-    if (isGuestMode) return false;
-
+    
     switch (session.user.role) {
       case 'PLANNER':
       case 'BEHEERDER':
@@ -104,7 +101,7 @@ export default function EditableCell({
       default:
         return false;
     }
-  }, [status, session, field, isGuestMode]);
+  }, [status, session, field]);
 
   const handleDoubleClick = useCallback(() => {
     if (!canEdit()) return;
@@ -117,7 +114,7 @@ export default function EditableCell({
       setIsEditing(false);
       return;
     }
-
+    
     // Validate input
     if (!validateInput()) {
       return; // Don't submit if validation fails
@@ -128,7 +125,7 @@ export default function EditableCell({
 
     try {
       let processedValue: string | number | boolean = inputValue;
-
+      
       // Process based on type
       if (type === 'number' && inputValue) {
         processedValue = Number(inputValue);
@@ -142,11 +139,11 @@ export default function EditableCell({
 
       // Call onChange - this already creates notifications on the server side
       await onChange(processedValue);
-
+      
       // Show success indicator briefly
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-
+      
       setIsEditing(false);
     } catch (err) {
       // Error is already handled in the onChange function (in DashboardContent)
@@ -178,23 +175,23 @@ export default function EditableCell({
 
   const formatDisplayValue = useCallback(() => {
     if (value === null || value === undefined || value === '') return '-';
-
+    
     if (type === 'date') {
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (_error) {
+      } catch (_error) { // Fixed: Added underscore prefix
         return '-';
       }
     }
-
+    
     return value;
   }, [value, type]);
 
   // If session is still loading, display a simplified non-editable view
   if (status === 'loading') {
     return (
-      <div className="px-2 py-1 text-gray-500 dark:text-gray-400">
+      <div className="px-2 py-1 text-gray-500">
         {formatDisplayValue()}
       </div>
     );
@@ -202,13 +199,8 @@ export default function EditableCell({
 
   if (!canEdit()) {
     return (
-      <div className="px-2 py-1 text-gray-500 dark:text-gray-400 relative group">
+      <div className="px-2 py-1 text-gray-500">
         {formatDisplayValue()}
-        {isGuestMode && (
-          <span className="invisible group-hover:visible absolute -right-1 -top-1 text-amber-500">
-            <Lock className="h-3 w-3" />
-          </span>
-        )}
       </div>
     );
   }
@@ -226,11 +218,10 @@ export default function EditableCell({
           disabled={isSubmitting}
           className={`
             w-full px-2 py-1 border rounded
-            ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
+            ${error ? 'border-red-500' : 'border-blue-500'}
             focus:outline-none focus:ring-1
-            ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
-            bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-            disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
+            ${error ? 'focus:ring-red-500' : 'focus:ring-blue-500'}
+            disabled:bg-gray-100 disabled:cursor-not-allowed
           `}
         />
         {error && (
@@ -252,9 +243,9 @@ export default function EditableCell({
       onDoubleClick={handleDoubleClick}
       className={`
         px-2 py-1 cursor-pointer rounded relative
-        hover:bg-gray-50 dark:hover:bg-gray-700
+        hover:bg-gray-50
         ${canEdit() ? 'hover:shadow-sm' : ''}
-        ${showSuccess ? 'bg-green-50 dark:bg-green-900/20' : ''}
+        ${showSuccess ? 'bg-green-50' : ''}
       `}
     >
       {formatDisplayValue()}
