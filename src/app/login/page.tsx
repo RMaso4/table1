@@ -141,21 +141,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 
-                           bg-white"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                Remember for 30 days
-              </label>
-            </div>
-
             {error && (
               <div className="text-red-500 dark:text-red-400 text-sm text-center">{error}</div>
             )}
