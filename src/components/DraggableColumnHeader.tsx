@@ -1,6 +1,8 @@
 // components/DraggableColumnHeader.tsx
 import { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, ChevronUp, X, GripVertical } from 'lucide-react';
+import { Role } from '@prisma/client';
+import RoleIndicator from '@/components/Roleindicator';
 
 interface DraggableColumnHeaderProps {
   title: string;
@@ -12,6 +14,7 @@ interface DraggableColumnHeaderProps {
   onDragOver: (e: React.DragEvent, field: string) => void;
   onDragEnd: () => void;
   isDragging: boolean;
+  editableBy?: Role[]; // New prop to indicate which roles can edit this column
 }
 
 export default function DraggableColumnHeader({
@@ -23,7 +26,8 @@ export default function DraggableColumnHeader({
   onDragStart,
   onDragOver,
   onDragEnd,
-  isDragging
+  isDragging,
+  editableBy = [] // Default to empty array if not provided
 }: DraggableColumnHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,15 +66,21 @@ export default function DraggableColumnHeader({
         <div className="flex items-center justify-between group">
           <div className="flex items-center gap-2">
             <GripVertical className="h-4 w-4 text-gray-400" />
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {title}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider mb-1">
+                {title}
+              </span>
+              {editableBy && editableBy.length > 0 && (
+                <div className="flex items-center mt-1">
+                  <RoleIndicator roles={editableBy} size="sm" />
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {sortDirection !== undefined && (
               <button
                 onClick={onSort}
-                // Remove opacity-0 and group-hover classes to make always visible
                 className="transition-opacity"
               >
                 {sortDirection === 'asc' ? (
@@ -84,7 +94,6 @@ export default function DraggableColumnHeader({
             )}
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              // Remove opacity-0 and group-hover classes to make always visible
               className="transition-opacity"
             >
               <Search className="h-4 w-4 text-gray-400" />

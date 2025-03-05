@@ -4,14 +4,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Check } from 'lucide-react';
+import { canRoleEditColumn } from '@/utils/columnPermissions';
+import { Role } from '@prisma/client';
 
 interface EditableCellProps {
   value: string | number | boolean | null;
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string;  // Keep but use with underscore if unused
-  orderNumber: string;  // Keep but use with underscore if unused
+  orderId: string;
+  orderNumber: string;
 }
 
 export default function EditableCell({
@@ -19,8 +21,8 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  orderId: _orderId, // Prefixed with underscore to indicate it's not used directly
-  orderNumber: _orderNumber // Prefixed with underscore to indicate it's not used directly
+  orderId: _orderId,
+  orderNumber: _orderNumber
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -40,7 +42,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (_error) { // Fixed: Added underscore prefix
+      } catch (_error) {
         setInputValue('');
       }
     } else {
@@ -79,7 +81,7 @@ export default function EditableCell({
       }
 
       return true;
-    } catch (_err) { // Fixed: Added underscore prefix
+    } catch (_err) {
       setError('Invalid input');
       return false;
     }
@@ -90,17 +92,8 @@ export default function EditableCell({
     if (status === 'loading') return false;
     if (!session?.user?.role) return false;
 
-    switch (session.user.role) {
-      case 'PLANNER':
-      case 'BEHEERDER':
-        return true;
-      case 'SALES':
-        // List of fields that sales can edit
-        const salesEditableFields = ['project', 'lever_datum', 'opmerking', 'inkoopordernummer'];
-        return salesEditableFields.includes(field);
-      default:
-        return false;
-    }
+    // Use the utility function to check if the user's role can edit this field
+    return canRoleEditColumn(session.user.role as Role, field);
   }, [status, session, field]);
 
   const handleDoubleClick = useCallback(() => {
@@ -180,7 +173,7 @@ export default function EditableCell({
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (_error) { // Fixed: Added underscore prefix
+      } catch (_error) {
         return '-';
       }
     }
