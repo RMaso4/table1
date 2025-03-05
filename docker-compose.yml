@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=parthos
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=parthos_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U parthos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: .Dockerfile
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://parthos:securepassword@postgres:5432/parthos_db?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=REPLACE_WITH_STRONG_SECRET
+      - JWT_SECRET=REPLACE_WITH_STRONG_SECRET
+      - NEXT_PUBLIC_BASE_URL=http://localhost:3000
+      - PUSHER_APP_ID=
+      - NEXT_PUBLIC_PUSHER_KEY=
+      - PUSHER_SECRET=
+      - NEXT_PUBLIC_PUSHER_CLUSTER=eu
+      - NODE_ENV=production
+
+volumes:
+  postgres_data:

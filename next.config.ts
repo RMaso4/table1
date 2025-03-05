@@ -13,6 +13,7 @@ const nextConfig = {
   // experimental: {
   //   // Empty experimental section
   // },
+  output: 'standalone', // This is important for Docker
 };
 
 module.exports = nextConfig;
