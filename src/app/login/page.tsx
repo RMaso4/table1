@@ -94,6 +94,38 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left side - Login form */}
       <div className="w-full md:w-1/2 flex items-center justify-center bg-white dark:bg-gray-800 p-8">
+        <style jsx global>{`
+          /* Override browser autofill styles */
+          input:-webkit-autofill,
+          input:-webkit-autofill:hover, 
+          input:-webkit-autofill:focus, 
+          input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #111827 !important;
+            transition: background-color 5000s ease-in-out 0s;
+          }
+          
+          /* Dark mode support for autofill */
+          .dark input:-webkit-autofill,
+          .dark input:-webkit-autofill:hover, 
+          .dark input:-webkit-autofill:focus, 
+          .dark input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
+            -webkit-text-fill-color: #f9fafb !important;
+          }
+          
+          /* For Firefox */
+          @-moz-document url-prefix() {
+            input {
+              background-color: white !important;
+            }
+            
+            .dark input {
+              background-color: #374151 !important;
+            }
+          }
+        `}</style>
+
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Welkom terug!</h1>
@@ -146,9 +178,8 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 border-gray-300 dark:border-gray-600 
-                            rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
-                            focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 
+                           bg-white dark:bg-gray-700 rounded"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
@@ -219,7 +250,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Logo */}
-      <div className="w-1/2 bg-[#003D73] flex items-center justify-center">
+      <div className="hidden md:block md:w-1/2 bg-[#003D73] flex items-center justify-center">
         <div className="p-8 w-4/5">
           <Image
             src="/ParthosLogo.svg"
@@ -233,4 +264,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}     
+}
