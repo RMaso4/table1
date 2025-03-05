@@ -18,34 +18,13 @@ export default function LoginPage() {
   const { status } = useSession();
 
   // Function to enable guest mode
-  const enableGuestMode = useCallback(async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      // Call the API to set guest_mode cookie
-      const response = await fetch('/api/auth/guest', {
-        method: 'POST'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to enable guest mode');
-      }
-      
-      // Set cookie client-side as well for redundancy
-      setCookie('guest_mode', 'true', { maxAge: 60 * 60 * 24 }); // 24 hours
-      
-      // Show redirecting state
-      setRedirecting(true);
-      
-      // Redirect to dashboard
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Error enabling guest mode:', error);
-      setError('Failed to enable guest mode');
-      setIsLoading(false);
-    }
-  }, [router]);
+  // In your login page
+  const enableGuestMode = () => {
+    // Set local state
+    localStorage.setItem('guest_mode', 'true');
+    // Navigate to dashboard  
+    window.location.href = '/dashboard';
+  };
 
   // Check if already authenticated
   useEffect(() => {

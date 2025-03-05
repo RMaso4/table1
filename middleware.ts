@@ -26,42 +26,18 @@ export function middleware(request: NextRequest) {
   if (pathname.includes('?_rsc=') || pathname.includes('_rsc=')) {
     return NextResponse.next();
   }
-  
-  // Get auth tokens
-  const customToken = request.cookies.get('token')?.value;
-  const nextAuthToken = request.cookies.get('next-auth.session-token')?.value || 
-                        request.cookies.get('__Secure-next-auth.session-token')?.value;
-  
-  // Check if authenticated with either method
-  const isAuthenticated = !!customToken || !!nextAuthToken;
-  const isGuestMode = request.cookies.get('guest_mode')?.value === 'true';
-  
-  // Direct to dashboard for root path
+
+  // Simply redirect root to dashboard
   if (pathname === '/') {
-    const url = new URL('/dashboard', request.url);
-    return NextResponse.redirect(url);
-  }
-  
-  // Only apply middleware to main pages, not RSC requests
-  if (pathname === '/login' && (isAuthenticated || isGuestMode)) {
-    // If already authenticated or in guest mode, redirect to dashboard
-    const url = new URL('/dashboard', request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if ((pathname === '/dashboard' || pathname === '/scan' || pathname.startsWith('/dashboard/') || pathname.startsWith('/scan/')) && !isAuthenticated && !isGuestMode) {
-    // If not authenticated and not in guest mode, redirect to login
-    const url = new URL('/login', request.url);
-    return NextResponse.redirect(url);
-  }
-  
-  // For other paths, continue
+  // Let the app handle authentication internally
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Match all request paths except for the ones we want to exclude
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

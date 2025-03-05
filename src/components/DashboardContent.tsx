@@ -28,6 +28,8 @@ import ExcelExportButton from '@/components/ExcelExportButton';
 // Import types
 import { Order } from '@/types';
 
+
+
 // Define interfaces
 interface FilterConfig {
   field: string;
@@ -105,6 +107,13 @@ export function DashboardContent() {
     { field: 'inkoopordernummer', title: 'inkoopordernummer', type: 'text' },
     { field: 'updatedAt', title: 'updatedAt', type: 'date' }
   ], []);
+
+  useEffect(() => {
+    const isGuest = localStorage.getItem('guest_mode') === 'true' || 
+                    document.cookie.includes('guest_mode=true');
+    
+    setIsGuestMode(isGuest);
+  }, []);
 
   // State variables
   const [orders, setOrders] = useState<Order[]>([]);
