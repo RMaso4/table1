@@ -1,10 +1,11 @@
 // src/app/login/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
+import { setCookie } from 'cookies-next';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,36 @@ export default function LoginPage() {
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
   const { status } = useSession();
+
+  // Function to enable guest mode
+  const enableGuestMode = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Call the API to set guest_mode cookie
+      const response = await fetch('/api/auth/guest', {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to enable guest mode');
+      }
+      
+      // Set cookie client-side as well for redundancy
+      setCookie('guest_mode', 'true', { maxAge: 60 * 60 * 24 }); // 24 hours
+      
+      // Show redirecting state
+      setRedirecting(true);
+      
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error enabling guest mode:', error);
+      setError('Failed to enable guest mode');
+      setIsLoading(false);
+    }
+  }, [router]);
 
   // Check if already authenticated
   useEffect(() => {
@@ -29,6 +60,15 @@ export default function LoginPage() {
   useEffect(() => {
     const hasCustomToken = document.cookie.includes('token=');
     if (hasCustomToken && !isLoading && !redirecting) {
+      setRedirecting(true);
+      router.push('/dashboard');
+    }
+  }, [router, isLoading, redirecting]);
+
+  // Also check for guest mode
+  useEffect(() => {
+    const isGuestMode = document.cookie.includes('guest_mode=true');
+    if (isGuestMode && !isLoading && !redirecting) {
       setRedirecting(true);
       router.push('/dashboard');
     }
@@ -164,6 +204,27 @@ export default function LoginPage() {
                   </div>
                 ) : (
                   'Log in'
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={enableGuestMode}
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md 
+                          shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 
+                          hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none disabled:opacity-50"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700 dark:text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </div>
+                ) : (
+                  'Continue as Guest'
                 )}
               </button>
 

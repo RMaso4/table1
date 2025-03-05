@@ -34,16 +34,23 @@ export function middleware(request: NextRequest) {
   
   // Check if authenticated with either method
   const isAuthenticated = !!customToken || !!nextAuthToken;
+  const isGuestMode = request.cookies.get('guest_mode')?.value === 'true';
+  
+  // Direct to dashboard for root path
+  if (pathname === '/') {
+    const url = new URL('/dashboard', request.url);
+    return NextResponse.redirect(url);
+  }
   
   // Only apply middleware to main pages, not RSC requests
-  if (pathname === '/login' && isAuthenticated) {
-    // If already authenticated, redirect to dashboard
+  if (pathname === '/login' && (isAuthenticated || isGuestMode)) {
+    // If already authenticated or in guest mode, redirect to dashboard
     const url = new URL('/dashboard', request.url);
     return NextResponse.redirect(url);
   }
 
-  if ((pathname === '/dashboard' || pathname === '/scan' || pathname.startsWith('/dashboard/') || pathname.startsWith('/scan/')) && !isAuthenticated) {
-    // If not authenticated and trying to access protected route, redirect to login
+  if ((pathname === '/dashboard' || pathname === '/scan' || pathname.startsWith('/dashboard/') || pathname.startsWith('/scan/')) && !isAuthenticated && !isGuestMode) {
+    // If not authenticated and not in guest mode, redirect to login
     const url = new URL('/login', request.url);
     return NextResponse.redirect(url);
   }

@@ -7,8 +7,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from './NotificationPanel';
 import { useState, useEffect } from 'react';
-import { Plus, Moon, Sun } from 'lucide-react';
+import { Plus, Moon, Sun, LogIn, UserIcon } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
+import { getCookie, deleteCookie } from 'cookies-next';
 
 // Add a type for custom pages
 interface CustomPage {
@@ -28,15 +29,22 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   
+  // Guest mode state
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [pagesLoading, setPagesLoading] = useState(true);
   
+  // Check for guest mode
+  useEffect(() => {
+    const guestMode = getCookie('guest_mode') === 'true';
+    setIsGuestMode(guestMode);
+  }, []);
+  
   // Fetch custom pages from API on component mount
   useEffect(() => {
     const fetchCustomPages = async () => {
-      if (!session?.user) return;
-      
       try {
         setPagesLoading(true);
         const response = await fetch('/api/custom-pages');
@@ -77,6 +85,21 @@ export default function Navbar({ onLogout }: NavbarProps) {
   ];
 
   const handleLogout = async () => {
+    if (isGuestMode) {
+      try {
+        // Clear guest mode cookie
+        await fetch('/api/auth/guest', {
+          method: 'DELETE',
+        });
+        deleteCookie('guest_mode');
+        router.push('/login');
+      } catch (error) {
+        console.error('Error logging out of guest mode:', error);
+        router.push('/login');
+      }
+      return;
+    }
+    
     if (onLogout) {
       // Call the parent's logout handler which should handle both types of auth
       onLogout();
@@ -115,13 +138,31 @@ export default function Navbar({ onLogout }: NavbarProps) {
           />
         </div>
         
-        {session && (
+        {/* Session info or Guest mode indicator */}
+        {isGuestMode ? (
+          <div className="px-4 mb-6 bg-amber-800/30 py-2 rounded-md mx-2">
+            <div className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4 text-amber-400" />
+              <p className="text-sm font-medium text-amber-300">Guest Mode</p>
+            </div>
+            <p className="text-xs text-amber-400/80 mt-1">Limited to view-only access</p>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => router.push('/login')}
+                className="flex items-center gap-1 text-xs bg-amber-700/50 hover:bg-amber-700 px-2 py-1 rounded"
+              >
+                <LogIn className="h-3 w-3" />
+                <span>Log In</span>
+              </button>
+            </div>
+          </div>
+        ) : session ? (
           <div className="px-4 mb-6">
             <p className="text-sm text-gray-300">Signed in as:</p>
             <p className="text-sm font-medium truncate">{session.user?.name || session.user?.email}</p>
             <p className="text-xs text-gray-400">{session.user?.role}</p>
           </div>
-        )}
+        ) : null}
         
         <ul className="space-y-2">
           {navItems.map((item) => (
@@ -140,8 +181,8 @@ export default function Navbar({ onLogout }: NavbarProps) {
             </li>
           ))}
           
-          {/* Add button for new pages - only for beheerder */}
-          {session?.user?.role === 'BEHEERDER' && (
+          {/* Add button for new pages - only for beheerder and not in guest mode */}
+          {session?.user?.role === 'BEHEERDER' && !isGuestMode && (
             <li>
               <Link
                 href="/add-page"
@@ -157,7 +198,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
       
       {/* Notifications, Theme Toggle and Logout */}
       <div className="p-4 flex items-center justify-between">
-        {session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER' ? (
+        {(session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER') && !isGuestMode ? (
           <NotificationPanel />
         ) : (
           <div></div> // Empty div to maintain flex layout
@@ -181,7 +222,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
             onClick={handleLogout}
             className="px-4 py-2 text-white hover:bg-[#002D53] dark:hover:bg-[#000d1a] rounded transition-colors text-sm"
           >
-            Logout
+            {isGuestMode ? 'Exit Guest Mode' : 'Logout'}
           </button>
         </div>
       </div>

@@ -3,15 +3,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Check } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 
 interface EditableCellProps {
   value: string | number | boolean | null;
   onChange: (value: string | number | boolean) => Promise<void>;
   type?: 'text' | 'number' | 'date';
   field: string;
-  orderId: string;  // Keep but use with underscore if unused
-  orderNumber: string;  // Keep but use with underscore if unused
+  orderId: string;
+  orderNumber: string;
+  isGuestMode?: boolean;
 }
 
 export default function EditableCell({
@@ -19,8 +20,9 @@ export default function EditableCell({
   onChange,
   type = 'text',
   field,
-  orderId: _orderId, // Prefixed with underscore to indicate it's not used directly
-  orderNumber: _orderNumber // Prefixed with underscore to indicate it's not used directly
+  orderId,
+  orderNumber,
+  isGuestMode = false
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -40,7 +42,7 @@ export default function EditableCell({
         } else {
           setInputValue('');
         }
-      } catch (_error) { // Fixed: Added underscore prefix
+      } catch (_error) {
         setInputValue('');
       }
     } else {
@@ -79,7 +81,7 @@ export default function EditableCell({
       }
 
       return true;
-    } catch (_err) { // Fixed: Added underscore prefix
+    } catch (_err) {
       setError('Invalid input');
       return false;
     }
@@ -89,6 +91,7 @@ export default function EditableCell({
   const canEdit = useCallback(() => {
     if (status === 'loading') return false;
     if (!session?.user?.role) return false;
+    if (isGuestMode) return false;
 
     switch (session.user.role) {
       case 'PLANNER':
@@ -101,7 +104,7 @@ export default function EditableCell({
       default:
         return false;
     }
-  }, [status, session, field]);
+  }, [status, session, field, isGuestMode]);
 
   const handleDoubleClick = useCallback(() => {
     if (!canEdit()) return;
@@ -180,7 +183,7 @@ export default function EditableCell({
       try {
         const date = new Date(value as string);
         return isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-      } catch (_error) { // Fixed: Added underscore prefix
+      } catch (_error) {
         return '-';
       }
     }
@@ -191,7 +194,7 @@ export default function EditableCell({
   // If session is still loading, display a simplified non-editable view
   if (status === 'loading') {
     return (
-      <div className="px-2 py-1 text-gray-500">
+      <div className="px-2 py-1 text-gray-500 dark:text-gray-400">
         {formatDisplayValue()}
       </div>
     );
@@ -199,8 +202,13 @@ export default function EditableCell({
 
   if (!canEdit()) {
     return (
-      <div className="px-2 py-1 text-gray-500">
+      <div className="px-2 py-1 text-gray-500 dark:text-gray-400 relative group">
         {formatDisplayValue()}
+        {isGuestMode && (
+          <span className="invisible group-hover:visible absolute -right-1 -top-1 text-amber-500">
+            <Lock className="h-3 w-3" />
+          </span>
+        )}
       </div>
     );
   }
@@ -217,13 +225,13 @@ export default function EditableCell({
           onKeyDown={handleKeyDown}
           disabled={isSubmitting}
           className={`
-    w-full px-2 py-1 border rounded
-    ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
-    focus:outline-none focus:ring-1
-    ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
-    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-    disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
-  `}
+            w-full px-2 py-1 border rounded
+            ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
+            focus:outline-none focus:ring-1
+            ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
+            bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+            disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
+          `}
         />
         {error && (
           <div className="absolute top-full left-0 z-10 mt-1 px-2 py-1 text-xs text-white bg-red-500 rounded shadow">
@@ -244,9 +252,9 @@ export default function EditableCell({
       onDoubleClick={handleDoubleClick}
       className={`
         px-2 py-1 cursor-pointer rounded relative
-        hover:bg-gray-50
+        hover:bg-gray-50 dark:hover:bg-gray-700
         ${canEdit() ? 'hover:shadow-sm' : ''}
-        ${showSuccess ? 'bg-green-50' : ''}
+        ${showSuccess ? 'bg-green-50 dark:bg-green-900/20' : ''}
       `}
     >
       {formatDisplayValue()}
