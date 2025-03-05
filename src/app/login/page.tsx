@@ -1,4 +1,4 @@
-// app/login/page.tsx
+/// src/app/login/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react';
@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { status } = useSession(); // Removed unused 'session' variable
+  const { status } = useSession();
 
   // Check if already authenticated
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Sign in with NextAuths credentials provider
+      // 1. Sign in with NextAuth credentials provider
       const nextAuthResult = await signIn('credentials', {
         redirect: false,
         email,
@@ -53,7 +53,7 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. Also call custom login API to set JWT tokenk
+      // 2. Also call custom login API to set JWT token
       const apiLoginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,13 +66,13 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // 3. Successful login - manually set a flag in localStorage for extra verifications
+      // 3. Successful login - manually set a flag in localStorage for extra verification
       window.localStorage.setItem('auth_timestamp', Date.now().toString());
       
       // 4. Redirect to dashboard
       setRedirecting(true);
       window.location.href = '/dashboard'; // Use direct navigation instead of router.push
-    } catch (err: unknown) { // Changed from any to unknown for type safety
+    } catch (err: unknown) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setIsLoading(false);
@@ -81,10 +81,10 @@ export default function LoginPage() {
 
   if (redirecting) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-4">Redirecting to dashboard...</p>
+          <p className="mt-4 text-gray-700 dark:text-gray-300">Redirecting to dashboard...</p>
         </div>
       </div>
     );
@@ -93,17 +93,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Login form */}
-      <div className="w-1/2 flex items-center justify-center bg-white p-8">
+      <div className="w-full md:w-1/2 flex items-center justify-center bg-white dark:bg-gray-800 p-8">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">Welkom terug!</h1>
-            <p className="text-sm text-gray-600">Vul hieronder je inloggegevens in.</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Welkom terug!</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Vul hieronder je inloggegevens in.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email address
                 </label>
                 <input
@@ -112,7 +112,9 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+                            rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+                            focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -120,7 +122,7 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Wachtwoord
                 </label>
                 <input
@@ -129,7 +131,9 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+                            rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+                            focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
@@ -142,23 +146,26 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
                 Remember for 30 days
               </label>
             </div>
 
             {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="text-red-500 dark:text-red-400 text-sm text-center">{error}</div>
             )}
 
             <div className="space-y-3">
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#003D73] hover:bg-[#002D53] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md 
+                          shadow-sm text-sm font-medium text-white bg-[#003D73] hover:bg-[#002D53] 
+                          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+                          dark:focus:ring-offset-gray-800 disabled:opacity-50"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -176,8 +183,8 @@ export default function LoginPage() {
               
               {/* Development helpers */}
               {process.env.NODE_ENV !== 'production' && (
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500 mb-2">Quick login</p>
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick login</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -185,7 +192,8 @@ export default function LoginPage() {
                         setEmail('planner@test.com');
                         setPassword('test123');
                       }}
-                      className="text-xs py-1 px-2 bg-gray-100 hover:bg-gray-200 rounded"
+                      className="text-xs py-1 px-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 
+                                dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded"
                     >
                       Planner
                     </button>
@@ -195,7 +203,8 @@ export default function LoginPage() {
                         setEmail('beheerder@test.com');
                         setPassword('test123');
                       }}
-                      className="text-xs py-1 px-2 bg-gray-100 hover:bg-gray-200 rounded"
+                      className="text-xs py-1 px-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 
+                                dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded"
                     >
                       Beheerder
                     </button>
@@ -222,4 +231,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+}     
