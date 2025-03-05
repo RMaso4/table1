@@ -343,30 +343,42 @@ export function DashboardContent() {
       
       console.log('Processing real-time priority order update:', priorityData);
       
+      // FIX 3: Updated to handle empty arrays properly
       // If we have orders, map them to ensure they match the Order type
-      if (priorityData.orders && Array.isArray(priorityData.orders) && priorityData.orders.length > 0) {
+      if (priorityData.orders && Array.isArray(priorityData.orders)) {
         const fullOrders = priorityData.orders
           .map(orderData => orders.find(order => order.id === orderData.id))
           .filter((order): order is Order => order !== undefined);
         setPriorityOrders(fullOrders);
-      } else {
+      } else if (Array.isArray(priorityData.orderIds)) {
         // Map orderIds to actual order objects from the orders state
         const priorityOrderObjects = priorityData.orderIds
           .map(id => orders.find(order => order.id === id))
           .filter((order): order is Order => order !== undefined);
         
-        if (priorityOrderObjects.length > 0) {
-          setPriorityOrders(priorityOrderObjects);
-        }
+        // Important: Always update state, even with an empty array
+        setPriorityOrders(priorityOrderObjects);
       }
       
-      // Save to localStorage as backup
-      localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
+      // FIX 4: Updated to use new values for localStorage, not stale state
+      // Save to localStorage as backup - use the new values, not the current state
+      if (priorityData.orders && Array.isArray(priorityData.orders)) {
+        const fullOrders = priorityData.orders
+          .map(orderData => orders.find(order => order.id === orderData.id))
+          .filter((order): order is Order => order !== undefined);
+        localStorage.setItem('priorityOrders', JSON.stringify(fullOrders));
+      } else if (Array.isArray(priorityData.orderIds)) {
+        const priorityOrderObjects = priorityData.orderIds
+          .map(id => orders.find(order => order.id === id))
+          .filter((order): order is Order => order !== undefined);
+        localStorage.setItem('priorityOrders', JSON.stringify(priorityOrderObjects));
+      }
     } catch (error) {
       console.error('Error processing priority update:', error);
     }
   }, [lastPriorityUpdate, realtimeEnabled, orders]);
   
+  // FIX 1: Updated to save even when priorityOrders is empty
   // Save priority orders to both API and localStorage when they change
   useEffect(() => {
     // Save to localStorage as backup
@@ -378,9 +390,9 @@ export function DashboardContent() {
       return;
     }
     
-    // Only save to API if we have changes, aren't in the middle of processing
-    // a real-time update, and server saving isn't disabled
-    if (priorityOrders.length > 0 && !lastPriorityUpdate && !isServerSavingDisabled) {
+    // Always save to API when there are changes, even if the array is empty
+    // This ensures empty state is properly synchronized with the backend
+    if (!lastPriorityUpdate && !isServerSavingDisabled) {
       savePriorityOrdersToBackend();
     }
   }, [priorityOrders, lastPriorityUpdate, isServerSavingDisabled]);
@@ -398,10 +410,10 @@ export function DashboardContent() {
       // Get just the IDs in the current order
       const orderIds = priorityOrders.map(order => order.id);
       
-      if (orderIds.length === 0) {
-        console.log('No priority orders to save');
-        return;
-      }
+      // FIX 2: Removed the early return for empty arrays
+      // Even if orderIds is empty, we MUST send the empty array to the server
+      // to properly clear the priority list
+      console.log(orderIds.length === 0 ? 'Saving empty priority list to server' : `Saving ${orderIds.length} priority orders`);
       
       // Show saving indicator
       setLastUpdateToast('Saving priority orders...');

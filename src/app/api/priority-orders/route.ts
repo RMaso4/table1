@@ -33,6 +33,7 @@ export async function GET() {
       });
 
       if (!priorityData) {
+        // Return empty array when no data exists
         return NextResponse.json({ orderIds: [] });
       }
 
@@ -79,21 +80,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simplified approach - delete all and create new
-    // This avoids issues with updates on non-existent records
     let priorityData;
     
+    // Even if orderIds is empty, we need to save this to clear the priority list
+    console.log(`Updating priority orders: ${orderIds.length} items`);
+    
     try {
-      // First try to create a new record (this might fail if table doesn't exist)
-      priorityData = await prisma.priorityOrder.create({
-        data: {
-          orderIds: orderIds,
-          updatedBy: user.id,
-          updatedAt: new Date()
-        }
-      });
+      // Try to find an existing record first
+      const existingRecord = await prisma.priorityOrder.findFirst();
+      
+      if (existingRecord) {
+        // Update existing record if found
+        priorityData = await prisma.priorityOrder.update({
+          where: { id: existingRecord.id },
+          data: {
+            orderIds: orderIds,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          }
+        });
+      } else {
+        // Create a new record if none exists
+        priorityData = await prisma.priorityOrder.create({
+          data: {
+            orderIds: orderIds,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          }
+        });
+      }
     } catch (createError) {
-      console.error('Error creating priority record:', createError);
+      console.error('Error saving priority record:', createError);
       
       // Try to create the table if it doesn't exist
       try {
