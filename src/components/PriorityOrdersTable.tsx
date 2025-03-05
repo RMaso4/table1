@@ -19,7 +19,7 @@ export default function PriorityOrdersTable({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
   const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
-  const [_isUsingFallback, setIsUsingFallback] = useState(false);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
   
   // Store the previous orders for animation
   const prevOrdersRef = useRef<Order[]>([]);
@@ -246,20 +246,22 @@ export default function PriorityOrdersTable({
                   </div>
                 </td>
                 <td className="px-3 py-4 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => onRemoveFromPriority(order.id)}
-                    className="text-gray-400 hover:text-red-500"
-                    title="Remove from priority"
-                    disabled={isRemoteUpdate}
-                  >
-                    {false && ( // Always hide the offline indicator
-                      <div className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex items-center gap-1">
+                  <div className="flex items-center justify-end">
+                    {isUsingFallback && (
+                      <div className="mr-2 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex items-center gap-1">
                         <CloudOff className="h-3 w-3" />
                         <span>Offline mode</span>
                       </div>
                     )}
-                    <X className="h-5 w-5" />
-                  </button>
+                    <button
+                      onClick={() => onRemoveFromPriority(order.id)}
+                      className="text-gray-400 hover:text-red-500"
+                      title="Remove from priority"
+                      disabled={isRemoteUpdate}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
