@@ -68,7 +68,7 @@ export default function LoginPage() {
 
       // 3. Successful login - manually set a flag in localStorage for extra verification
       window.localStorage.setItem('auth_timestamp', Date.now().toString());
-      
+
       // 4. Redirect to dashboard
       setRedirecting(true);
       window.location.href = '/dashboard'; // Use direct navigation instead of router.push
@@ -146,7 +146,8 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 
+            bg-white dark:bg-gray-700 rounded"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
               />
@@ -180,7 +181,7 @@ export default function LoginPage() {
                   'Log in'
                 )}
               </button>
-              
+
               {/* Development helpers */}
               {process.env.NODE_ENV !== 'production' && (
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
