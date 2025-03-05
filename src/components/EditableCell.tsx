@@ -29,7 +29,7 @@ export default function EditableCell({
   const [showSuccess, setShowSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
-  
+
   // Format the initial value when the component mounts or value changes
   useEffect(() => {
     if (type === 'date' && value) {
@@ -59,7 +59,7 @@ export default function EditableCell({
   const validateInput = useCallback((): boolean => {
     // Reset error first
     setError(null);
-    
+
     try {
       // Validate based on field type
       if (type === 'number' && inputValue !== '') {
@@ -69,7 +69,7 @@ export default function EditableCell({
           return false;
         }
       }
-      
+
       if (type === 'date' && inputValue !== '') {
         const date = new Date(inputValue);
         if (isNaN(date.getTime())) {
@@ -77,7 +77,7 @@ export default function EditableCell({
           return false;
         }
       }
-      
+
       return true;
     } catch (_err) { // Fixed: Added underscore prefix
       setError('Invalid input');
@@ -89,7 +89,7 @@ export default function EditableCell({
   const canEdit = useCallback(() => {
     if (status === 'loading') return false;
     if (!session?.user?.role) return false;
-    
+
     switch (session.user.role) {
       case 'PLANNER':
       case 'BEHEERDER':
@@ -114,7 +114,7 @@ export default function EditableCell({
       setIsEditing(false);
       return;
     }
-    
+
     // Validate input
     if (!validateInput()) {
       return; // Don't submit if validation fails
@@ -125,7 +125,7 @@ export default function EditableCell({
 
     try {
       let processedValue: string | number | boolean = inputValue;
-      
+
       // Process based on type
       if (type === 'number' && inputValue) {
         processedValue = Number(inputValue);
@@ -139,11 +139,11 @@ export default function EditableCell({
 
       // Call onChange - this already creates notifications on the server side
       await onChange(processedValue);
-      
+
       // Show success indicator briefly
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-      
+
       setIsEditing(false);
     } catch (err) {
       // Error is already handled in the onChange function (in DashboardContent)
@@ -175,7 +175,7 @@ export default function EditableCell({
 
   const formatDisplayValue = useCallback(() => {
     if (value === null || value === undefined || value === '') return '-';
-    
+
     if (type === 'date') {
       try {
         const date = new Date(value as string);
@@ -184,7 +184,7 @@ export default function EditableCell({
         return '-';
       }
     }
-    
+
     return value;
   }, [value, type]);
 
@@ -217,12 +217,13 @@ export default function EditableCell({
           onKeyDown={handleKeyDown}
           disabled={isSubmitting}
           className={`
-            w-full px-2 py-1 border rounded
-            ${error ? 'border-red-500' : 'border-blue-500'}
-            focus:outline-none focus:ring-1
-            ${error ? 'focus:ring-red-500' : 'focus:ring-blue-500'}
-            disabled:bg-gray-100 disabled:cursor-not-allowed
-          `}
+    w-full px-2 py-1 border rounded
+    ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
+    focus:outline-none focus:ring-1
+    ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
+    bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+    disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
+  `}
         />
         {error && (
           <div className="absolute top-full left-0 z-10 mt-1 px-2 py-1 text-xs text-white bg-red-500 rounded shadow">
