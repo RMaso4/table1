@@ -82,7 +82,7 @@ function emitOrderUpdate(orderId, orderData) {
 
 function emitNotification(notification) {
   if (!io) return false;
-  console.log('Emitting notification:', notification.id || 'unknown');
+  console.log('Emitting notifications:', notification.id || 'unknown');
   
   // Send to all PLANNER and BEHEERDER users
   io.to('role:PLANNER').to('role:BEHEERDER').emit('notification:new', notification);
