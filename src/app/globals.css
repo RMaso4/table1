@@ -3,6 +3,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add this to src/app/globals.css */
+
+/* Override browser autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Dark mode support */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover, 
+.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
+  -webkit-text-fill-color: #f9fafb !important;
+}
+
+/* Firefox-specific fix */
+@-moz-document url-prefix() {
+  input.autofill-fix {
+    background-color: white !important;
+  }
+  
+  .dark input.autofill-fix {
+    background-color: #374151 !important;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
