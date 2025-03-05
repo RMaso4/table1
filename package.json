@@ -19,7 +19,7 @@
     "@prisma/extension-pulse": "^1.2.2",
     "@types/next-auth": "^3.15.0",
     "bcryptjs": "^3.0.2",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "event-source-polyfill": "^1.0.31",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",

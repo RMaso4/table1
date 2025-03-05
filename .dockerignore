@@ -1,0 +1,36 @@
+# Development files and directories
+node_modules
+npm-debug.log
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build artifacts
+.next
+out
+build
+
+# Caching and logs
+.cache
+*.log
+logs
+
+# Testing
+coverage
+.nyc_output
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

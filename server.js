@@ -1,8 +1,8 @@
 // server.js
+require('dotenv').config(); // Add this at the top of the file
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
-require('dotenv').config();
 
 // Import the socket service
 const socketService = require('./server/socketService');
