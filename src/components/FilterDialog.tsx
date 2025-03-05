@@ -1,8 +1,7 @@
-// components/FilterDialog.tsx
-'use client';
+// src/components/FilterDialog.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Filter } from 'lucide-react';
+import { X, Filter, ChevronDown } from 'lucide-react';
 
 interface FilterConfig {
   field: string;
@@ -111,34 +110,47 @@ export default function FilterDialog({
                 <div key={index} className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-3 gap-4">
-                      <select
-                        value={filter.field}
-                        onChange={(e) => updateFilter(index, { field: e.target.value })}
-                        className="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
-                      >
-                        {availableColumns.map(col => (
-                          <option key={col.field} value={col.field}>{col.title}</option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={filter.field}
+                          onChange={(e) => updateFilter(index, { field: e.target.value })}
+                          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+                                   text-gray-900 dark:text-gray-100 p-2 appearance-none"
+                        >
+                          {availableColumns.map(col => (
+                            <option key={col.field} value={col.field}>{col.title}</option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      </div>
 
-                      <select
-                        value={filter.operator}
-                        onChange={(e) => updateFilter(index, {
-                          operator: e.target.value as FilterConfig['operator']
-                        })}
-                        className="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
-                      >
-                        {getOperatorsByType(column?.type || 'text').map(op => (
-                          <option key={op.value} value={op.value}>{op.label}</option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={filter.operator}
+                          onChange={(e) => updateFilter(index, {
+                            operator: e.target.value as FilterConfig['operator']
+                          })}
+                          className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+                                   text-gray-900 dark:text-gray-100 p-2 appearance-none"
+                        >
+                          {getOperatorsByType(column?.type || 'text').map(op => (
+                            <option key={op.value} value={op.value}>{op.label}</option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      </div>
 
                       <div className="flex gap-2">
                         <input
                           type={column?.type === 'date' ? 'date' : 'text'}
                           value={filter.value?.toString() || ''}
                           onChange={(e) => updateFilter(index, { value: e.target.value })}
-                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
+                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+                                   text-gray-900 dark:text-gray-100 p-2"
                           placeholder="Value"
                         />
                         {filter.operator === 'between' && (
@@ -146,7 +158,8 @@ export default function FilterDialog({
                             type={column?.type === 'date' ? 'date' : 'text'}
                             value={filter.value2 || ''}
                             onChange={(e) => updateFilter(index, { value2: e.target.value })}
-                            className="flex-1 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
+                            className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
+                                     text-gray-900 dark:text-gray-100 p-2"
                             placeholder="Value 2"
                           />
                         )}
