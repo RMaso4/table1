@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Check } from 'lucide-react';
+import { Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { canRoleEditColumn } from '@/utils/columnPermissions';
 import { Role } from '@prisma/client';
 
@@ -181,6 +181,20 @@ export default function EditableCell({
     return value;
   }, [value, type]);
 
+  // Function to increment number value
+  const incrementValue = () => {
+    if (type !== 'number') return;
+    const currentValue = Number(inputValue) || 0;
+    setInputValue((currentValue + 1).toString());
+  };
+
+  // Function to decrement number value
+  const decrementValue = () => {
+    if (type !== 'number') return;
+    const currentValue = Number(inputValue) || 0;
+    setInputValue((currentValue - 1).toString());
+  };
+
   // If session is still loading, display a simplified non-editable view
   if (status === 'loading') {
     return (
@@ -201,23 +215,53 @@ export default function EditableCell({
   if (isEditing) {
     return (
       <div className="relative">
-        <input
-          ref={inputRef}
-          type={type}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          disabled={isSubmitting}
-          className={`
-            w-full px-2 py-1 border rounded
-            ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
-            focus:outline-none focus:ring-1
-            ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
-            bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-            disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
-          `}
-        />
+        {type === 'number' ? (
+          <div className="number-input-container">
+            <input
+              ref={inputRef}
+              type="text" // Using text instead of number to have better control
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              disabled={isSubmitting}
+              className={`
+                w-full px-2 py-1 border rounded pr-7
+                ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
+                focus:outline-none focus:ring-1
+                ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
+                bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
+              `}
+            />
+            <div className="number-input-arrows">
+              <div className="number-arrow" onClick={incrementValue}>
+                <ChevronUp className="h-3 w-3" />
+              </div>
+              <div className="number-arrow" onClick={decrementValue}>
+                <ChevronDown className="h-3 w-3" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <input
+            ref={inputRef}
+            type={type}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            disabled={isSubmitting}
+            className={`
+              w-full px-2 py-1 border rounded
+              ${error ? 'border-red-500 dark:border-red-500' : 'border-blue-500 dark:border-blue-500'}
+              focus:outline-none focus:ring-1
+              ${error ? 'focus:ring-red-500 dark:focus:ring-red-500' : 'focus:ring-blue-500 dark:focus:ring-blue-500'}
+              bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+              disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed
+            `}
+          />
+        )}
         {error && (
           <div className="absolute top-full left-0 z-10 mt-1 px-2 py-1 text-xs text-white bg-red-500 rounded shadow">
             {error}

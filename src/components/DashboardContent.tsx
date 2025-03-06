@@ -1131,7 +1131,7 @@ export function DashboardContent() {
               {lastUpdateToast}
             </div>
           )}
-
+  
           {/* Priority Orders Table */}
           <div className="px-6">
             <MobileLegend />
@@ -1142,7 +1142,7 @@ export function DashboardContent() {
             onRemoveFromPriority={removeFromPriorityList}
             onPriorityOrdersChange={updatePriorityOrders}
           />
-
+  
           {/* Main Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -1167,7 +1167,7 @@ export function DashboardContent() {
                       setTimeout(() => setError(null), 3000);
                     }}
                   />
-
+  
                   {/* Export Priority Button */}
                   {priorityOrders.length > 0 && (
                     <button
@@ -1180,7 +1180,7 @@ export function DashboardContent() {
                     </button>
                   )}
                 </div>
-
+  
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
@@ -1210,10 +1210,13 @@ export function DashboardContent() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     {/* Priority Action Column */}
-                    <th className="w-12 px-2 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th 
+                      className="w-12 px-2 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                      style={{ width: '60px', minWidth: '60px', maxWidth: '60px' }}
+                    >
                       Priority
                     </th>
-
+  
                     {/* Regular Columns */}
                     {columnOrder.map(field => {
                       const column = availableColumns.find(col => col.field === field)!;
@@ -1243,19 +1246,26 @@ export function DashboardContent() {
                     paginatedOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         {/* Priority Action Cell */}
-                        <td className={getTableCellClasses()}>
+                        <td 
+                          className={getTableCellClasses()} 
+                          style={{ width: '60px', minWidth: '60px', maxWidth: '60px' }}
+                        >
                           <OrderTableActions
                             orderId={order.id}
                             isPrioritized={isOrderPrioritized(order.id)}
                             onAddToPriority={addToPriorityList}
                           />
                         </td>
-
+  
                         {/* Regular Data Cells */}
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
                           return (
-                            <td key={field} className={getTableCellClasses()}>
+                            <td 
+                              key={field} 
+                              className={getTableCellClasses()}
+                              style={{ width: '150px', minWidth: '150px', maxWidth: '150px' }}
+                            >
                               {column.type === 'boolean' ? (
                                 <input
                                   type="checkbox"
@@ -1301,7 +1311,10 @@ export function DashboardContent() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columnOrder.length + 1} className={`${getTableCellClasses()} text-center text-sm text-gray-500 dark:text-gray-400`}>
+                      <td 
+                        colSpan={columnOrder.length + 1} 
+                        className={`${getTableCellClasses()} text-center text-sm text-gray-500 dark:text-gray-400`}
+                      >
                         {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
                           'No orders match the current filters.' :
                           'No orders found. Add an order to get started.'}
@@ -1326,7 +1339,7 @@ export function DashboardContent() {
               </div>
             )}
           </div>
-
+  
           <FilterDialog
             isOpen={isFilterDialogOpen}
             onClose={() => setIsFilterDialogOpen(false)}
