@@ -9,6 +9,7 @@ async function main() {
   
   // Clear existing data
   console.log('Cleaning existing data...');
+  await prisma.priorityOrder.deleteMany();  // Add this line first
   await prisma.columnPermission.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.order.deleteMany();
@@ -178,7 +179,7 @@ async function main() {
   
   const orders = [];
   
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 100; i++) {
     const orderNumber = `ORD-${(1000 + i).toString()}`;
     const randomMaterial = materials[Math.floor(Math.random() * materials.length)];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];

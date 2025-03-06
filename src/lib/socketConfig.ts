@@ -11,7 +11,7 @@ export const REALTIME_CONFIG = {
   USE_PUSHER: true,
   
   // Debug mode - set to false in production
-  DEBUG: process.env.NODE_ENV === 'development',
+  DEBUG: process.env.NODE_ENV === 'production',
   
   // Throttling and rate limiting
   THROTTLE: {
