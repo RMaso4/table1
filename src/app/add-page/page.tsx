@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { ChevronLeft, Save, Trash2, Plus, AlertCircle, Check } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, AlertCircle, Check } from 'lucide-react';
 
 // Define the column definition type
 interface ColumnDefinition {
@@ -118,8 +118,8 @@ export default function AddPage() {
       { field: 'pers', title: 'Pers', type: 'date' },
       { field: 'netto_zagen', title: 'Netto Zagen', type: 'date' },
       { field: 'verkantlijmen', title: 'Verkantlijmen', type: 'date' },
-      { field: 'boards', title: 'Boards', type: 'boolean' },
-      { field: 'frames', title: 'Frames', type: 'boolean' },
+      { field: 'boards', title: 'Boards', type: 'text' },
+      { field: 'frames', title: 'Frames', type: 'text' },
       { field: 'totaal_boards', title: 'Totaal Boards', type: 'number' },
       { field: 'inkoopordernummer', title: 'Inkoopordernummer', type: 'text' },
       { field: 'updatedAt', title: 'Updated At', type: 'date' }
