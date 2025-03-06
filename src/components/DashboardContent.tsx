@@ -1264,7 +1264,7 @@ export function DashboardContent() {
                             <td 
                               key={field} 
                               className={getTableCellClasses()}
-                              style={{ width: '150px', minWidth: '150px', maxWidth: '150px' }}
+                              style={{ width: '200px', minWidth: '200px', maxWidth: '200px' }}
                             >
                               {column.type === 'boolean' ? (
                                 <input

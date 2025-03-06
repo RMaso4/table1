@@ -85,9 +85,9 @@ export default function ResponsiveOrderTable({
                     key={column.field}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap"
                     style={{ 
-                      width: '150px',
-                      minWidth: '150px',
-                      maxWidth: '150px'
+                      width: '200px',
+                      minWidth: '200px',
+                      maxWidth: '200px'
                     }}
                   >
                     <div className="flex items-center justify-between">
@@ -160,9 +160,9 @@ export default function ResponsiveOrderTable({
                       key={`${order.id}-${column.field}`} 
                       className="px-6 py-4 whitespace-nowrap"
                       style={{ 
-                        width: '150px',
-                        minWidth: '150px',
-                        maxWidth: '150px'
+                        width: '200px',
+                        minWidth: '200px',
+                        maxWidth: '200px'
                       }}
                     >
                       {column.type === 'boolean' ? (
