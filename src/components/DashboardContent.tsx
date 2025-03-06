@@ -104,6 +104,7 @@ export function DashboardContent() {
     { field: 'wp_dwp_pc', title: 'WP DWP PC', type: 'text' },
     { field: 'totaal_boards', title: 'Totaal Boards', type: 'number' },
     { field: 'inkoopordernummer', title: 'inkoopordernummer', type: 'text' },
+    { field: 'slotje', title: 'slotje', type: 'boolean' },
     { field: 'updatedAt', title: 'updatedAt', type: 'date' }
   ], []);
 
