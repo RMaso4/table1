@@ -1,4 +1,5 @@
-/* src/app/globals.css */
+/* src/app/globals.css - Updated Dark Mode Styles */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +14,7 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Dark mode support */
+/* Dark mode autofill - fixed background color */
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover, 
 .dark input:-webkit-autofill:focus, 
@@ -29,11 +30,11 @@ input:-webkit-autofill:active {
   }
   
   .dark input.autofill-fix {
-    background-color: #374151 !important;
+    background-color: #1f2937 !important;
   }
 }
 
-/* Form input dark mode styling */
+/* Form input dark mode styling - improved contrast */
 .dark input,
 .dark textarea,
 .dark select {
@@ -46,6 +47,7 @@ input:-webkit-autofill:active {
 .dark textarea:focus,
 .dark select:focus {
   border-color: #3b82f6;
+  outline-color: #3b82f6;
 }
 
 .dark input:disabled,
@@ -55,7 +57,19 @@ input:-webkit-autofill:active {
   color: #9ca3af;
 }
 
-/* EditableCell dark mode styles */
+/* Number Input in dark mode - fixed background and text color */
+.dark input[type="number"] {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+/* Fix for selected columns in dark mode */
+.dark [type="checkbox"]:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* EditableCell dark mode styles - improved */
 .dark input[type="text"],
 .dark input[type="number"],
 .dark input[type="date"],
@@ -75,6 +89,20 @@ input:-webkit-autofill:active {
   outline-color: #3b82f6;
 }
 
+/* Fix for column selection UI in dark mode */
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .border-blue-500 {
+  border-color: #3b82f6;
+}
+
+.dark .text-blue-700 {
+  color: #93c5fd;
+}
+
+/* Color variables with improved dark mode values */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -130,7 +158,7 @@ body {
   }
 }
 
-/* Dark mode color overrides for main table components */
+/* Dark mode color overrides for main table components - improved contrast */
 .dark .bg-white {
   @apply bg-gray-800;
 }
@@ -159,6 +187,28 @@ body {
   @apply hover:bg-gray-700;
 }
 
+/* Fix for column header in dark mode */
+.dark th.bg-gray-50 {
+  @apply bg-gray-700;
+}
+
+/* Fix for input field in dark mode */
+.dark input.bg-white {
+  @apply bg-gray-700;
+}
+
+/* Fix number inputs in dark mode */
+.dark input[type="number"] {
+  @apply bg-gray-700 text-gray-100;
+}
+
+/* Fix number input arrows */
+.dark input[type="number"]::-webkit-inner-spin-button,
+.dark input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  filter: invert(1);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -173,4 +223,3 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
-
