@@ -17,6 +17,11 @@ import OrderTableActions from '@/components/OrderTableActions';
 import { useTableSettingsContext } from '@/components/TableSettingsProvider';
 import Pagination from '@/components/Pagination';
 import { paginateData } from '@/utils/paginationUtils';
+import RoleLegend from '@/components/Rolelegend';
+import MobileLegend from '@/components/MobileLegend';
+
+// Import role permissions utility
+import { getEditableRoles } from '@/utils/columnPermissions';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
@@ -783,6 +788,7 @@ export function DashboardContent() {
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
+
   // Add an order to the priority list
   const addToPriorityList = (orderId: string) => {
     const orderToAdd = orders.find(order => order.id === orderId);
@@ -1126,6 +1132,10 @@ export function DashboardContent() {
           )}
 
           {/* Priority Orders Table */}
+          <div className="px-6">
+            <MobileLegend />
+          </div>
+          
           <PriorityOrdersTable
             orders={priorityOrders}
             onRemoveFromPriority={removeFromPriorityList}
@@ -1135,7 +1145,11 @@ export function DashboardContent() {
           {/* Main Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Overview</h1>
+              <div className="flex items-center">
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Overview</h1>
+                {/* Add the legend here */}
+                <RoleLegend />
+              </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <ExcelExportButton
@@ -1202,6 +1216,9 @@ export function DashboardContent() {
                     {/* Regular Columns */}
                     {columnOrder.map(field => {
                       const column = availableColumns.find(col => col.field === field)!;
+                      // Get editable roles for this column
+                      const editableRoles = getEditableRoles(field);
+                      
                       return (
                         <DraggableColumnHeader
                           key={field}
@@ -1214,6 +1231,7 @@ export function DashboardContent() {
                           onDragOver={handleColumnDragOver}
                           onDragEnd={handleColumnDragEnd}
                           isDragging={draggingColumn === field}
+                          editableBy={editableRoles} // Add the editableBy prop with roles
                         />
                       );
                     })}
