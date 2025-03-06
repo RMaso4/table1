@@ -9,18 +9,14 @@ import { useSession, signOut } from 'next-auth/react';
 // Import custom components
 import Navbar from '@/components/Navbar';
 import SearchBar from '@/components/SearchBar';
+import EditableCell from '@/components/EditableCell';
 import FilterDialog from '@/components/FilterDialog';
+import DraggableColumnHeader from '@/components/DraggableColumnHeader';
 import PriorityOrdersTable from '@/components/PriorityOrdersTable';
 import OrderTableActions from '@/components/OrderTableActions';
 import { useTableSettingsContext } from '@/components/TableSettingsProvider';
 import Pagination from '@/components/Pagination';
 import { paginateData } from '@/utils/paginationUtils';
-import RoleLegend from '@/components/Rolelegend';
-import MobileLegend from '@/components/MobileLegend';
-import ResponsiveOrderTable from '@/components/ResponsiveOrderTable';
-
-// Import role permissions utility
-import { getEditableRoles } from '@/utils/columnPermissions';
 
 // Import real-time updates hook
 import usePusher from '@/hooks/usePusher';
@@ -753,554 +749,573 @@ export function DashboardContent() {
             return value !== null && value !== undefined && filter.value !== null && value > filter.value;
           case 'lessThan':
             return value !== null && value !== undefined && filter.value !== null && value < filter.value;
-            case 'between':
-              return value !== null && value !== undefined &&
-                filter.value2 !== undefined && filter.value2 !== null &&
-                filter.value !== null &&
-                value >= filter.value &&
-                value <= filter.value2;
-            default:
-              return true;
-          }
-        });
+          case 'between':
+            return value !== null && value !== undefined &&
+              filter.value2 !== undefined && filter.value2 !== null &&
+              filter.value !== null &&
+              value >= filter.value &&
+              value <= filter.value2;
+          default:
+            return true;
+        }
       });
-  
-      // Apply sorting if a sort field is selected
-      if (sortState.field) {
-        result.sort((a, b) => {
-          const aValue = a[sortState.field as keyof Order];
-          const bValue = b[sortState.field as keyof Order];
-  
-          if (aValue === null || aValue === undefined) return 1;
-          if (bValue === null || bValue === undefined) return -1;
-  
-          if (aValue < bValue) return sortState.direction === 'asc' ? -1 : 1;
-          if (aValue > bValue) return sortState.direction === 'asc' ? 1 : -1;
-          return 0;
-        });
+    });
+
+    // Apply sorting if a sort field is selected
+    if (sortState.field) {
+      result.sort((a, b) => {
+        const aValue = a[sortState.field as keyof Order];
+        const bValue = b[sortState.field as keyof Order];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (aValue < bValue) return sortState.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortState.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    setFilteredOrders(result);
+  }, [orders, columnFilters, globalSearchQuery, activeFilters, sortState]);
+
+  // Apply filters whenever dependencies change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+  // Add an order to the priority list
+  const addToPriorityList = (orderId: string) => {
+    const orderToAdd = orders.find(order => order.id === orderId);
+    if (!orderToAdd) return;
+
+    // Check if the order is already in the priority list
+    if (priorityOrders.some(order => order.id === orderId)) return;
+
+    // Add the order to the priority list
+    setPriorityOrders(prev => [...prev, orderToAdd]);
+
+    // Show confirmation toast
+    setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Remove an order from the priority list
+  const removeFromPriorityList = (orderId: string) => {
+    const orderToRemove = priorityOrders.find(order => order.id === orderId);
+    if (!orderToRemove) return;
+
+    // Remove the order from the priority list
+    setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
+
+    // Show confirmation toast
+    setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
+    setTimeout(() => setLastUpdateToast(null), 3000);
+  };
+
+  // Update priority orders (used for reordering)
+  const updatePriorityOrders = (newOrders: Order[]) => {
+    setPriorityOrders(newOrders);
+  };
+
+  // Check if an order is in the priority list
+  const isOrderPrioritized = (orderId: string) => {
+    return priorityOrders.some(order => order.id === orderId);
+  };
+
+  // Handler functions
+  const handleGlobalSearch = (query: string) => {
+    setGlobalSearchQuery(query);
+  };
+
+  const handleColumnSearch = (field: string, value: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleColumnSort = (field: string) => {
+    setSortState(prev => ({
+      field,
+      direction:
+        prev.field === field
+          ? prev.direction === 'asc'
+            ? 'desc'
+            : prev.direction === 'desc'
+              ? null
+              : 'asc'
+          : 'asc'
+    }));
+  };
+
+  const handleApplyFilters = (filters: FilterConfig[]) => {
+    setActiveFilters(filters);
+  };
+
+  const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
+    try {
+      // Reset any previous errors
+      setError(null);
+
+      console.log(`Updating cell ${field} for order ${orderId} to:`, value);
+
+      // Find the order to update
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (!orderToUpdate) {
+        throw new Error('Order not found');
       }
-  
-      setFilteredOrders(result);
-    }, [orders, columnFilters, globalSearchQuery, activeFilters, sortState]);
-  
-    // Apply filters whenever dependencies change
-    useEffect(() => {
-      applyFilters();
-    }, [applyFilters]);
-  
-    // Add an order to the priority list
-    const addToPriorityList = (orderId: string) => {
-      const orderToAdd = orders.find(order => order.id === orderId);
-      if (!orderToAdd) return;
-  
-      // Check if the order is already in the priority list
-      if (priorityOrders.some(order => order.id === orderId)) return;
-  
-      // Add the order to the priority list
-      setPriorityOrders(prev => [...prev, orderToAdd]);
-  
-      // Show confirmation toast
-      setLastUpdateToast(`Added ${orderToAdd.verkoop_order} to priority list`);
-      setTimeout(() => setLastUpdateToast(null), 3000);
-    };
-  
-    // Remove an order from the priority list
-    const removeFromPriorityList = (orderId: string) => {
-      const orderToRemove = priorityOrders.find(order => order.id === orderId);
-      if (!orderToRemove) return;
-  
-      // Remove the order from the priority list
-      setPriorityOrders(prev => prev.filter(order => order.id !== orderId));
-  
-      // Show confirmation toast
-      setLastUpdateToast(`Removed ${orderToRemove.verkoop_order} from priority list`);
-      setTimeout(() => setLastUpdateToast(null), 3000);
-    };
-  
-    // Update priority orders (used for reordering)
-    const updatePriorityOrders = (newOrders: Order[]) => {
-      setPriorityOrders(newOrders);
-    };
-  
-    // Check if an order is in the priority list
-    const isOrderPrioritized = (orderId: string) => {
-      return priorityOrders.some(order => order.id === orderId);
-    };
-  
-    // Handler functions
-    const handleGlobalSearch = (query: string) => {
-      setGlobalSearchQuery(query);
-    };
-  
-    const handleColumnSearch = (field: string, value: string) => {
-      setColumnFilters(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    };
-  
-    const handleColumnSort = (field: string) => {
-      setSortState(prev => ({
-        field,
-        direction:
-          prev.field === field
-            ? prev.direction === 'asc'
-              ? 'desc'
-              : prev.direction === 'desc'
-                ? null
-                : 'asc'
-            : 'asc'
-      }));
-    };
-  
-    const handleApplyFilters = (filters: FilterConfig[]) => {
-      setActiveFilters(filters);
-    };
-  
-    const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
-      try {
-        // Reset any previous errors
-        setError(null);
-  
-        console.log(`Updating cell ${field} for order ${orderId} to:`, value);
-  
-        // Find the order to update
-        const orderToUpdate = orders.find(order => order.id === orderId);
-        if (!orderToUpdate) {
-          throw new Error('Order not found');
-        }
-  
-        // Create a copy of the order with the updated field
-        const updatedOrder = {
-          ...orderToUpdate,
-          [field]: value,
-          updatedAt: new Date().toISOString() // Update the timestamp locally
-        };
-  
-        // Optimistically update the orders state
+
+      // Create a copy of the order with the updated field
+      const updatedOrder = {
+        ...orderToUpdate,
+        [field]: value,
+        updatedAt: new Date().toISOString() // Update the timestamp locally
+      };
+
+      // Optimistically update the orders state
+      setOrders(prevOrders =>
+        prevOrders.map(order => order.id === orderId ? updatedOrder : order)
+      );
+
+      // Also update priority orders if needed
+      setPriorityOrders(prevOrders => {
+        // Check if the order is in the priority list
+        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+        if (orderIndex === -1) return prevOrders; // Not in the list
+
+        // Create a new array with updated order
+        const newPriorityOrders = [...prevOrders];
+        newPriorityOrders[orderIndex] = updatedOrder;
+        return newPriorityOrders;
+      });
+
+      // Prepare the API request data
+      const updateData = { [field]: value };
+
+      // Make the API request
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      // Check if response is ok
+      if (!response.ok) {
+        // Try to parse error response
+        const errorData = await response.json().catch(() => ({}));
+
+        // Revert optimistic update on error
         setOrders(prevOrders =>
-          prevOrders.map(order => order.id === orderId ? updatedOrder : order)
+          prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
         );
-  
-        // Also update priority orders if needed
+
         setPriorityOrders(prevOrders => {
-          // Check if the order is in the priority list
           const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-          if (orderIndex === -1) return prevOrders; // Not in the list
-  
-          // Create a new array with updated order
-          const newPriorityOrders = [...prevOrders];
-          newPriorityOrders[orderIndex] = updatedOrder;
-          return newPriorityOrders;
+          if (orderIndex === -1) return prevOrders;
+
+          const revertedPriorityOrders = [...prevOrders];
+          revertedPriorityOrders[orderIndex] = orderToUpdate;
+          return revertedPriorityOrders;
         });
-  
-        // Prepare the API request data
-        const updateData = { [field]: value };
-  
-        // Make the API request
-        const response = await fetch(`/api/orders/${orderId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(updateData),
-        });
-  
-        // Check if response is ok
-        if (!response.ok) {
-          // Try to parse error response
-          const errorData = await response.json().catch(() => ({}));
-  
-          // Revert optimistic update on error
-          setOrders(prevOrders =>
-            prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
-          );
-  
-          setPriorityOrders(prevOrders => {
-            const orderIndex = prevOrders.findIndex(order => order.id === orderId);
-            if (orderIndex === -1) return prevOrders;
-  
-            const revertedPriorityOrders = [...prevOrders];
-            revertedPriorityOrders[orderIndex] = orderToUpdate;
-            return revertedPriorityOrders;
+
+        throw new Error(errorData.error || errorData.message || 'Failed to update order');
+      }
+
+      // Parse response data
+      const data = await response.json();
+
+      // If real-time updates are enabled, the update will arrive through Pusher
+      // If disabled, we need to manually trigger a notification here
+      if (!realtimeEnabled) {
+        // Show a brief success message
+        setLastUpdateToast(`Updated ${field} successfully`);
+        setTimeout(() => setLastUpdateToast(null), 2000);
+      }
+
+      // We should also trigger an event to notify other clients about this update
+      // This will reach this client too via Pusher if real-time is enabled
+      try {
+        // Use our trigger function directly if available
+        if (typeof window !== 'undefined') {
+          // Trigger the event using the API
+          fetch('/api/socket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              event: 'order:updated',
+              data: {
+                orderId,
+                data: updatedOrder
+              }
+            })
+          }).catch(err => {
+            console.error('Failed to emit update event:', err);
           });
-  
-          throw new Error(errorData.error || errorData.message || 'Failed to update order');
         }
-  
-        // Parse response data
-        const data = await response.json();
-  
-        // If real-time updates are enabled, the update will arrive through Pusher
-        // If disabled, we need to manually trigger a notification here
-        if (!realtimeEnabled) {
-          // Show a brief success message
-          setLastUpdateToast(`Updated ${field} successfully`);
-          setTimeout(() => setLastUpdateToast(null), 2000);
-        }
-  
-        // We should also trigger an event to notify other clients about this update
-        // This will reach this client too via Pusher if real-time is enabled
-        try {
-          // Use our trigger function directly if available
-          if (typeof window !== 'undefined') {
-            // Trigger the event using the API
-            fetch('/api/socket', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                event: 'order:updated',
-                data: {
-                  orderId,
-                  data: updatedOrder
-                }
-              })
-            }).catch(err => {
-              console.error('Failed to emit update event:', err);
-            });
-          }
-        } catch (emitError) {
-          console.warn('Failed to emit update event:', emitError);
-          // Non-critical, don't throw
-        }
-  
-        return;
-  
-      } catch (error) {
-        console.error('Error updating cell:', error);
-  
-        // Show error message
-        setError(error instanceof Error ? error.message : 'Failed to update order');
-  
-        // Clear error after a delay
-        setTimeout(() => setError(null), 5000);
-  
-        return;
+      } catch (emitError) {
+        console.warn('Failed to emit update event:', emitError);
+        // Non-critical, don't throw
       }
-    };
-  
-    // Handle export functionality
-    const handleExport = () => {
-      // Get visible columns in their current order
-      const visibleColumns = columnOrder
-        .map(field => availableColumns.find(col => col.field === field))
-        .filter((col): col is ColumnDefinition => col !== undefined);
-  
-      try {
-        // Use the improved Excel export function
-        exportToExcel(
-          filteredOrders,
-          visibleColumns,
-          `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
-        );
-  
-        // Show success toast
-        setLastUpdateToast('Export successful');
-        setTimeout(() => setLastUpdateToast(null), 3000);
-      } catch (error) {
-        setError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setTimeout(() => setError(null), 3000);
-      }
-    };
-  
-    const handleExportPriority = () => {
-      if (priorityOrders.length === 0) {
-        setError('No priority orders to export');
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-  
-      // Define essential columns for priority export
-      const priorityColumns: ColumnDefinition[] = [
-        { field: 'verkoop_order', title: 'Order #', type: 'text' },
-        { field: 'project', title: 'Project', type: 'text' },
-        { field: 'debiteur_klant', title: 'Customer', type: 'text' },
-        { field: 'material', title: 'Material', type: 'text' },
-        { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
-      ];
-  
-      try {
-        // Use the improved Excel export function
-        exportToExcel(
-          priorityOrders,
-          priorityColumns,
-          `priority-orders-export-${new Date().toISOString().slice(0, 10)}.csv`
-        );
-  
-        // Show success toast
-        setLastUpdateToast('Priority export successful');
-        setTimeout(() => setLastUpdateToast(null), 3000);
-      } catch (error) {
-        setError(`Priority export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setTimeout(() => setError(null), 3000);
-      }
-    };
-  
-    // Column drag and drop handlers
-    const handleColumnDragStart = (e: React.DragEvent<Element>, field: string) => {
-      setDraggingColumn(field);
-    };
-  
-    const handleColumnDragOver = (e: React.DragEvent<Element>, field: string) => {
-      e.preventDefault(); // Prevent default to allow drop
-      if (!draggingColumn || draggingColumn === field) return;
-  
-      const newColumnOrder = [...columnOrder];
-      const dragIndex = newColumnOrder.indexOf(draggingColumn);
-      const dropIndex = newColumnOrder.indexOf(field);
-  
-      newColumnOrder.splice(dragIndex, 1);
-      newColumnOrder.splice(dropIndex, 0, draggingColumn);
-  
-      setColumnOrder(newColumnOrder);
-    };
-  
-    const handleColumnDragEnd = () => {
-      setDraggingColumn(null);
-    };
-  
-    // Clear all filters
-    const clearAllFilters = () => {
-      setActiveFilters([]);
-      setColumnFilters({});
-      setGlobalSearchQuery('');
-      setSortState({ field: null, direction: null });
-      setFilteredOrders(orders);
-    };
-  
-    // Logout handler
-    const handleLogout = async () => {
-      try {
-        const res = await fetch('/api/auth/logout', {
-          method: 'POST',
-        });
-  
-        if (res.ok) {
-          await signOut({ redirect: false });
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error('Logout failed:', error);
-      }
-    };
-  
-    if (loading) {
-      return (
-        <div className="flex h-screen">
-          <Navbar onLogout={handleLogout} />
-          <div className="flex-1 p-8 flex items-center justify-center">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 dark:border-blue-500 border-r-transparent"></div>
-              <p className="mt-4 text-gray-700 dark:text-gray-300">Loading orders...</p>
-            </div>
-          </div>
-        </div>
-      );
+
+      return;
+
+    } catch (error) {
+      console.error('Error updating cell:', error);
+
+      // Show error message
+      setError(error instanceof Error ? error.message : 'Failed to update order');
+
+      // Clear error after a delay
+      setTimeout(() => setError(null), 5000);
+
+      return;
     }
-  
-    if (error) {
-      return (
-        <div className="flex h-screen">
-          <Navbar onLogout={handleLogout} />
-          <div className="flex-1 p-8">
-            <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-500 p-4 rounded">
-              <p className="text-red-700 dark:text-red-400">{error}</p>
-            </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-800"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
+  };
+
+  // Handle export functionality
+  const handleExport = () => {
+    // Get visible columns in their current order
+    const visibleColumns = columnOrder
+      .map(field => availableColumns.find(col => col.field === field))
+      .filter((col): col is ColumnDefinition => col !== undefined);
+
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        filteredOrders,
+        visibleColumns,
+        `orders-export-${new Date().toISOString().slice(0, 10)}.csv`
       );
+
+      // Show success toast
+      setLastUpdateToast('Export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
     }
-  
+  };
+
+  const handleExportPriority = () => {
+    if (priorityOrders.length === 0) {
+      setError('No priority orders to export');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Define essential columns for priority export
+    const priorityColumns: ColumnDefinition[] = [
+      { field: 'verkoop_order', title: 'Order #', type: 'text' },
+      { field: 'project', title: 'Project', type: 'text' },
+      { field: 'debiteur_klant', title: 'Customer', type: 'text' },
+      { field: 'material', title: 'Material', type: 'text' },
+      { field: 'lever_datum', title: 'Delivery Date', type: 'date' },
+    ];
+
+    try {
+      // Use the improved Excel export function
+      exportToExcel(
+        priorityOrders,
+        priorityColumns,
+        `priority-orders-export-${new Date().toISOString().slice(0, 10)}.csv`
+      );
+
+      // Show success toast
+      setLastUpdateToast('Priority export successful');
+      setTimeout(() => setLastUpdateToast(null), 3000);
+    } catch (error) {
+      setError(`Priority export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  // Column drag and drop handlers
+  const handleColumnDragStart = (e: React.DragEvent<Element>, field: string) => {
+    setDraggingColumn(field);
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent<Element>, field: string) => {
+    e.preventDefault(); // Prevent default to allow drop
+    if (!draggingColumn || draggingColumn === field) return;
+
+    const newColumnOrder = [...columnOrder];
+    const dragIndex = newColumnOrder.indexOf(draggingColumn);
+    const dropIndex = newColumnOrder.indexOf(field);
+
+    newColumnOrder.splice(dragIndex, 1);
+    newColumnOrder.splice(dropIndex, 0, draggingColumn);
+
+    setColumnOrder(newColumnOrder);
+  };
+
+  const handleColumnDragEnd = () => {
+    setDraggingColumn(null);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setActiveFilters([]);
+    setColumnFilters({});
+    setGlobalSearchQuery('');
+    setSortState({ field: null, direction: null });
+    setFilteredOrders(orders);
+  };
+
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (res.ok) {
+        await signOut({ redirect: false });
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex h-screen">
         <Navbar onLogout={handleLogout} />
-        <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
-          <div className="p-8 flex-grow overflow-auto">
-            {lastUpdateToast && (
-              <div className="fixed top-4 right-4 bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded shadow z-50">
-                {lastUpdateToast}
-              </div>
-            )}
-  
-            {/* Priority Orders Table */}
-            <div className="px-6">
-              <MobileLegend />
-            </div>
-            
-            <PriorityOrdersTable
-              orders={priorityOrders}
-              onRemoveFromPriority={removeFromPriorityList}
-              onPriorityOrdersChange={updatePriorityOrders}
-            />
-  
-            {/* Main Orders Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <div className="flex items-center">
-                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Overview</h1>
-                  {/* Add the legend here */}
-                  <RoleLegend />
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <ExcelExportButton
-                      data={filteredOrders}
-                      columns={columnOrder
-                        .map(field => availableColumns.find(col => col.field === field))
-                        .filter((col): col is ColumnDefinition => col !== undefined)}
-                      onSuccess={() => {
-                        setLastUpdateToast('Export successful');
-                        setTimeout(() => setLastUpdateToast(null), 3000);
-                      }}
-                      onError={(error) => {
-                        setError(`Export failed: ${error.message}`);
-                        setTimeout(() => setError(null), 3000);
-                      }}
-                    />
-  
-                    {/* Export Priority Button */}
-                    {priorityOrders.length > 0 && (
-                      <button
-                        onClick={handleExportPriority}
-                        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors"
-                        title="Export priority orders to CSV"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Export Priority</span>
-                      </button>
-                    )}
-                  </div>
-  
-                  <button
-                    onClick={() => setIsFilterDialogOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-                  >
-                    <Filter className="h-5 w-5" />
-                    <span>Filters</span>
-                  </button>
-                  <SearchBar
-                    onSearch={handleGlobalSearch}
-                    value={globalSearchQuery}
-                  />
-                  {(activeFilters.length > 0 ||
-                    Object.keys(columnFilters).length > 0 ||
-                    globalSearchQuery ||
-                    sortState.field) && (
-                      <button
-                        onClick={clearAllFilters}
-                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                      >
-                        Clear all filters
-                      </button>
-                    )}
-                </div>
-              </div>
-              
-              {/* Replace the original table with the ResponsiveOrderTable */}
-              {useMemo(() => {
-                const columnSizes: Record<string, { minWidth: string; width?: string }> = {
-                  aanmaak_datum: { minWidth: '140px' },
-                  verkoop_order: { minWidth: '120px' },
-                  project: { minWidth: '150px' },
-                  pos: { minWidth: '80px' },
-                  type_artikel: { minWidth: '150px' },
-                  debiteur_klant: { minWidth: '180px' },
-                  material: { minWidth: '140px' },
-                  kantenband: { minWidth: '130px' },
-                  kleur: { minWidth: '120px' },
-                  height: { minWidth: '120px' },
-                  db_waarde: { minWidth: '120px' },
-                  opmerking: { minWidth: '200px' },
-                  productie_datum: { minWidth: '140px' },
-                  lever_datum: { minWidth: '140px' },
-                  startdatum_assemblage: { minWidth: '140px' },
-                  start_datum_machinale: { minWidth: '140px' },
-                  bruto_zagen: { minWidth: '140px' },
-                  pers: { minWidth: '140px' },
-                  netto_zagen: { minWidth: '140px' },
-                  verkantlijmen: { minWidth: '140px' },
-                  cnc_start_datum: { minWidth: '140px' },
-                  pmt_start_datum: { minWidth: '140px' },
-                  lakkerij_datum: { minWidth: '140px' },
-                  coaten_m1: { minWidth: '140px' },
-                  verkantlijmen_order_gereed: { minWidth: '140px' },
-                  inpak_rail: { minWidth: '120px' },
-                  boards: { minWidth: '120px' },
-                  frames: { minWidth: '120px' },
-                  ap_tws: { minWidth: '120px' },
-                  wp_frame: { minWidth: '120px' },
-                  wp_dwp_pc: { minWidth: '120px' },
-                  totaal_boards: { minWidth: '120px' },
-                  inkoopordernummer: { minWidth: '140px' },
-                  updatedAt: { minWidth: '140px' }
-                };
-                
-                const visibleColumns = columnOrder
-                  .map(field => {
-                    const column = availableColumns.find(col => col.field === field);
-                    if (!column) return null;
-                    
-                    return {
-                      ...column,
-                      minWidth: columnSizes[field as keyof typeof columnSizes]?.minWidth || '120px',
-                      width: columnSizes[field as keyof typeof columnSizes]?.width
-                    };
-                  })
-                  .filter(Boolean) as any[];
-                  
-                return (
-                  <ResponsiveOrderTable
-                    orders={paginatedOrders}
-                    columns={visibleColumns}
-                    sortState={sortState}
-                    onSort={handleColumnSort}
-                    onCellUpdate={handleCellUpdate}
-                    onAddToPriority={addToPriorityList}
-                    isPrioritized={isOrderPrioritized}
-                  />
-                );
-              }, [
-                paginatedOrders, 
-                columnOrder, 
-                availableColumns, 
-                sortState, 
-                handleColumnSort, 
-                handleCellUpdate, 
-                addToPriorityList, 
-                isOrderPrioritized
-              ])}
-              
-              {/* Pagination Controls */}
-              {filteredOrders.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                  <Pagination 
-                    currentPage={currentPage}
-                    totalItems={filteredOrders.length}
-                    pageSize={itemsPerPage}
-                    onChange={setCurrentPage}
-                    onPageSizeChange={setItemsPerPage}
-                    showPageSizeChanger={true}
-                  />
-                </div>
-              )}
-            </div>
-  
-            <FilterDialog
-              isOpen={isFilterDialogOpen}
-              onClose={() => setIsFilterDialogOpen(false)}
-              onApplyFilters={handleApplyFilters}
-              availableColumns={availableColumns}
-            />
+        <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 dark:border-blue-500 border-r-transparent"></div>
+            <p className="mt-4 text-gray-700 dark:text-gray-300">Loading orders...</p>
           </div>
         </div>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex h-screen">
+        <Navbar onLogout={handleLogout} />
+        <div className="flex-1 p-8">
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-500 p-4 rounded">
+            <p className="text-red-700 dark:text-red-400">{error}</p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-800"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen">
+      <Navbar onLogout={handleLogout} />
+      <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col">
+        <div className="p-8 flex-grow overflow-auto">
+          {lastUpdateToast && (
+            <div className="fixed top-4 right-4 bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded shadow z-50">
+              {lastUpdateToast}
+            </div>
+          )}
+
+          {/* Priority Orders Table */}
+          <PriorityOrdersTable
+            orders={priorityOrders}
+            onRemoveFromPriority={removeFromPriorityList}
+            onPriorityOrdersChange={updatePriorityOrders}
+          />
+
+          {/* Main Orders Table */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Overview</h1>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <ExcelExportButton
+                    data={filteredOrders}
+                    columns={columnOrder
+                      .map(field => availableColumns.find(col => col.field === field))
+                      .filter((col): col is ColumnDefinition => col !== undefined)}
+                    onSuccess={() => {
+                      setLastUpdateToast('Export successful');
+                      setTimeout(() => setLastUpdateToast(null), 3000);
+                    }}
+                    onError={(error) => {
+                      setError(`Export failed: ${error.message}`);
+                      setTimeout(() => setError(null), 3000);
+                    }}
+                  />
+
+                  {/* Export Priority Button */}
+                  {priorityOrders.length > 0 && (
+                    <button
+                      onClick={handleExportPriority}
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-800 transition-colors"
+                      title="Export priority orders to CSV"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Export Priority</span>
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setIsFilterDialogOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
+                >
+                  <Filter className="h-5 w-5" />
+                  <span>Filters</span>
+                </button>
+                <SearchBar
+                  onSearch={handleGlobalSearch}
+                  value={globalSearchQuery}
+                />
+                {(activeFilters.length > 0 ||
+                  Object.keys(columnFilters).length > 0 ||
+                  globalSearchQuery ||
+                  sortState.field) && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className={getTableClasses()}>
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    {/* Priority Action Column */}
+                    <th className="w-12 px-2 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Priority
+                    </th>
+
+                    {/* Regular Columns */}
+                    {columnOrder.map(field => {
+                      const column = availableColumns.find(col => col.field === field)!;
+                      return (
+                        <DraggableColumnHeader
+                          key={field}
+                          title={column.title}
+                          field={field}
+                          onSearch={(value) => handleColumnSearch(field, value)}
+                          sortDirection={sortState.field === field ? sortState.direction : null}
+                          onSort={() => handleColumnSort(field)}
+                          onDragStart={handleColumnDragStart}
+                          onDragOver={handleColumnDragOver}
+                          onDragEnd={handleColumnDragEnd}
+                          isDragging={draggingColumn === field}
+                        />
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredOrders.length > 0 ? (
+                    paginatedOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        {/* Priority Action Cell */}
+                        <td className={getTableCellClasses()}>
+                          <OrderTableActions
+                            orderId={order.id}
+                            isPrioritized={isOrderPrioritized(order.id)}
+                            onAddToPriority={addToPriorityList}
+                          />
+                        </td>
+
+                        {/* Regular Data Cells */}
+                        {columnOrder.map(field => {
+                          const column = availableColumns.find(col => col.field === field)!;
+                          return (
+                            <td key={field} className={getTableCellClasses()}>
+                              {column.type === 'boolean' ? (
+                                <input
+                                  type="checkbox"
+                                  checked={order[field as keyof Order] as boolean}
+                                  onChange={(e) => handleCellUpdate(order.id, field, e.target.checked)}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                                />
+                              ) : column.type === 'date' ? (
+                                field === 'updatedAt' ? (
+                                  order[field] ? new Date(order[field] as string).toLocaleDateString() : '-'
+                                ) : (
+                                  <EditableCell
+                                    value={order[field as keyof Order] as string}
+                                    onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                    type="date"
+                                    field={field}
+                                    orderId={order.id}
+                                    orderNumber={order.verkoop_order}
+                                  />
+                                )
+                              ) : column.type === 'number' ? (
+                                <EditableCell
+                                  value={order[field as keyof Order] as number}
+                                  onChange={(value) => handleCellUpdate(order.id, field, Number(value))}
+                                  type="number"
+                                  field={field}
+                                  orderId={order.id}
+                                  orderNumber={order.verkoop_order}
+                                />
+                              ) : (
+                                <EditableCell
+                                  value={order[field as keyof Order] as string}
+                                  onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                  field={field}
+                                  orderId={order.id}
+                                  orderNumber={order.verkoop_order}
+                                />
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={columnOrder.length + 1} className={`${getTableCellClasses()} text-center text-sm text-gray-500 dark:text-gray-400`}>
+                        {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
+                          'No orders match the current filters.' :
+                          'No orders found. Add an order to get started.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination Controls */}
+            {filteredOrders.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination 
+                  currentPage={currentPage}
+                  totalItems={filteredOrders.length}
+                  pageSize={itemsPerPage}
+                  onChange={setCurrentPage}
+                  onPageSizeChange={setItemsPerPage}
+                  showPageSizeChanger={true}
+                />
+              </div>
+            )}
+          </div>
+
+          <FilterDialog
+            isOpen={isFilterDialogOpen}
+            onClose={() => setIsFilterDialogOpen(false)}
+            onApplyFilters={handleApplyFilters}
+            availableColumns={availableColumns}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
