@@ -173,3 +173,80 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
+
+.table-fixed {
+  table-layout: fixed;
+}
+
+/* Smooth scrolling for tables */
+.overflow-x-auto {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for better visibility */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode scrollbar */
+.dark .overflow-x-auto::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+.dark .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Prevent text wrapping in table headers */
+th {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add shadow to indicate more content is available */
+.overflow-x-auto::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.9));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.overflow-x-auto.has-overflow::after {
+  opacity: 1;
+}
+
+.dark .overflow-x-auto::after {
+  background: linear-gradient(to right, transparent, rgba(17, 24, 39, 0.9));
+}
+
+/* Sticky first column for better usability */
+.sticky {
+  position: sticky;
+  z-index: 10;
+}
