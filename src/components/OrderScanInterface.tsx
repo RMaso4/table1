@@ -1,7 +1,7 @@
 // src/components/OrderScanInterface.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, AlertCircle } from 'lucide-react';
 import MachineInstructionPopup from './MachineInstructionPopup';
 
 interface Order {
@@ -56,6 +56,7 @@ const OrderScanInterface = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<MachineAction | null>(null);
   const [showInstructionPopup, setShowInstructionPopup] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Check if user is a planner or admin (can edit instructions)
@@ -69,6 +70,13 @@ const OrderScanInterface = () => {
       inputRef.current.focus();
     }
   }, []);
+  
+  // Log session and role info for debugging
+  useEffect(() => {
+    if (session) {
+      console.log("Current user role:", session.user?.role);
+    }
+  }, [session]);
 
   const handleScan = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -78,12 +86,14 @@ const OrderScanInterface = () => {
 
     try {
       const response = await fetch(`/api/orders/scan/${orderNumber}`);
-      const data = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch order');
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch order (${response.status})`);
       }
 
+      const data = await response.json();
+      console.log("Order data retrieved:", data);
       setOrder(data);
       setOrderNumber('');
       
@@ -94,6 +104,7 @@ const OrderScanInterface = () => {
         }
       }, 100);
     } catch (err) {
+      console.error("Scan error:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       setOrder(null);
     } finally {
@@ -102,6 +113,13 @@ const OrderScanInterface = () => {
   };
 
   const handleMachineAction = async (action: MachineAction) => {
+    console.log("Selected machine action:", action);
+    console.log("Current order data:", order);
+    
+    if (action.textField) {
+      console.log("Instruction text:", order?.[action.textField]);
+    }
+    
     setConfirmAction(action);
     setShowInstructionPopup(true);
   };
@@ -110,8 +128,11 @@ const OrderScanInterface = () => {
     if (!order || !confirmAction) return;
   
     try {
+      setActionLoading(true);
       // Update the instruction text in the database
       const textField = confirmAction.textField;
+      
+      console.log(`Updating instruction for ${textField} to:`, newText);
       
       // Use the dedicated popup-instructions endpoint
       const response = await fetch(`/api/orders/${order.id}/popup-instructions`, {
@@ -124,9 +145,12 @@ const OrderScanInterface = () => {
   
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to update instruction text');
+        throw new Error(errorData.error || `Failed to update instruction text (${response.status})`);
       }
   
+      const updatedData = await response.json();
+      console.log("Instruction update response:", updatedData);
+      
       // Update local order state
       const updatedOrder = {
         ...order,
@@ -138,8 +162,11 @@ const OrderScanInterface = () => {
       setSuccess('Instructions updated successfully');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
+      console.error("Instruction update error:", err);
       setError(err instanceof Error ? err.message : 'Failed to update instructions');
       setTimeout(() => setError(null), 3000);
+    } finally {
+      setActionLoading(false);
     }
   };
   
@@ -152,10 +179,11 @@ const OrderScanInterface = () => {
       const response = await fetch(`/api/orders/scan/${order.verkoop_order}`);
       
       if (!response.ok) {
-        throw new Error('Failed to refresh order data');
+        throw new Error(`Failed to refresh order data (${response.status})`);
       }
       
       const updatedOrder = await response.json();
+      console.log("Refreshed order data:", updatedOrder);
       setOrder(updatedOrder);
     } catch (error) {
       console.error('Error refreshing order:', error);
@@ -164,43 +192,46 @@ const OrderScanInterface = () => {
     }
   };
   
-  // Then modify the confirmMachineAction function to refresh the order data after action:
   const confirmMachineAction = async () => {
     if (!order || !confirmAction) return;
     setShowInstructionPopup(false);
-  
-    setLoading(true);
+    setActionLoading(true);
     setError(null);
     setSuccess(null);
   
     try {
+      console.log(`Confirming machine action ${confirmAction.name} (${confirmAction.field}) for order ${order.id}`);
+      
       const response = await fetch(`/api/orders/${order.id}/machine-action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: confirmAction.name, field: confirmAction.field }),
+        body: JSON.stringify({ 
+          action: confirmAction.name, 
+          field: confirmAction.field 
+        }),
       });
-  
+      
       const data = await response.json();
-  
+      
+      console.log("Machine action response:", data);
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update machine action');
+        throw new Error(data.error || data.details || `Failed to update machine action (${response.status})`);
       }
   
       // Update local state with the response data
       setOrder(data);
       setSuccess(`Successfully started ${confirmAction.label}`);
       
-      // Refresh order data after a short delay to ensure we have the latest data
-      setTimeout(() => refreshOrder(), 1000);
-      
       // Auto-clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
+      console.error("Machine action error:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
       setConfirmAction(null);
       
       // Re-focus the input field after action
@@ -241,7 +272,7 @@ const OrderScanInterface = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update slotje status');
+        throw new Error(data.error || `Failed to update slotje status (${response.status})`);
       }
 
       setOrder({
@@ -254,6 +285,7 @@ const OrderScanInterface = () => {
       // Auto-clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
+      console.error("Slotje update error:", err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -263,6 +295,14 @@ const OrderScanInterface = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* User role display for debugging */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded">
+          <p className="text-blue-700 dark:text-blue-400">
+            Current user: {session?.user?.name || session?.user?.email || 'Not logged in'} 
+            (Role: {session?.user?.role || 'Unknown'})
+          </p>
+        </div>
+        
         {/* Scan Form */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Scan Order</h2>
@@ -297,7 +337,8 @@ const OrderScanInterface = () => {
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded">
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4 rounded flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 mr-2" />
             <p className="text-red-700 dark:text-red-400">{error}</p>
           </div>
         )}
@@ -317,12 +358,13 @@ const OrderScanInterface = () => {
               {/* Slotje toggle button */}
               <button
                 onClick={toggleSlotje}
-                disabled={loading}
+                disabled={loading || actionLoading}
                 className={`
                   px-4 py-2 rounded-md flex items-center gap-2 
                   ${order.slotje 
                     ? 'bg-red-600 hover:bg-red-700 text-white' 
                     : 'bg-green-600 hover:bg-green-700 text-white'}
+                  ${(loading || actionLoading) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
                 <span>
@@ -379,7 +421,7 @@ const OrderScanInterface = () => {
                   <button 
                     key={action.name}
                     onClick={() => handleMachineAction(action)}
-                    disabled={loading || !!order[action.field] || order.slotje}
+                    disabled={loading || actionLoading || !!order[action.field] || order.slotje}
                     className={`
                       w-full px-4 py-3 rounded-md text-left transition-colors
                       ${order[action.field]
@@ -387,7 +429,7 @@ const OrderScanInterface = () => {
                         : order.slotje
                           ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed border border-red-300 dark:border-red-700'
                           : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'}
-                      disabled:opacity-50
+                      ${(loading || actionLoading) ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
                   >
                     <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
