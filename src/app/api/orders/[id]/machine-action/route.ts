@@ -40,13 +40,40 @@ export async function POST(
 
     const { field } = await request.json() as MachineActionRequest;
 
-    // Find the order with its slotje status
+    // Find the order with its slotje status and include the instruction field
+    const textField = `popup_text_${field.replace('_start_datum', '').replace('_', '')}`;
+    
     const order = await prisma.order.findUnique({
       where: { id },
       select: { 
         [field]: true, 
         verkoop_order: true, 
-        slotje: true 
+        slotje: true,
+        [textField]: true,
+        // Include basic order information
+        id: true,
+        project: true,
+        debiteur_klant: true,
+        type_artikel: true,
+        material: true,
+        // Include all machine action fields
+        bruto_zagen: true,
+        pers: true,
+        netto_zagen: true,
+        verkantlijmen: true,
+        cnc_start_datum: true,
+        pmt_start_datum: true,
+        // Include all instruction fields
+        popup_text_bruto_zagen: true,
+        popup_text_pers: true,
+        popup_text_netto_zagen: true,
+        popup_text_verkantlijmen: true,
+        popup_text_cnc: true,
+        popup_text_pmt: true,
+        popup_text_lakkerij: true,
+        popup_text_inpak: true,
+        popup_text_rail: true,
+        popup_text_assemblage: true,
       }
     });
 
@@ -93,13 +120,17 @@ export async function POST(
         verkantlijmen: true,
         cnc_start_datum: true,
         pmt_start_datum: true,
-        slotje: true,
         popup_text_bruto_zagen: true,
         popup_text_pers: true,
         popup_text_netto_zagen: true,
         popup_text_verkantlijmen: true,
         popup_text_cnc: true,
         popup_text_pmt: true,
+        popup_text_lakkerij: true,
+        popup_text_inpak: true,
+        popup_text_rail: true,
+        popup_text_assemblage: true,
+        slotje: true,
       }
     });
 

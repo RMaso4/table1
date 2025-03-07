@@ -1,5 +1,5 @@
 // src/components/MachineInstructionPopup.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface MachineInstructionPopupProps {
@@ -23,12 +23,13 @@ export default function MachineInstructionPopup({
   onUpdateInstruction,
   canEdit = false
 }: MachineInstructionPopupProps) {
-  const [editMode, setEditMode] = React.useState(false);
-  const [instructionText, setInstructionText] = React.useState(instruction || '');
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [instructionText, setInstructionText] = useState(instruction || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update local state when the instruction prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     setInstructionText(instruction || '');
   }, [instruction]);
 
@@ -38,11 +39,13 @@ export default function MachineInstructionPopup({
     if (!onUpdateInstruction) return;
     
     setIsSubmitting(true);
+    setError(null);
     try {
       await onUpdateInstruction(instructionText);
       setEditMode(false);
     } catch (error) {
       console.error('Failed to save instruction:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update instruction');
     } finally {
       setIsSubmitting(false);
     }
@@ -79,6 +82,9 @@ export default function MachineInstructionPopup({
                 placeholder="Enter instructions for this machine action..."
                 disabled={isSubmitting}
               />
+              {error && (
+                <div className="text-sm text-red-500 dark:text-red-400">{error}</div>
+              )}
             </div>
           ) : (
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-md mb-4">
@@ -115,6 +121,7 @@ export default function MachineInstructionPopup({
                     onClick={() => {
                       setEditMode(false);
                       setInstructionText(instruction || '');
+                      setError(null);
                     }}
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md"
                     disabled={isSubmitting}

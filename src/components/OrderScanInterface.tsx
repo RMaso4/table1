@@ -108,30 +108,32 @@ const OrderScanInterface = () => {
 
   const updateInstructionText = async (newText: string) => {
     if (!order || !confirmAction) return;
-
+  
     try {
       // Update the instruction text in the database
       const textField = confirmAction.textField;
       
-      const response = await fetch(`/api/orders/${order.id}`, {
+      // Use the dedicated popup-instructions endpoint
+      const response = await fetch(`/api/orders/${order.id}/popup-instructions`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ [textField]: newText }),
+        body: JSON.stringify({ field: textField, value: newText }),
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to update instruction text');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update instruction text');
       }
-
+  
       // Update local order state
       const updatedOrder = {
         ...order,
         [textField]: newText
       };
       setOrder(updatedOrder);
-
+  
       // Show success message
       setSuccess('Instructions updated successfully');
       setTimeout(() => setSuccess(null), 3000);
@@ -140,15 +142,35 @@ const OrderScanInterface = () => {
       setTimeout(() => setError(null), 3000);
     }
   };
-
+  
+  // Add a function to refresh order data after updates
+  const refreshOrder = async (orderId: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/orders/scan/${order?.verkoop_order}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to refresh order data');
+      }
+      
+      const updatedOrder = await response.json();
+      setOrder(updatedOrder);
+    } catch (error) {
+      console.error('Error refreshing order:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Then modify the confirmMachineAction function to refresh the order data after action:
   const confirmMachineAction = async () => {
     if (!order || !confirmAction) return;
     setShowInstructionPopup(false);
-
+  
     setLoading(true);
     setError(null);
     setSuccess(null);
-
+  
     try {
       const response = await fetch(`/api/orders/${order.id}/machine-action`, {
         method: 'POST',
@@ -157,15 +179,19 @@ const OrderScanInterface = () => {
         },
         body: JSON.stringify({ action: confirmAction.name, field: confirmAction.field }),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update machine action');
       }
-
+  
+      // Update local state with the response data
       setOrder(data);
       setSuccess(`Successfully started ${confirmAction.label}`);
+      
+      // Refresh order data after a short delay to ensure we have the latest data
+      setTimeout(() => refreshOrder(order.id), 1000);
       
       // Auto-clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
