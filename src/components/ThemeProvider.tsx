@@ -25,14 +25,12 @@ export function ThemeProvider({
   // Load theme from localStorage on mount
   useEffect(() => {
     setMounted(true);
-
-    // Try to get theme from localStorage
+    
     const storedTheme = localStorage.getItem('theme') as Theme | null;
-
+    
     if (storedTheme) {
       setTheme(storedTheme);
     } else {
-      // If no stored theme, try to get from user settings in cookies
       try {
         const settingsStr = localStorage.getItem('userSettings');
         if (settingsStr) {
@@ -50,17 +48,17 @@ export function ThemeProvider({
   // Update theme when it changes
   useEffect(() => {
     if (!mounted) return;
-
+    
     // Save theme to localStorage for persistence
     localStorage.setItem('theme', theme);
-
+    
     // Apply theme to document
     const root = window.document.documentElement;
-
-    // Clear existing theme classes
+    
+    // First, remove BOTH theme classes to ensure a clean state
     root.classList.remove('light', 'dark');
-
-    // Apply appropriate theme
+    
+    // Then apply the appropriate theme
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
@@ -74,21 +72,35 @@ export function ThemeProvider({
   // Add listener for system theme changes
   useEffect(() => {
     if (!mounted || theme !== 'system') return;
-
+    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleChange = (e: MediaQueryListEvent) => {
+    
+    const handleChange = () => {
+      // Get the current system preference
+      const newSystemTheme = mediaQuery.matches ? 'dark' : 'light';
+      
+      // First, remove both classes to avoid conflicts
       const root = window.document.documentElement;
       root.classList.remove('light', 'dark');
-      root.classList.add(e.matches ? 'dark' : 'light');
+      
+      // Then add the correct one
+      root.classList.add(newSystemTheme);
     };
-
+    
     mediaQuery.addEventListener('change', handleChange);
-
+    
+    // Initial setup
+    handleChange();
+    
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
     };
   }, [theme, mounted]);
+
+  // To avoid hydration mismatch, only render children when mounted
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -99,10 +111,10 @@ export function ThemeProvider({
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-
+  
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-
+  
   return context;
 }

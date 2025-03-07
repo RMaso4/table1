@@ -7,8 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from './NotificationPanel';
 import { useState, useEffect } from 'react';
-import { Plus, Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/components/ThemeProvider';
+import { Plus } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 // Add a type for custom pages
 interface CustomPage {
@@ -26,7 +26,6 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
 
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
@@ -97,11 +96,6 @@ export default function Navbar({ onLogout }: NavbarProps) {
     }
   };
 
-  // Theme toggle function
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
   return (
     <div className="w-64 bg-[#003D73] dark:bg-[#001a33] text-white h-screen flex flex-col">
       <nav className="flex-1 py-6">
@@ -164,18 +158,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
         )}
         <div className="flex items-center gap-2">
           {/* Theme toggle button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full text-white hover:bg-[#002D53] dark:hover:bg-[#000d1a]"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label="Toggle dark mode"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </button>
+          <ThemeToggle />
 
           <button
             onClick={handleLogout}

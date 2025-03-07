@@ -2,7 +2,7 @@
 'use client';
 
 import { useTheme } from '@/components/ThemeProvider';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Laptop } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function ThemeToggle() {
@@ -14,30 +14,44 @@ export default function ThemeToggle() {
 
   if (!mounted) return null;
 
-  // Toggle between light and dark, preserving system preference if it's current
-  const toggleTheme = () => {
-    if (theme === 'dark') {
-      setTheme('light');
-    } else if (theme === 'light') {
-      setTheme('dark');
-    } else {
-      // If it's system, check what the system preference is and toggle to the opposite
-      const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(systemIsDark ? 'light' : 'dark');
-    }
-  };
-
+  // Return different buttons based on the active theme
   return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
+    <div className="flex gap-1">
+      <button
+        onClick={() => setTheme('light')}
+        className={`p-2 rounded-full ${
+          theme === 'light' 
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' 
+            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+        }`}
+        title="Light mode"
+      >
         <Sun className="h-5 w-5" />
-      ) : (
+      </button>
+      
+      <button
+        onClick={() => setTheme('dark')}
+        className={`p-2 rounded-full ${
+          theme === 'dark' 
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' 
+            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+        }`}
+        title="Dark mode"
+      >
         <Moon className="h-5 w-5" />
-      )}
-    </button>
+      </button>
+      
+      <button
+        onClick={() => setTheme('system')}
+        className={`p-2 rounded-full ${
+          theme === 'system' 
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' 
+            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+        }`}
+        title="System preference"
+      >
+        <Laptop className="h-5 w-5" />
+      </button>
+    </div>
   );
 }
