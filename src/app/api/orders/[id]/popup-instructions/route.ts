@@ -3,27 +3,13 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-
-// Define the popup text fields that can be updated
-export const validPopupFields = [
-  'popup_text_bruto_zagen',
-  'popup_text_pers',
-  'popup_text_netto_zagen',
-  'popup_text_verkantlijmen',
-  'popup_text_cnc',
-  'popup_text_pmt',
-  'popup_text_lakkerij',
-  'popup_text_inpak',
-  'popup_text_rail',
-  'popup_text_assemblage'
-];
+import { validPopupFields } from '@/utils/popupFieldsUtils';
 
 interface PopupInstructionRequest {
   field: string;
   value: string;
 }
 
-// Re-exported from this file for easier importing
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }

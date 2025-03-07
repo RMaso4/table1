@@ -1,6 +1,6 @@
 // src/utils/columnPermissions.ts
 import { Role } from '@prisma/client';
-import { validPopupFields } from '@/app/api/orders/[id]/popup-instructions/route';
+import { validPopupFields } from '@/utils/popupFieldsUtils';
 
 // Define the roles that can edit specific columns
 export const getEditableRoles = (field: string): Role[] => {
