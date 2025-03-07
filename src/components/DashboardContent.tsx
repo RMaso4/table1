@@ -865,7 +865,7 @@ export function DashboardContent() {
       );
     }
 
-    // Apply advanced filters
+    // Apply the advanced filters
     activeFilters.forEach(filter => {
       result = result.filter(order => {
         const value = order[filter.field as keyof Order];
