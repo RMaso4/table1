@@ -15,12 +15,12 @@ const eslintConfig = [
     rules: {
       // Disable the problematic rule that's causing the build to fail
       "@typescript-eslint/no-explicit-any": "warn", // Change from 'error' to 'warn'
-      
+
       // Handle other warnings
       "react-hooks/exhaustive-deps": "warn",
-      "@typescript-eslint/no-unused-vars": ["warn", { 
-        "argsIgnorePattern": "^_", 
-        "varsIgnorePattern": "^_" 
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
       }],
       "react-hooks/rules-of-hooks": "warn"
     }

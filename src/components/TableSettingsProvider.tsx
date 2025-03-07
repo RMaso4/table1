@@ -24,14 +24,14 @@ export function TableSettingsProvider({ children }: { children: ReactNode }) {
 
   // Utility functions for consistent class application
   const getTableClasses = () => {
-    return settings.compact 
-      ? 'min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs' 
+    return settings.compact
+      ? 'min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs'
       : 'min-w-full divide-y divide-gray-200 dark:divide-gray-700';
   };
 
   const getTableCellClasses = () => {
-    return settings.compact 
-      ? 'px-3 py-2 whitespace-nowrap' 
+    return settings.compact
+      ? 'px-3 py-2 whitespace-nowrap'
       : 'px-6 py-4 whitespace-nowrap';
   };
 
@@ -51,10 +51,10 @@ export function TableSettingsProvider({ children }: { children: ReactNode }) {
 // Hook for using table settings
 export function useTableSettingsContext() {
   const context = useContext(TableSettingsContext);
-  
+
   if (context === undefined) {
     throw new Error('useTableSettingsContext must be used within a TableSettingsProvider');
   }
-  
+
   return context;
 }

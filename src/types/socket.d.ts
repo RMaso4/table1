@@ -39,7 +39,7 @@ interface SocketExtensions {
 
 // Extend the Socket type with our custom events
 declare module 'socket.io-client' {
-  export interface Socket 
+  export interface Socket
     extends SocketIOClient<ServerToClientEvents, ClientToServerEvents>,
-            SocketExtensions {}
+    SocketExtensions { }
 }

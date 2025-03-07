@@ -15,7 +15,7 @@ export default function LockIndicator({
 }: LockIndicatorProps) {
   const handleToggle = async () => {
     if (disabled || !onChange) return;
-    
+
     try {
       await onChange(!isLocked);
     } catch (error) {
@@ -30,8 +30,8 @@ export default function LockIndicator({
         disabled={disabled}
         className={`
           p-1.5 rounded-full transition-colors
-          ${isLocked 
-            ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50' 
+          ${isLocked
+            ? 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
             : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}

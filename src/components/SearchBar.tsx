@@ -9,10 +9,10 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-export default function SearchBar({ 
-  onSearch, 
-  value = '', 
-  placeholder = "Search orders..." 
+export default function SearchBar({
+  onSearch,
+  value = '',
+  placeholder = "Search orders..."
 }: SearchBarProps) {
   return (
     <div className="relative w-96">

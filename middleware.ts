@@ -16,7 +16,7 @@ const skipPaths = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Skip middleware for special paths
   if (skipPaths.some(path => pathname.includes(path))) {
     return NextResponse.next();
@@ -26,15 +26,15 @@ export function middleware(request: NextRequest) {
   if (pathname.includes('?_rsc=') || pathname.includes('_rsc=')) {
     return NextResponse.next();
   }
-  
+
   // Get auth tokens
   const customToken = request.cookies.get('token')?.value;
-  const nextAuthToken = request.cookies.get('next-auth.session-token')?.value || 
-                        request.cookies.get('__Secure-next-auth.session-token')?.value;
-  
+  const nextAuthToken = request.cookies.get('next-auth.session-token')?.value ||
+    request.cookies.get('__Secure-next-auth.session-token')?.value;
+
   // Check if authenticated with either method
   const isAuthenticated = !!customToken || !!nextAuthToken;
-  
+
   // Only apply middleware to main pages, not RSC requests
   if (pathname === '/login' && isAuthenticated) {
     // If already authenticated, redirect to dashboard
@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
     const url = new URL('/login', request.url);
     return NextResponse.redirect(url);
   }
-  
+
   // For other paths, continue
   return NextResponse.next();
 }

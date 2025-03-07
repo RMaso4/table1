@@ -53,10 +53,10 @@ interface CustomSession {
 // Configure NextAuth options
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(authPrisma),
-  
+
   // Use the NEXTAUTH_SECRET environment variable
   secret: process.env.NEXTAUTH_SECRET,
-  
+
   // Configure session strategy
   session: {
     strategy: 'jwt',
@@ -65,18 +65,18 @@ export const authOptions: NextAuthOptions = {
     // Update session whenever token is accessed
     updateAge: 60 * 60, // 1 hour
   },
-  
+
   // Configure authentication providers
   providers: [
     CredentialsProvider({
       id: 'credentials',
       name: 'Credentials',
-      
+
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      
+
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
@@ -85,8 +85,8 @@ export const authOptions: NextAuthOptions = {
         try {
           // Find the user in the database
           const user = await authPrisma.user.findUnique({
-            where: { 
-              email: credentials.email.toLowerCase() 
+            where: {
+              email: credentials.email.toLowerCase()
             }
           });
 
@@ -110,7 +110,7 @@ export const authOptions: NextAuthOptions = {
 
           // Authentication succeeded, return the user with explicit typing
           console.log(`Auth successful: ${credentials.email} (${user.role})`);
-          
+
           // Return properly typed user object
           return {
             id: user.id,
@@ -125,7 +125,7 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  
+
   // Configure callbacks
   callbacks: {
     // This callback is called whenever a JWT is created or updated
@@ -139,38 +139,38 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    
+
     // This callback is called whenever a session is checked
     async session({ session, token }) {
       // Use a temporary variable with a type that has our custom properties
       const customSession = session as unknown as CustomSession;
-      
+
       // Now safely assign the properties
       customSession.user = {
         ...session.user,
         id: token.id as string,
         role: token.role as Role
       };
-      
+
       // Return the modified session
       return customSession;
     }
   },
-  
+
   // Configure custom pages
   pages: {
     signIn: '/login',
     error: '/login',
     signOut: '/login?logout=true',
   },
-  
+
   // Enable debugging in development mode
   debug: process.env.NODE_ENV === 'development',
-  
+
   // Additional options
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
+      name: process.env.NODE_ENV === 'production'
         ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {

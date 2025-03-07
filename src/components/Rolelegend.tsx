@@ -10,7 +10,7 @@ interface RoleLegendProps {
 
 export default function RoleLegend({ showDivider = true }: RoleLegendProps) {
   const roles: Role[] = ['BEHEERDER', 'PLANNER', 'SALES', 'SCANNER'];
-  
+
   return (
     <div className={`flex items-center text-sm text-gray-500 dark:text-gray-400 ${showDivider ? 'border-l pl-4 ml-4 border-gray-200 dark:border-gray-700' : ''}`}>
       <Info className="h-4 w-4 mr-2" />

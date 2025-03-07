@@ -25,10 +25,10 @@ export function ThemeProvider({
   // Load theme from localStorage on mount
   useEffect(() => {
     setMounted(true);
-    
+
     // Try to get theme from localStorage
     const storedTheme = localStorage.getItem('theme') as Theme | null;
-    
+
     if (storedTheme) {
       setTheme(storedTheme);
     } else {
@@ -53,13 +53,13 @@ export function ThemeProvider({
 
     // Save theme to localStorage for persistence
     localStorage.setItem('theme', theme);
-    
+
     // Apply theme to document
     const root = window.document.documentElement;
-    
+
     // Clear existing theme classes
     root.classList.remove('light', 'dark');
-    
+
     // Apply appropriate theme
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -74,17 +74,17 @@ export function ThemeProvider({
   // Add listener for system theme changes
   useEffect(() => {
     if (!mounted || theme !== 'system') return;
-    
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       const root = window.document.documentElement;
       root.classList.remove('light', 'dark');
       root.classList.add(e.matches ? 'dark' : 'light');
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
-    
+
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
     };
@@ -99,10 +99,10 @@ export function ThemeProvider({
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  
+
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-  
+
   return context;
 }

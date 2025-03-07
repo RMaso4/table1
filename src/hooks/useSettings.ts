@@ -3,11 +3,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { 
-  defaultSettings, 
-  type AllSettings, 
-  type UserSettings, 
-  type AdminSettings 
+import {
+  defaultSettings,
+  type AllSettings,
+  type UserSettings,
+  type AdminSettings
 } from '@/utils/settingsUtils';
 
 export interface UseSettingsReturn {
@@ -42,27 +42,27 @@ export default function useSettings(): UseSettingsReturn {
       if (status === 'loading' || status === 'unauthenticated') {
         return;
       }
-      
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
         // First try to load from API
         const response = await fetch('/api/settings');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch settings from server');
         }
-        
+
         const data = await response.json();
         setSettings(data);
         setOriginalSettings(data);
-        
+
         // Also save to localStorage for offline use
         localStorage.setItem('userSettings', JSON.stringify(data));
       } catch (error) {
         console.error('Error loading settings:', error);
-        
+
         // Try to load from localStorage
         const storedSettings = localStorage.getItem('userSettings');
         if (storedSettings) {
@@ -117,7 +117,7 @@ export default function useSettings(): UseSettingsReturn {
       console.warn('Only admin users can update admin settings');
       return;
     }
-    
+
     setSettings(prev => ({
       ...prev,
       admin: {
@@ -130,9 +130,9 @@ export default function useSettings(): UseSettingsReturn {
   // Save settings to server and localStorage
   const saveSettings = useCallback(async (): Promise<boolean> => {
     if (!hasChanges) return true;
-    
+
     setError(null);
-    
+
     try {
       // Build settings object based on user's role
       const settingsToSave: Partial<AllSettings> = {

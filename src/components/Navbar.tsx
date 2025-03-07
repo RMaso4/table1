@@ -27,20 +27,20 @@ export default function Navbar({ onLogout }: NavbarProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
-  
+
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [pagesLoading, setPagesLoading] = useState(true);
-  
+
   // Fetch custom pages from API on component mount
   useEffect(() => {
     const fetchCustomPages = async () => {
       if (!session?.user) return;
-      
+
       try {
         setPagesLoading(true);
         const response = await fetch('/api/custom-pages');
-        
+
         if (response.ok) {
           const data = await response.json();
           setCustomPages(data.map((page: any) => ({
@@ -56,7 +56,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
         setPagesLoading(false);
       }
     };
-    
+
     fetchCustomPages();
   }, [session]);
 
@@ -66,12 +66,12 @@ export default function Navbar({ onLogout }: NavbarProps) {
     { path: '/scan', label: 'Scan Orders' },
     { path: '/settings', label: 'Settings' }
   ];
-  
+
   // Combine base items with custom pages
   const navItems = [
     ...baseNavItems,
-    ...customPages.map(page => ({ 
-      path: `/custom/${page.id}`, 
+    ...customPages.map(page => ({
+      path: `/custom/${page.id}`,
       label: page.name
     }))
   ];
@@ -86,7 +86,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
         await fetch('/api/auth/logout', {
           method: 'POST',
         });
-        
+
         // Then clear the NextAuth session
         await signOut({ redirect: false });
         router.push('/login');
@@ -114,7 +114,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
             className="w-32 h-auto [filter:brightness(0)_invert(1)]"
           />
         </div>
-        
+
         {session && (
           <div className="px-4 mb-6">
             <p className="text-sm text-gray-300">Signed in as:</p>
@@ -122,7 +122,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
             <p className="text-xs text-gray-400">{session.user?.role}</p>
           </div>
         )}
-        
+
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.path}>
@@ -139,7 +139,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
               </Link>
             </li>
           ))}
-          
+
           {/* Add button for new pages - only for beheerder */}
           {session?.user?.role === 'BEHEERDER' && (
             <li>
@@ -154,7 +154,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
           )}
         </ul>
       </nav>
-      
+
       {/* Notifications, Theme Toggle and Logout */}
       <div className="p-4 flex items-center justify-between">
         {session?.user?.role === 'PLANNER' || session?.user?.role === 'BEHEERDER' ? (
@@ -176,7 +176,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
               <Moon className="h-5 w-5" />
             )}
           </button>
-          
+
           <button
             onClick={handleLogout}
             className="px-4 py-2 text-white hover:bg-[#002D53] dark:hover:bg-[#000d1a] rounded transition-colors text-sm"

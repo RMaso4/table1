@@ -307,11 +307,10 @@ export default function SettingsPage() {
               <nav className="flex">
                 <button
                   onClick={() => setActiveTab('user')}
-                  className={`px-6 py-4 text-sm font-medium flex items-center ${
-                    activeTab === 'user'
+                  className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === 'user'
                       ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                  }`}
+                    }`}
                 >
                   <User className="h-5 w-5 mr-2" />
                   User Preferences
@@ -320,11 +319,10 @@ export default function SettingsPage() {
                 {isAdmin && (
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className={`px-6 py-4 text-sm font-medium flex items-center ${
-                      activeTab === 'admin'
+                    className={`px-6 py-4 text-sm font-medium flex items-center ${activeTab === 'admin'
                         ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
+                      }`}
                   >
                     <Shield className="h-5 w-5 mr-2" />
                     Admin Settings
@@ -352,41 +350,38 @@ export default function SettingsPage() {
                             setTheme('light');
                             updateUserSettings('theme', 'light');
                           }}
-                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
-                            settings.user.theme === 'light' 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${settings.user.theme === 'light'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                               : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                          }`}
+                            }`}
                         >
                           <Sun className="h-4 w-4" />
                           <span>Light</span>
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setTheme('dark');
                             updateUserSettings('theme', 'dark');
                           }}
-                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
-                            settings.user.theme === 'dark' 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${settings.user.theme === 'dark'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                               : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                          }`}
+                            }`}
                         >
                           <Moon className="h-4 w-4" />
                           <span>Dark</span>
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             setTheme('system');
                             updateUserSettings('theme', 'system');
                           }}
-                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${
-                            settings.user.theme === 'system' 
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                          className={`px-3 py-2 rounded-md flex items-center gap-2 ${settings.user.theme === 'system'
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                               : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                          }`}
+                            }`}
                         >
                           <Monitor className="h-4 w-4" />
                           <span>System</span>
@@ -443,62 +438,62 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                {/* Table Settings */}
-                <TableSettingsSection 
-                  settings={settings.user} 
-                  updateUserSetting={updateUserSettings} 
-                />
+                  {/* Table Settings */}
+                  <TableSettingsSection
+                    settings={settings.user}
+                    updateUserSetting={updateUserSettings}
+                  />
 
-                {/* Default Page Size */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Default Page Size
-                      </label>
-                      <select
-                        value={settings.user.defaultPageSize}
-                        onChange={(e) => updateUserSettings('defaultPageSize', parseInt(e.target.value))}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                      >
-                        <option value="10">10 rows</option>
-                        <option value="25">25 rows</option>
-                        <option value="50">50 rows</option>
-                        <option value="100">100 rows</option>
-                        <option value="250">250 rows</option>
-                      </select>
-                    </div>
+                  {/* Default Page Size */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Default Page Size
+                    </label>
+                    <select
+                      value={settings.user.defaultPageSize}
+                      onChange={(e) => updateUserSettings('defaultPageSize', parseInt(e.target.value))}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    >
+                      <option value="10">10 rows</option>
+                      <option value="25">25 rows</option>
+                      <option value="50">50 rows</option>
+                      <option value="100">100 rows</option>
+                      <option value="250">250 rows</option>
+                    </select>
+                  </div>
 
-                    {/* Default Sort Column */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Default Sort Column
-                      </label>
-                      <select
-                        value={settings.user.defaultSortColumn}
-                        onChange={(e) => updateUserSettings('defaultSortColumn', e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                      >
-                        <option value="verkoop_order">Order #</option>
-                        <option value="project">Project</option>
-                        <option value="debiteur_klant">Customer</option>
-                        <option value="aanmaak_datum">Creation Date</option>
-                        <option value="lever_datum">Delivery Date</option>
-                        <option value="updatedAt">Last Updated</option>
-                      </select>
-                    </div>
+                  {/* Default Sort Column */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Default Sort Column
+                    </label>
+                    <select
+                      value={settings.user.defaultSortColumn}
+                      onChange={(e) => updateUserSettings('defaultSortColumn', e.target.value)}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    >
+                      <option value="verkoop_order">Order #</option>
+                      <option value="project">Project</option>
+                      <option value="debiteur_klant">Customer</option>
+                      <option value="aanmaak_datum">Creation Date</option>
+                      <option value="lever_datum">Delivery Date</option>
+                      <option value="updatedAt">Last Updated</option>
+                    </select>
+                  </div>
 
-                    {/* Default Sort Direction */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Default Sort Direction
-                      </label>
-                      <select
-                        value={settings.user.defaultSortDirection}
-                        onChange={(e) => updateUserSettings('defaultSortDirection', e.target.value as 'asc' | 'desc')}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                      >
-                        <option value="asc">Ascending</option>
-                        <option value="desc">Descending</option>
-                      </select>
+                  {/* Default Sort Direction */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Default Sort Direction
+                    </label>
+                    <select
+                      value={settings.user.defaultSortDirection}
+                      onChange={(e) => updateUserSettings('defaultSortDirection', e.target.value as 'asc' | 'desc')}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    >
+                      <option value="asc">Ascending</option>
+                      <option value="desc">Descending</option>
+                    </select>
                   </div>
 
                   {/* Notification Settings */}
@@ -513,15 +508,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateUserSettings('showNotifications', !settings.user.showNotifications)}
-                        className={`${
-                          settings.user.showNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.user.showNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.user.showNotifications ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.user.showNotifications ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -567,15 +560,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('requireApprovalForChanges', !settings.admin.requireApprovalForChanges)}
-                        className={`${
-                          settings.admin.requireApprovalForChanges ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.requireApprovalForChanges ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.requireApprovalForChanges ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.requireApprovalForChanges ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -598,15 +589,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('trackOrderHistory', !settings.admin.trackOrderHistory)}
-                        className={`${
-                          settings.admin.trackOrderHistory ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.trackOrderHistory ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.trackOrderHistory ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.trackOrderHistory ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -634,15 +623,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('allowCustomPages', !settings.admin.allowCustomPages)}
-                        className={`${
-                          settings.admin.allowCustomPages ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.allowCustomPages ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.allowCustomPages ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.allowCustomPages ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -665,15 +652,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('auditLogEnabled', !settings.admin.auditLogEnabled)}
-                        className={`${
-                          settings.admin.auditLogEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.auditLogEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.auditLogEnabled ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.auditLogEnabled ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -686,15 +671,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('autoBackup', !settings.admin.autoBackup)}
-                        className={`${
-                          settings.admin.autoBackup ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.autoBackup ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.autoBackup ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.autoBackup ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -707,15 +690,13 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => updateAdminSettings('autoCloseNotifications', !settings.admin.autoCloseNotifications)}
-                        className={`${
-                          settings.admin.autoCloseNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
-                        } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+                        className={`${settings.admin.autoCloseNotifications ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-600'
+                          } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
                       >
                         <span
                           aria-hidden="true"
-                          className={`${
-                            settings.admin.autoCloseNotifications ? 'translate-x-5' : 'translate-x-0'
-                          } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                          className={`${settings.admin.autoCloseNotifications ? 'translate-x-5' : 'translate-x-0'
+                            } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
                         />
                       </button>
                     </div>
@@ -777,8 +758,8 @@ export default function SettingsPage() {
                   disabled={!hasChanges || saving}
                   className={`
                     inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
-                    ${hasChanges 
-                      ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800' 
+                    ${hasChanges
+                      ? 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800'
                       : 'bg-blue-300 dark:bg-blue-800/50 cursor-not-allowed'
                     }
                   `}

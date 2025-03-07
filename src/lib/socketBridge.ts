@@ -27,7 +27,7 @@ export async function emitOrderUpdate(orderId: string, orderData: unknown): Prom
         }
       })
     });
-    
+
     return response.ok;
   } catch (error) {
     console.error('Failed to emit order update:', error);
@@ -47,7 +47,7 @@ export async function emitNotification(notification: unknown): Promise<boolean> 
         data: notification
       })
     });
-    
+
     return response.ok;
   } catch (error) {
     console.error('Failed to emit notification:', error);

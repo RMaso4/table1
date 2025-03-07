@@ -72,7 +72,7 @@ export default function ColumnHeader({
             </button>
           </div>
         </div>
-        
+
         {isSearchOpen && (
           <div ref={searchRef} className="relative flex items-center">
             <input

@@ -9,17 +9,17 @@ generator client {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String?
-  role          Role      @default(GENERAL_ACCESS)
-  notifications Notification[]
-  settings String?    // JSON string to store user settings
-  customPages   CustomPage[]
+  id              String          @id @default(cuid())
+  email           String          @unique
+  password        String
+  name            String?
+  role            Role            @default(GENERAL_ACCESS)
+  notifications   Notification[]
+  settings        String? // JSON string to store user settings
+  customPages     CustomPage[]
   priorityUpdates PriorityOrder[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model CustomPage {
@@ -33,103 +33,103 @@ model CustomPage {
 }
 
 model Order {
-  id                           String    @id @default(cuid())
-  aanmaak_datum                DateTime  @default(now())
-  verkoop_order                String    @unique
-  project                      String?
-  pos                          Int
-  type_artikel                 String
-  debiteur_klant               String
-  material                     String
-  kantenband                   String
-  kleur                        String
-  height                       Float
-  db_waarde                    Float
-  opmerking                    String?
-  productie_datum              DateTime?
-  lever_datum                  DateTime?
-  startdatum_assemblage        DateTime?
-  start_datum_machinale        DateTime?
-  bruto_zagen                  DateTime?
-  pers                         DateTime?
-  netto_zagen                  DateTime?
-  verkantlijmen                DateTime?
-  cnc_start_datum              DateTime?
-  pmt_start_datum              DateTime?
-  lakkerij_datum               DateTime?
-  coaten_m1                    DateTime?
-  verkantlijmen_order_gereed   DateTime?
-  inpak_rail                   Boolean   @default(false)
-  boards                       Boolean   @default(false)
-  frames                       Boolean   @default(false)
-  ap_tws                       Boolean   @default(false)
-  wp_frame                     Boolean   @default(false)
-  wp_dwp_pc                    Boolean   @default(false)
-  boards_component             Boolean   @default(false)
-  profielen                    Boolean   @default(false)
-  kokers                       Boolean   @default(false)
-  lakken                       Boolean   @default(false)
-  mon                          Int       @default(0)
-  pho                          Int       @default(0)
-  pro                          Int       @default(0)
-  ap                           Int       @default(0)
-  sp                           Int       @default(0)
-  cp                           Int       @default(0)
-  wp                           Int       @default(0)
-  dwp                          Int       @default(0)
-  pc                           Int       @default(0)
-  pcp                          Int       @default(0)
-  totaal_boards                Int       @default(0)
-  tot                          Int       @default(0)
-  controle_order               Boolean   @default(false)
-  pop_up_zaag                  Boolean   @default(false)
-  pop_up_assemblage            Boolean   @default(false)
-  pop_up_cnc                   Boolean   @default(false)
-  pop_up_cnc2                  Boolean   @default(false)
-  pop_up_verkantlijmer         Boolean   @default(false)
-  pop_up_inpak                 Boolean   @default(false)
-  pop_up_rail                  Boolean   @default(false)
-  pop_up_grote_zaag            Boolean   @default(false)
-  pop_zaag_2                   Boolean   @default(false)
-  pop_heftruk                  Boolean   @default(false)
-  inkoopordernummer            String?
-  gez_planning                 Boolean   @default(false)
-  slotje                       Boolean   @default(false)
-  
+  id                         String    @id @default(cuid())
+  aanmaak_datum              DateTime  @default(now())
+  verkoop_order              String    @unique
+  project                    String?
+  pos                        Int
+  type_artikel               String
+  debiteur_klant             String
+  material                   String
+  kantenband                 String
+  kleur                      String
+  height                     Float
+  db_waarde                  Float
+  opmerking                  String?
+  productie_datum            DateTime?
+  lever_datum                DateTime?
+  startdatum_assemblage      DateTime?
+  start_datum_machinale      DateTime?
+  bruto_zagen                DateTime?
+  pers                       DateTime?
+  netto_zagen                DateTime?
+  verkantlijmen              DateTime?
+  cnc_start_datum            DateTime?
+  pmt_start_datum            DateTime?
+  lakkerij_datum             DateTime?
+  coaten_m1                  DateTime?
+  verkantlijmen_order_gereed DateTime?
+  inpak_rail                 Boolean   @default(false)
+  boards                     Boolean   @default(false)
+  frames                     Boolean   @default(false)
+  ap_tws                     Boolean   @default(false)
+  wp_frame                   Boolean   @default(false)
+  wp_dwp_pc                  Boolean   @default(false)
+  boards_component           Boolean   @default(false)
+  profielen                  Boolean   @default(false)
+  kokers                     Boolean   @default(false)
+  lakken                     Boolean   @default(false)
+  mon                        Int       @default(0)
+  pho                        Int       @default(0)
+  pro                        Int       @default(0)
+  ap                         Int       @default(0)
+  sp                         Int       @default(0)
+  cp                         Int       @default(0)
+  wp                         Int       @default(0)
+  dwp                        Int       @default(0)
+  pc                         Int       @default(0)
+  pcp                        Int       @default(0)
+  totaal_boards              Int       @default(0)
+  tot                        Int       @default(0)
+  controle_order             Boolean   @default(false)
+  pop_up_zaag                Boolean   @default(false)
+  pop_up_assemblage          Boolean   @default(false)
+  pop_up_cnc                 Boolean   @default(false)
+  pop_up_cnc2                Boolean   @default(false)
+  pop_up_verkantlijmer       Boolean   @default(false)
+  pop_up_inpak               Boolean   @default(false)
+  pop_up_rail                Boolean   @default(false)
+  pop_up_grote_zaag          Boolean   @default(false)
+  pop_zaag_2                 Boolean   @default(false)
+  pop_heftruk                Boolean   @default(false)
+  inkoopordernummer          String?
+  gez_planning               Boolean   @default(false)
+  slotje                     Boolean   @default(false)
+
   // New pop-up text fields for machine instructions
-  popup_text_bruto_zagen       String?
-  popup_text_pers              String?
-  popup_text_netto_zagen       String?
-  popup_text_verkantlijmen     String?
-  popup_text_cnc               String?
-  popup_text_pmt               String?
-  popup_text_lakkerij          String?
-  popup_text_inpak             String?
-  popup_text_rail              String?
-  popup_text_assemblage        String?
-  
-  updatedAt                    DateTime  @updatedAt
-  notifications                Notification[]
+  popup_text_bruto_zagen   String?
+  popup_text_pers          String?
+  popup_text_netto_zagen   String?
+  popup_text_verkantlijmen String?
+  popup_text_cnc           String?
+  popup_text_pmt           String?
+  popup_text_lakkerij      String?
+  popup_text_inpak         String?
+  popup_text_rail          String?
+  popup_text_assemblage    String?
+
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
 }
 
 model PriorityOrder {
-  id            String     @id @default(cuid())
-  orderIds      String[]   // Array of order IDs in priority order
-  updatedBy     String
-  updatedAt     DateTime
-  user          User       @relation(fields: [updatedBy], references: [id])
+  id        String   @id @default(cuid())
+  orderIds  String[] // Array of order IDs in priority order
+  updatedBy String
+  updatedAt DateTime
+  user      User     @relation(fields: [updatedBy], references: [id])
 }
 
 model Notification {
-  id            String   @id @default(cuid())
-  message       String
-  orderId       String
-  userId        String
-  read          Boolean  @default(false)
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  message        String
+  orderId        String
+  userId         String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
   deletedByUsers String[] @default([])
-  order         Order    @relation(fields: [orderId], references: [id])
-  user          User     @relation(fields: [userId], references: [id])
+  order          Order    @relation(fields: [orderId], references: [id])
+  user           User     @relation(fields: [userId], references: [id])
 }
 
 enum Role {
@@ -141,9 +141,9 @@ enum Role {
 }
 
 model ColumnPermission {
-  id        String   @id @default(cuid())
-  role      Role
-  column    String
-  canEdit   Boolean  @default(false)
-  canView   Boolean  @default(true)
+  id      String  @id @default(cuid())
+  role    Role
+  column  String
+  canEdit Boolean @default(false)
+  canView Boolean @default(true)
 }

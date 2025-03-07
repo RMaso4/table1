@@ -17,22 +17,22 @@ const validateFieldValue = (field: string, value: FieldValue): FieldValue => {
 
   // Date fields should be valid dates or null
   const dateFields = [
-    'productie_datum', 'lever_datum', 'startdatum_assemblage', 
+    'productie_datum', 'lever_datum', 'startdatum_assemblage',
     'start_datum_machinale', 'bruto_zagen', 'pers', 'netto_zagen',
     'verkantlijmen', 'cnc_start_datum', 'pmt_start_datum', 'lakkerij_datum',
     'coaten_m1', 'verkantlijmen_order_gereed'
   ];
-  
+
   if (dateFields.includes(field)) {
     // Accept null or valid date strings
     if (value === null) return null;
-    
+
     try {
       // If it's already a valid ISO string, use it
       if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
         return new Date(value).toISOString();
       }
-      
+
       // Otherwise, try to parse it
       const date = new Date(value as string | number);
       if (isNaN(date.getTime())) {
@@ -43,47 +43,47 @@ const validateFieldValue = (field: string, value: FieldValue): FieldValue => {
       throw new Error(`Invalid date format for field ${field}`);
     }
   }
-  
+
   // Number fields should be valid numbers or null
   const numberFields = [
-    'pos', 'height', 'db_waarde', 'mon', 'pho', 'pro', 
+    'pos', 'height', 'db_waarde', 'mon', 'pho', 'pro',
     'ap', 'sp', 'cp', 'wp', 'dwp', 'pc', 'pcp', 'totaal_boards', 'tot'
   ];
-  
+
   if (numberFields.includes(field)) {
     if (value === null) return null;
-    
+
     const num = Number(value);
     if (isNaN(num)) {
       throw new Error(`Invalid number format for field ${field}`);
     }
     return num;
   }
-  
+
   // Boolean fields should be true/false or null
   const booleanFields = [
     'inpak_rail', 'boards', 'frames', 'ap_tws', 'wp_frame',
     'wp_dwp_pc', 'boards_component', 'profielen', 'kokers', 'lakken',
-    'controle_order', 'gez_planning', 'slotje', 'pop_up_zaag', 
+    'controle_order', 'gez_planning', 'slotje', 'pop_up_zaag',
     'pop_up_assemblage', 'pop_up_cnc', 'pop_up_cnc2', 'pop_up_verkantlijmer',
     'pop_up_inpak', 'pop_up_rail', 'pop_up_grote_zaag', 'pop_zaag_2', 'pop_heftruk'
   ];
-  
+
   if (booleanFields.includes(field)) {
     if (value === null) return null;
     return Boolean(value);
   }
-  
+
   // For other fields, return as is (string fields)
   return value;
 };
 
 // Create notification for order updates
 const createNotification = async (
-  orderId: string, 
-  orderNumber: string, 
-  userId: string, 
-  field: string, 
+  orderId: string,
+  orderNumber: string,
+  userId: string,
+  field: string,
   value: FieldValue
 ) => {
   try {
@@ -95,7 +95,7 @@ const createNotification = async (
 
     // Format value for display
     let displayValue = 'unknown';
-    
+
     if (value === null) {
       displayValue = 'null';
     } else if (typeof value === 'boolean') {
@@ -138,7 +138,7 @@ const createNotification = async (
     }
 
     // Create notifications for each recipient
-    const notificationPromises = recipients.map(recipient => 
+    const notificationPromises = recipients.map(recipient =>
       prisma.notification.create({
         data: {
           message: `Order ${orderNumber} had ${field} updated to ${displayValue} by ${user?.name || user?.email || 'unknown'}`,
@@ -161,18 +161,18 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    
+
     if (!id) {
-      return NextResponse.json({ 
-        error: 'Order ID is required' 
+      return NextResponse.json({
+        error: 'Order ID is required'
       }, { status: 400 });
     }
 
     // Authenticate user
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ 
-        error: 'Unauthorized' 
+      return NextResponse.json({
+        error: 'Unauthorized'
       }, { status: 401 });
     }
 
@@ -183,19 +183,19 @@ export async function PATCH(
     });
 
     if (!user) {
-      return NextResponse.json({ 
-        error: 'User not found' 
+      return NextResponse.json({
+        error: 'User not found'
       }, { status: 404 });
     }
 
     // Parse request body and extract the field and value
     const body = await request.json();
-    
+
     // We expect the body to contain a single field-value pair
     const entries = Object.entries(body);
     if (entries.length !== 1) {
-      return NextResponse.json({ 
-        error: 'Request must contain exactly one field to update' 
+      return NextResponse.json({
+        error: 'Request must contain exactly one field to update'
       }, { status: 400 });
     }
 
@@ -215,20 +215,20 @@ export async function PATCH(
       'cp', 'wp', 'dwp', 'pc', 'pcp', 'totaal_boards', 'tot',
       'controle_order', 'inkoopordernummer', 'gez_planning', 'slotje'
     ];
-    
+
     if (!validFields.includes(field)) {
-      return NextResponse.json({ 
-        error: `Invalid field name: ${field}` 
+      return NextResponse.json({
+        error: `Invalid field name: ${field}`
       }, { status: 400 });
     }
 
     // Check permissions based on role
-    const canEditField = user.role === 'PLANNER' || user.role === 'BEHEERDER' || 
-                        (user.role === 'SALES' && ['project', 'lever_datum', 'opmerking', 'inkoopordernummer'].includes(field));
+    const canEditField = user.role === 'PLANNER' || user.role === 'BEHEERDER' ||
+      (user.role === 'SALES' && ['project', 'lever_datum', 'opmerking', 'inkoopordernummer'].includes(field));
 
     if (!canEditField) {
-      return NextResponse.json({ 
-        error: `You don't have permission to edit the ${field} field` 
+      return NextResponse.json({
+        error: `You don't have permission to edit the ${field} field`
       }, { status: 403 });
     }
 
@@ -237,8 +237,8 @@ export async function PATCH(
     try {
       processedValue = validateFieldValue(field, value as FieldValue);
     } catch (error) {
-      return NextResponse.json({ 
-        error: error instanceof Error ? error.message : 'Invalid value' 
+      return NextResponse.json({
+        error: error instanceof Error ? error.message : 'Invalid value'
       }, { status: 400 });
     }
 
@@ -249,8 +249,8 @@ export async function PATCH(
     });
 
     if (!existingOrder) {
-      return NextResponse.json({ 
-        error: 'Order not found' 
+      return NextResponse.json({
+        error: 'Order not found'
       }, { status: 404 });
     }
 
@@ -265,36 +265,36 @@ export async function PATCH(
 
     // Create notification about the update
     await createNotification(
-      id, 
-      existingOrder.verkoop_order, 
-      user.id, 
-      field, 
+      id,
+      existingOrder.verkoop_order,
+      user.id,
+      field,
       processedValue
     );
 
     return NextResponse.json(updatedOrder);
   } catch (error) {
     console.error('Error updating order:', error);
-    
+
     // Handle Prisma-specific errors
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
         // Unique constraint violation
-        return NextResponse.json({ 
-          error: 'This value already exists for another order' 
+        return NextResponse.json({
+          error: 'This value already exists for another order'
         }, { status: 409 });
       }
-      
+
       if (error.code === 'P2025') {
         // Record not found
-        return NextResponse.json({ 
-          error: 'Order not found' 
+        return NextResponse.json({
+          error: 'Order not found'
         }, { status: 404 });
       }
     }
-    
+
     // Generic error handling
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'An error occurred while updating the order',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });

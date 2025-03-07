@@ -11,8 +11,8 @@ const socketService = require('./server/socketService');
 function setupEnvironment() {
   // Check critical environment variables
   const requiredVars = [
-    'DATABASE_URL', 
-    'NEXTAUTH_SECRET', 
+    'DATABASE_URL',
+    'NEXTAUTH_SECRET',
     'JWT_SECRET',
     'NEXT_PUBLIC_BASE_URL'
   ];
@@ -22,20 +22,20 @@ function setupEnvironment() {
   requiredVars.forEach(varName => {
     const exists = !!process.env[varName];
     console.log(`${varName}: ${exists ? '✅ FOUND' : '❌ MISSING'}`);
-    
+
     if (!exists) {
       console.error(`\x1b[31mCRITICAL: ${varName} is not set!\x1b[0m`);
       missingVars++;
     }
   });
-  
+
   if (missingVars > 0) {
     console.error(`\x1b[31m${missingVars} required environment variables are missing!\x1b[0m`);
     console.error('The application may not function correctly.');
   } else {
     console.log('\x1b[32mAll required environment variables are set.\x1b[0m');
   }
-  
+
   console.log('=====================================\n');
 }
 
@@ -95,11 +95,11 @@ async function startServer() {
     const server = createServer((req, res) => {
       // Add request ID for tracking
       const requestId = Math.random().toString(36).substring(2, 15);
-      
+
       // Set up basic request logging
       const startTime = Date.now();
       const { method, url } = req;
-      
+
       // Add CORS headers for all responses
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -124,7 +124,7 @@ async function startServer() {
 
       // Handle request
       const parsedUrl = parse(req.url || '/', true);
-      
+
       try {
         handle(req, res, parsedUrl);
       } catch (error) {
@@ -138,18 +138,18 @@ async function startServer() {
     function gracefulShutdown(signal) {
       return async () => {
         console.log(`\n${signal} received, shutting down gracefully...`);
-        
+
         // Attempt to close the HTTP server
         server.close(() => {
           console.log('HTTP server closed');
         });
-        
+
         // Shut down socket.io
         if (socketService && typeof socketService.shutdown === 'function') {
           console.log('Shutting down socket service...');
           socketService.shutdown();
         }
-        
+
         // Disconnect database
         try {
           const { disconnectDatabase } = require('./dist/src/lib/prisma');
@@ -157,7 +157,7 @@ async function startServer() {
         } catch (error) {
           console.error('Error disconnecting from database:', error);
         }
-        
+
         // Exit with success code
         setTimeout(() => {
           console.log('Forcing exit after timeout');

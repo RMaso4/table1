@@ -51,14 +51,14 @@ export default function RootLayout({
         <ThemeProvider>
           {/* Notification container for toast messages */}
           <div id="toast-container" className="fixed top-4 right-4 z-50"></div>
-          
+
           {/* Main content */}
           <Providers>
             <main className="flex-grow flex flex-col">
               {children}
             </main>
           </Providers>
-          
+
           {/* Footer with minimal info */}
           <footer className="py-2 px-4 text-xs text-center text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
             <p>© {new Date().getFullYear()} Parthos Order Management System</p>

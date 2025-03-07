@@ -13,7 +13,7 @@ if (typeof window !== 'undefined') {
   if (!PUSHER_KEY) {
     console.error('NEXT_PUBLIC_PUSHER_KEY is missing. Real-time updates will not work.');
   }
-  
+
   if (!PUSHER_CLUSTER) {
     console.error('NEXT_PUBLIC_PUSHER_CLUSTER is missing. Real-time updates will not work.');
   }
@@ -30,7 +30,7 @@ export const pusherServer = new Pusher({
 
 // Client-side Pusher instance with enhanced configuration
 export const pusherClient = new PusherClient(
-  PUSHER_KEY || '', 
+  PUSHER_KEY || '',
   {
     cluster: PUSHER_CLUSTER || 'eu',
     forceTLS: true,
@@ -57,18 +57,18 @@ if (typeof window !== 'undefined') {
   // Set up custom debug logging
   const originalLog = console.log;
   const originalError = console.error;
-  
+
   // Only in development, add Pusher prefixes to console logs
   if (process.env.NODE_ENV === 'development') {
-    console.log = function(...args) {
+    console.log = function (...args) {
       if (args[0] && typeof args[0] === 'string' && args[0].includes('Pusher')) {
         originalLog.apply(console, ['[PUSHER]', ...args]);
       } else {
         originalLog.apply(console, args);
       }
     };
-    
-    console.error = function(...args) {
+
+    console.error = function (...args) {
       if (args[0] && typeof args[0] === 'string' && args[0].includes('Pusher')) {
         originalError.apply(console, ['[PUSHER ERROR]', ...args]);
       } else {
@@ -76,24 +76,24 @@ if (typeof window !== 'undefined') {
       }
     };
   }
-  
+
   // Log connection issues
   pusherClient.connection.bind('error', (err: Error | { type: string; error: Error }) => {
     console.error('Pusher connection error:', err);
   });
-  
+
   // Log successful connections
   pusherClient.connection.bind('connected', () => {
     console.log('Pusher connected successfully with socket ID:', pusherClient.connection.socket_id);
   });
-  
+
   // Log disconnections
   pusherClient.connection.bind('disconnected', () => {
     console.log('Pusher disconnected');
   });
-  
+
   // Help debug subscription issues
-  pusherClient.connection.bind('state_change', (states: {previous: string; current: string}) => {
+  pusherClient.connection.bind('state_change', (states: { previous: string; current: string }) => {
     console.log(`Pusher connection state changed from ${states.previous} to ${states.current}`);
   });
 }

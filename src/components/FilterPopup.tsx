@@ -61,7 +61,7 @@ export default function FilterPopup({
   };
 
   return (
-    <div 
+    <div
       ref={popupRef}
       className="absolute z-50 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200"
     >

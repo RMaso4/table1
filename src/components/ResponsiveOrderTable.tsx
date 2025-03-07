@@ -63,8 +63,8 @@ export default function ResponsiveOrderTable({
           Scroll horizontally to see all columns
         </div>
       )}
-      <div 
-        ref={tableRef} 
+      <div
+        ref={tableRef}
         className="overflow-x-auto relative"
         style={{ maxWidth: '100%' }}
       >
@@ -75,16 +75,16 @@ export default function ResponsiveOrderTable({
               <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700 w-12 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Priority
               </th>
-              
+
               {/* Data Columns */}
               {columns.map((column) => {
                 const editableRoles = getEditableRoles(column.field);
-                
+
                 return (
-                  <th 
+                  <th
                     key={column.field}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap"
-                    style={{ 
+                    style={{
                       width: '300px',
                       minWidth: '300px',
                       maxWidth: '300px'
@@ -127,11 +127,10 @@ export default function ResponsiveOrderTable({
                   <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-4 whitespace-nowrap">
                     <button
                       onClick={() => onAddToPriority(order.id)}
-                      className={`p-2 rounded-full ${
-                        isPrioritized(order.id)
+                      className={`p-2 rounded-full ${isPrioritized(order.id)
                           ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
                           : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                      }`}
+                        }`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -153,13 +152,13 @@ export default function ResponsiveOrderTable({
                       </svg>
                     </button>
                   </td>
-                  
+
                   {/* Data Cells */}
                   {columns.map(column => (
-                    <td 
-                      key={`${order.id}-${column.field}`} 
+                    <td
+                      key={`${order.id}-${column.field}`}
                       className="px-6 py-4 whitespace-nowrap"
-                      style={{ 
+                      style={{
                         width: '300px',
                         minWidth: '300px',
                         maxWidth: '300px'
@@ -209,8 +208,8 @@ export default function ResponsiveOrderTable({
               ))
             ) : (
               <tr>
-                <td 
-                  colSpan={columns.length + 1} 
+                <td
+                  colSpan={columns.length + 1}
                   className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
                 >
                   No orders found.

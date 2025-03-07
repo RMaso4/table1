@@ -12,7 +12,7 @@ export default async function init() {
       console.log('Real-time updates via Socket.IO disabled in config. Skipping initialization.');
       return;
     }
-    
+
     console.log('Initializing real-time updates...');
     await initPulseStreams();
     console.log('Real-time updates initialized successfully');

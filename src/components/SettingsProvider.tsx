@@ -47,7 +47,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         // First try to load from API
         const response = await fetch('/api/settings');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch settings');
         }
@@ -60,7 +60,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('userSettings', JSON.stringify(data));
       } catch (error) {
         console.error('Error loading settings:', error);
-        
+
         // Try to load from localStorage
         const storedSettings = localStorage.getItem('userSettings');
         if (storedSettings) {
@@ -95,7 +95,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Check for changes
   useEffect(() => {
     if (isLoading) return;
-    
+
     const settingsChanged = JSON.stringify(settings) !== JSON.stringify(originalSettings);
     setHasChanges(settingsChanged);
   }, [settings, originalSettings, isLoading]);
@@ -195,10 +195,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 // Hook for using settings
 export function useSettings(): SettingsContextType {
   const context = useContext(SettingsContext);
-  
+
   if (context === undefined) {
     throw new Error('useSettings must be used within a SettingsProvider');
   }
-  
+
   return context;
 }

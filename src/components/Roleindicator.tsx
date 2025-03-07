@@ -37,11 +37,11 @@ const roleNames: Record<Role, string> = {
   GENERAL_ACCESS: 'General Access'
 };
 
-export default function RoleIndicator({ 
-  roles, 
-  showLabel = false, 
+export default function RoleIndicator({
+  roles,
+  showLabel = false,
   size = 'sm',
-  animate = false 
+  animate = false
 }: RoleIndicatorProps) {
   // Size classes for different sizes
   const sizeClasses = {
@@ -49,7 +49,7 @@ export default function RoleIndicator({
     md: 'h-3 w-3',
     lg: 'h-4 w-4'
   };
-  
+
   // Don't render anything if no roles are provided
   if (!roles || roles.length === 0) {
     return null;
@@ -58,13 +58,13 @@ export default function RoleIndicator({
   return (
     <div className="flex items-center gap-1">
       {roles.map((role) => (
-        <Tooltip 
-          key={role} 
+        <Tooltip
+          key={role}
           content={`${roleNames[role]} can edit this field`}
           position="top"
         >
           <div className="flex items-center gap-1">
-            <div 
+            <div
               className={`
                 ${roleColors[role]} 
                 ${sizeClasses[size]} 

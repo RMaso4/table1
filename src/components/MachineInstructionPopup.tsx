@@ -37,7 +37,7 @@ export default function MachineInstructionPopup({
 
   const handleSaveInstruction = async () => {
     if (!onUpdateInstruction) return;
-    
+
     setIsSubmitting(true);
     setError(null);
     try {

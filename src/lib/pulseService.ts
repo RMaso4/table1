@@ -33,19 +33,19 @@ async function pollForOrderChanges() {
   }
 
   console.log('Starting polling for database changes...');
-  
+
   if (isPolling) {
     console.log('Polling already active, skipping initialization');
     return;
   }
-  
+
   if (pollingInterval) {
     clearInterval(pollingInterval);
   }
-  
+
   let lastChecked = new Date();
   isPolling = true;
-  
+
   pollingInterval = setInterval(async () => {
     try {
       // Find orders updated since last check
@@ -54,16 +54,16 @@ async function pollForOrderChanges() {
           updatedAt: { gt: lastChecked }
         }
       });
-      
+
       if (updatedOrders.length > 0) {
         console.log(`Found ${updatedOrders.length} updated orders`);
-        
+
         for (const order of updatedOrders) {
           console.log(`Order update detected by polling: ${order.id} (${order.verkoop_order})`);
           await emitOrderUpdate(order.id, order);
         }
       }
-      
+
       // Find notifications created since last check
       const newNotifications = await prisma.notification.findMany({
         where: {
@@ -83,16 +83,16 @@ async function pollForOrderChanges() {
           }
         }
       });
-      
+
       if (newNotifications.length > 0) {
         console.log(`Found ${newNotifications.length} new notifications`);
-        
+
         for (const notification of newNotifications) {
           console.log('New notification detected by polling:', notification.id);
           await emitNotification(notification);
         }
       }
-      
+
       // Update last checked timestamp
       lastChecked = new Date();
     } catch (error) {
@@ -108,15 +108,15 @@ export async function initPulseStreams() {
     console.log('All real-time updates are disabled in config. Skipping initialization.');
     return;
   }
-  
+
   // Skip Socket.IO based polling if it's disabled
   if (!REALTIME_CONFIG.USE_SOCKET_IO) {
     console.log('Socket.IO is disabled in config. Skipping Socket.IO polling.');
     return;
   }
-  
+
   console.log('Checking if Pulse is available...');
-  
+
   if (isPulseAvailable()) {
     console.log('Pulse is available, but not fully implemented in this version');
     console.log('Falling back to polling mechanism');

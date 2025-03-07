@@ -6,8 +6,8 @@
 
 /* Override browser autofill styles */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px white inset !important;
   -webkit-text-fill-color: #111827 !important;
@@ -16,8 +16,8 @@ input:-webkit-autofill:active {
 
 /* Dark mode autofill - fixed background color */
 .dark input:-webkit-autofill,
-.dark input:-webkit-autofill:hover, 
-.dark input:-webkit-autofill:focus, 
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
   -webkit-text-fill-color: #f9fafb !important;
@@ -28,7 +28,7 @@ input:-webkit-autofill:active {
   input.autofill-fix {
     background-color: white !important;
   }
-  
+
   .dark input.autofill-fix {
     background-color: #1f2937 !important;
   }
@@ -59,7 +59,8 @@ input:-webkit-autofill:active {
 
 /* Fix for number inputs in dark mode */
 input[type="number"] {
-  -moz-appearance: textfield; /* Firefox */
+  -moz-appearance: textfield;
+  /* Firefox */
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -96,15 +97,18 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .number-arrow:hover {
-  color: #3b82f6; /* blue-500 */
+  color: #3b82f6;
+  /* blue-500 */
 }
 
 .dark .number-arrow {
-  color: #9ca3af; /* gray-400 */
+  color: #9ca3af;
+  /* gray-400 */
 }
 
 .dark .number-arrow:hover {
-  color: #60a5fa; /* blue-400 */
+  color: #60a5fa;
+  /* blue-400 */
 }
 
 /* Number Input in dark mode - fixed background and text color */
@@ -159,7 +163,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Consistent table styling */
-table.min-w-full th, 
+table.min-w-full th,
 table.min-w-full td {
   width: 300px;
   min-width: 300px;
@@ -293,6 +297,7 @@ body {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);

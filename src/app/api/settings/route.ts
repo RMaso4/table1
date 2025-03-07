@@ -86,13 +86,13 @@ export async function GET() {
       try {
         // Parse stored settings
         const storedSettings = JSON.parse(user.settings as string) as Partial<AllSettings>;
-        
+
         // Merge with defaults to ensure all properties exist
         const mergedSettings: AllSettings = {
           user: { ...defaultSettings.user, ...storedSettings.user },
           admin: { ...defaultSettings.admin, ...storedSettings.admin }
         };
-        
+
         return NextResponse.json(mergedSettings);
       } catch (parseError) {
         console.error('Error parsing settings JSON:', parseError);
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: 'Unauthorized. Please log in again.' }, 
+        { error: 'Unauthorized. Please log in again.' },
         { status: 401 }
       );
     }
@@ -131,14 +131,14 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found in database. Please contact support.' }, 
+        { error: 'User not found in database. Please contact support.' },
         { status: 404 }
       );
     }
 
     // Parse the request body
     const settings = await request.json();
-    
+
     // Validate settings structure
     if (!settings || !settings.user) {
       return NextResponse.json(
@@ -172,8 +172,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       settings: settingsToSave,
       message: 'Settings saved successfully'
     });

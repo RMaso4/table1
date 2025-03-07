@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 export default function ScanPage() {
   const router = useRouter();
   const { status } = useSession();
-  
+
   // Handle authentication redirect with useEffect
   useEffect(() => {
     if (status === 'unauthenticated') {

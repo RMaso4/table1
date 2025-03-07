@@ -27,19 +27,19 @@ interface ColumnDefinition {
 }
 
 // Confirmation dialog component
-function DeleteConfirmationDialog({ 
-  isOpen, 
-  pageName, 
-  onConfirm, 
-  onCancel 
-}: { 
-  isOpen: boolean; 
-  pageName: string; 
-  onConfirm: () => void; 
+function DeleteConfirmationDialog({
+  isOpen,
+  pageName,
+  onConfirm,
+  onCancel
+}: {
+  isOpen: boolean;
+  pageName: string;
+  onConfirm: () => void;
   onCancel: () => void;
 }) {
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -71,7 +71,7 @@ export default function CustomPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const pageId = params?.id as string;
-  
+
   // State variables
   const [pageConfig, setPageConfig] = useState<CustomPage | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -127,25 +127,25 @@ export default function CustomPage() {
         setLoading(true);
         // First fetch all custom pages
         const response = await fetch('/api/custom-pages');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch custom pages');
         }
-        
+
         const pages = await response.json();
         const page = pages.find((p: CustomPage) => p.id === pageId);
-        
+
         if (!page) {
           setError('Custom page not found');
-          
+
           // Set a timeout to return to dashboard if page not found
           const timeout = setTimeout(() => {
             router.push('/dashboard');
           }, 3000);
-          
+
           return () => clearTimeout(timeout);
         }
-        
+
         setPageConfig(page);
       } catch (error) {
         console.error('Error fetching page configuration:', error);
@@ -183,11 +183,11 @@ export default function CustomPage() {
   // Apply search and sorting when dependencies change
   useEffect(() => {
     let result = [...orders];
-    
+
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(order => 
+      result = result.filter(order =>
         order.verkoop_order?.toLowerCase().includes(query) ||
         order.project?.toLowerCase().includes(query) ||
         order.debiteur_klant?.toLowerCase().includes(query) ||
@@ -195,22 +195,22 @@ export default function CustomPage() {
         (typeof order.opmerking === 'string' ? order.opmerking.toLowerCase() : '').includes(query)
       );
     }
-    
+
     // Apply sorting
     if (sortState.field && sortState.direction) {
       result.sort((a, b) => {
         const aValue = a[sortState.field as keyof Order];
         const bValue = b[sortState.field as keyof Order];
-        
+
         if (aValue === null || aValue === undefined) return 1;
         if (bValue === null || bValue === undefined) return -1;
-        
+
         if (aValue < bValue) return sortState.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortState.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
-    
+
     setFilteredOrders(result);
   }, [orders, searchQuery, sortState]);
 
@@ -218,7 +218,7 @@ export default function CustomPage() {
   const handleSort = (field: string) => {
     setSortState(prev => ({
       field,
-      direction: 
+      direction:
         prev.field === field
           ? prev.direction === 'asc'
             ? 'desc'
@@ -232,11 +232,11 @@ export default function CustomPage() {
   // Handle page deletion
   const deletePage = async () => {
     if (!pageConfig) return;
-    
+
     try {
       setIsDeleting(true);
       setError(null);
-      
+
       const response = await fetch('/api/custom-pages', {
         method: 'DELETE',
         headers: {
@@ -244,20 +244,20 @@ export default function CustomPage() {
         },
         body: JSON.stringify({ id: pageConfig.id }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete page');
       }
-      
+
       // Success - redirect to dashboard
       setToast(`Page "${pageConfig.name}" deleted successfully`);
-      
+
       // Redirect after a brief delay to show the success message
       setTimeout(() => {
         router.push('/dashboard');
       }, 1500);
-      
+
     } catch (error) {
       console.error('Error deleting page:', error);
       setError(error instanceof Error ? error.message : 'Failed to delete page');
@@ -274,18 +274,18 @@ export default function CustomPage() {
       if (!orderToUpdate) {
         throw new Error('Order not found');
       }
-      
+
       // Create a copy of the order with the updated field
       const updatedOrder = {
         ...orderToUpdate,
         [field]: value
       };
-      
+
       // Optimistically update the orders state
-      setOrders(prev => 
+      setOrders(prev =>
         prev.map(order => order.id === orderId ? updatedOrder : order)
       );
-      
+
       // Send update to the server
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
@@ -295,27 +295,27 @@ export default function CustomPage() {
         },
         body: JSON.stringify({ [field]: value }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update order');
       }
-      
+
       // Show success toast
       setToast(`Updated ${field} successfully`);
       setTimeout(() => setToast(null), 3000);
-      
+
     } catch (error) {
       console.error('Error updating cell:', error);
       setError(error instanceof Error ? error.message : 'Failed to update order');
-      
+
       // Reset the orders to the original state
       const originalOrder = orders.find(order => order.id === orderId);
       if (originalOrder) {
-        setOrders(prev => 
+        setOrders(prev =>
           prev.map(order => order.id === orderId ? originalOrder : order)
         );
       }
-      
+
       // Clear error after 3 seconds
       setTimeout(() => setError(null), 3000);
     }
@@ -324,12 +324,12 @@ export default function CustomPage() {
   // Handle export
   const handleExport = () => {
     if (!pageConfig) return;
-    
+
     // Filter columns based on page configuration
     const exportColumns = pageConfig.columns
       .map(field => allColumns.find(col => col.field === field))
       .filter((col): col is ColumnDefinition => col !== undefined);
-    
+
     // Create export utilities
     const exporter = createExcelExportOptions(
       filteredOrders,
@@ -345,7 +345,7 @@ export default function CustomPage() {
         setTimeout(() => setError(null), 3000);
       }
     );
-    
+
     // Export with custom filename
     exporter.toExcel();
   };
@@ -392,7 +392,7 @@ export default function CustomPage() {
               {toast}
             </div>
           )}
-          
+
           <div className="bg-white rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
               <h1 className="text-xl font-semibold text-gray-900">{pageConfig.name}</h1>
@@ -408,7 +408,7 @@ export default function CustomPage() {
                     <span>{isDeleting ? 'Deleting...' : 'Delete Page'}</span>
                   </button>
                 )}
-                
+
                 <button
                   onClick={handleExport}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -417,20 +417,20 @@ export default function CustomPage() {
                   <Download className="h-4 w-4" />
                   <span>Export</span>
                 </button>
-                <SearchBar 
+                <SearchBar
                   onSearch={setSearchQuery}
                   value={searchQuery}
                   placeholder="Search orders..."
                 />
               </div>
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     {visibleColumns.map((column) => (
-                      <th 
+                      <th
                         key={column.field}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         onClick={() => handleSort(column.field)}
@@ -512,7 +512,7 @@ export default function CustomPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Delete confirmation dialog */}
       <DeleteConfirmationDialog
         isOpen={showDeleteConfirmation}

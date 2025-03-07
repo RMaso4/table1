@@ -11,12 +11,12 @@ let socket: Socket | null = null;
 export default function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const { data: session } = useSession();
-  
+
   useEffect(() => {
     // Only initialize the socket if we have a session
     if (!socket && session?.user) {
       console.log('Initializing socket connection with user data...');
-      
+
       // Create the socket connection with user info in query params
       socket = io({
         path: '/api/socket',
@@ -30,30 +30,30 @@ export default function useSocket() {
           role: session.user.role
         }
       });
-      
+
       socket.on('connect', () => {
         console.log('Socket connected with ID:', socket?.id);
         setIsConnected(true);
-        
+
         // Send a ping to test the connection
         socket?.emit('ping_server', { clientTime: new Date().toISOString() });
       });
-      
+
       socket.on('disconnect', () => {
         console.log('Socket disconnected');
         setIsConnected(false);
       });
-      
+
       socket.on('connect_error', (err: Error) => {
         console.error('Socket connection error:', err);
         setIsConnected(false);
       });
-      
+
       socket.on('error', (err: Error) => {
         console.error('Socket error:', err);
       });
     }
-    
+
     // Cleanup function
     return () => {
       if (socket) {
@@ -65,7 +65,7 @@ export default function useSocket() {
       }
     };
   }, [session]);
-  
+
   // If the user session changes, we should reconnect the socket
   useEffect(() => {
     if (socket && session?.user) {
@@ -74,6 +74,6 @@ export default function useSocket() {
       }
     }
   }, [session]);
-  
+
   return { socket, isConnected };
 }

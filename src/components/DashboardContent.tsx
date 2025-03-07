@@ -339,37 +339,37 @@ export function DashboardContent() {
     try {
       // Reset any previous errors
       setError(null);
-  
+
       console.log(`Updating instruction ${field} for order ${orderId} to:`, value);
-  
+
       // Find the order to update
       const orderToUpdate = orders.find(order => order.id === orderId);
       if (!orderToUpdate) {
         throw new Error('Order not found');
       }
-  
+
       // Create a copy of the order with the updated field
       const updatedOrder = {
         ...orderToUpdate,
         [field]: value,
         updatedAt: new Date().toISOString() // Update the timestamp locally
       };
-  
+
       // Optimistically update the orders state
       setOrders(prevOrders =>
         prevOrders.map(order => order.id === orderId ? updatedOrder : order)
       );
-  
+
       // Also update priority orders if needed
       setPriorityOrders(prevOrders => {
         const orderIndex = prevOrders.findIndex(order => order.id === orderId);
         if (orderIndex === -1) return prevOrders; // Not in the list
-  
+
         const newPriorityOrders = [...prevOrders];
         newPriorityOrders[orderIndex] = updatedOrder;
         return newPriorityOrders;
       });
-  
+
       // For instruction fields, use the specialized endpoint
       if (field.startsWith('popup_text_')) {
         const response = await fetch(`/api/orders/${orderId}/popup-instructions`, {
@@ -379,35 +379,35 @@ export function DashboardContent() {
           },
           body: JSON.stringify({ field, value }),
         });
-  
+
         if (!response.ok) {
           // Try to parse error response
           const errorData = await response.json().catch(() => ({}));
-  
+
           // Revert optimistic update on error
           setOrders(prevOrders =>
             prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
           );
-  
+
           setPriorityOrders(prevOrders => {
             const orderIndex = prevOrders.findIndex(order => order.id === orderId);
             if (orderIndex === -1) return prevOrders;
-  
+
             const revertedPriorityOrders = [...prevOrders];
             revertedPriorityOrders[orderIndex] = orderToUpdate;
             return revertedPriorityOrders;
           });
-  
+
           throw new Error(errorData.error || errorData.message || 'Failed to update instruction');
         }
-  
+
         // Parse response data
         const data = await response.json();
-        
+
         // Show a brief success message
         setLastUpdateToast(`Updated ${field.replace('popup_text_', '')} instructions successfully`);
         setTimeout(() => setLastUpdateToast(null), 2000);
-  
+
         return;
       } else {
         // For non-instruction fields, use the regular update endpoint
@@ -420,7 +420,7 @@ export function DashboardContent() {
       return;
     }
   };
-  
+
   // Load priority orders when orders are available
   useEffect(() => {
     if (orders.length > 0) {
@@ -803,26 +803,26 @@ export function DashboardContent() {
     if (savedOrder) {
       try {
         const parsedOrder = JSON.parse(savedOrder) as string[];
-        
+
         // Get all available column fields
         const allFields = availableColumns.map(col => col.field);
-        
+
         // Get all instruction fields
         const instructionFields = availableColumns
           .filter(col => col.field.startsWith('popup_text_'))
           .map(col => col.field);
-        
+
         // Check if parsedOrder is missing any fields, particularly instruction fields
         const missingFields = allFields.filter(field => !parsedOrder.includes(field));
-        
+
         if (missingFields.length > 0) {
           // Add the missing fields to the end of the column order
           const updatedOrder = [...parsedOrder, ...missingFields];
           setColumnOrder(updatedOrder);
-          
+
           // Save the updated order back to localStorage
           localStorage.setItem('columnOrder', JSON.stringify(updatedOrder));
-          
+
           console.log('Added missing columns to columnOrder:', missingFields);
         } else {
           // Use the saved order as is

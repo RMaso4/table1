@@ -15,18 +15,18 @@ export const convertToExcelCSV = (data: Order[], columns: ColumnDefinition[]): s
   // Create header row with proper Excel CSV formatting
   // Excel needs a specific BOM marker at the start of the file
   const BOM = '\uFEFF';
-  
+
   // Use semi-colon delimiter which works better with Excel
   const delimiter = ';';
-  
+
   // Create header row
   const headers = columns.map(col => `"${col.title}"`).join(delimiter);
-  
+
   // Create data rows
   const rows = data.map(order => {
     return columns.map(column => {
       const value = order[column.field as keyof Order];
-      
+
       // Format the value based on its type
       if (value === null || value === undefined) {
         return '""';
@@ -46,7 +46,7 @@ export const convertToExcelCSV = (data: Order[], columns: ColumnDefinition[]): s
       }
     }).join(delimiter);
   }).join('\n');
-  
+
   // Combine BOM, headers and rows
   return `${BOM}${headers}\n${rows}`;
 };
@@ -58,15 +58,15 @@ export const convertToExcelCSV = (data: Order[], columns: ColumnDefinition[]): s
 export const convertToExcelTSV = (data: Order[], columns: ColumnDefinition[]): string => {
   // Excel works well with tab-delimited files
   const delimiter = '\t';
-  
+
   // Create header row
   const headers = columns.map(col => col.title).join(delimiter);
-  
+
   // Create data rows
   const rows = data.map(order => {
     return columns.map(column => {
       const value = order[column.field as keyof Order];
-      
+
       // Format the value based on its type
       if (value === null || value === undefined) {
         return '';
@@ -85,7 +85,7 @@ export const convertToExcelTSV = (data: Order[], columns: ColumnDefinition[]): s
       }
     }).join(delimiter);
   }).join('\n');
-  
+
   // Combine headers and rows
   return `${headers}\n${rows}`;
 };
@@ -94,45 +94,45 @@ export const convertToExcelTSV = (data: Order[], columns: ColumnDefinition[]): s
  * Exports data to a CSV file with Excel compatibility and triggers download
  */
 export const exportToExcel = (
-  data: Order[], 
-  columns: ColumnDefinition[], 
-  filename = `orders-export-${new Date().toISOString().slice(0,10)}.csv`,
+  data: Order[],
+  columns: ColumnDefinition[],
+  filename = `orders-export-${new Date().toISOString().slice(0, 10)}.csv`,
   format: 'csv' | 'tsv' = 'csv'
 ) => {
   // Choose the appropriate format
-  const fileContent = format === 'csv' 
+  const fileContent = format === 'csv'
     ? convertToExcelCSV(data, columns)
     : convertToExcelTSV(data, columns);
-  
+
   // Change file extension based on format
   const extension = format === 'csv' ? '.csv' : '.tsv';
   const filenameWithExt = filename.endsWith(extension) ? filename : filename.replace(/\.\w+$/, '') + extension;
-  
+
   // Set the appropriate MIME type
-  const mimeType = format === 'csv' 
-    ? 'text/csv;charset=utf-8;' 
+  const mimeType = format === 'csv'
+    ? 'text/csv;charset=utf-8;'
     : 'text/tab-separated-values;charset=utf-8;';
-  
+
   // Create a Blob containing the data
   const blob = new Blob([fileContent], { type: mimeType });
-  
+
   // Create a download link
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   // Set up the link
   link.setAttribute('href', url);
   link.setAttribute('download', filenameWithExt);
   link.style.visibility = 'hidden';
-  
+
   // Add to document, click it, and remove it
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   // Clean up
   URL.revokeObjectURL(url);
-  
+
   return true;
 };
 
@@ -140,8 +140,8 @@ export const exportToExcel = (
  * Creates a multi-format export menu with Excel compatibility
  */
 export const createExcelExportOptions = (
-  data: Order[], 
-  columns: ColumnDefinition[], 
+  data: Order[],
+  columns: ColumnDefinition[],
   onSuccess?: () => void,
   onError?: (error: Error) => void
 ) => {
@@ -159,7 +159,7 @@ export const createExcelExportOptions = (
     },
     toTSV: () => {
       try {
-        exportToExcel(data, columns, `orders-export-${new Date().toISOString().slice(0,10)}.tsv`, 'tsv');
+        exportToExcel(data, columns, `orders-export-${new Date().toISOString().slice(0, 10)}.tsv`, 'tsv');
         onSuccess?.();
         return true;
       } catch (error) {

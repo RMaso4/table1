@@ -23,11 +23,11 @@ export interface SortState {
 }
 
 declare module 'next-auth/jwt' {
-    interface JWT {
-      role: string;
-      id: string;
-    }
+  interface JWT {
+    role: string;
+    id: string;
   }
+}
 
 export interface Notification {
   id: string;

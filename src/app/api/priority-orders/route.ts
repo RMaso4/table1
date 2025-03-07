@@ -81,14 +81,14 @@ export async function POST(request: NextRequest) {
     }
 
     let priorityData;
-    
+
     // Even if orderIds is empty, we need to save this to clear the priority list
     console.log(`Updating priority orders: ${orderIds.length} items`);
-    
+
     try {
       // Try to find an existing record first
       const existingRecord = await prisma.priorityOrder.findFirst();
-      
+
       if (existingRecord) {
         // Update existing record if found
         priorityData = await prisma.priorityOrder.update({
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (createError) {
       console.error('Error saving priority record:', createError);
-      
+
       // Try to create the table if it doesn't exist
       try {
         // We'll directly use a raw query to ensure the table exists
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
             CONSTRAINT "PriorityOrder_pkey" PRIMARY KEY ("id")
           );
         `;
-        
+
         // Try creating the record again after ensuring table exists
         priorityData = await prisma.priorityOrder.create({
           data: {
@@ -136,10 +136,10 @@ export async function POST(request: NextRequest) {
         });
       } catch (fallbackError) {
         console.error('Fallback creation also failed:', fallbackError);
-        
+
         // If we still can't create, we'll use local storage fallback in the client
         // But still emit the Pusher event so other clients get notified
-        
+
         // Generate a fake priority data object for the push notification
         priorityData = {
           id: 'local-' + Date.now(),

@@ -29,7 +29,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 // Improved connection management with retry logic
 export async function connectDatabase(retries = 3, delay = 1000) {
   let currentTry = 0;
-  
+
   while (currentTry < retries) {
     try {
       await prisma.$connect();
@@ -38,19 +38,19 @@ export async function connectDatabase(retries = 3, delay = 1000) {
     } catch (error) {
       currentTry++;
       console.error(`❌ Database connection attempt ${currentTry}/${retries} failed:`, error);
-      
+
       if (currentTry >= retries) {
         console.error('❌ All database connection attempts failed');
         throw error;
       }
-      
+
       // Exponential backoff
       const backoffDelay = delay * Math.pow(2, currentTry - 1);
       console.log(`Retrying in ${backoffDelay}ms...`);
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
   }
-  
+
   return false;
 }
 

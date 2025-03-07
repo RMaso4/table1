@@ -29,24 +29,24 @@ function initSocketIO(httpServer) {
       query: socket.handshake.query,
       headers: socket.handshake.headers.origin
     });
-    
+
     // Broadcast the connection to all clients
     io.emit('user_connected', { socketId: socket.id, timestamp: new Date().toISOString() });
-    
+
     // Join user to a room for their role if provided in handshake data
     if (socket.handshake.query && socket.handshake.query.role) {
       const role = socket.handshake.query.role;
       console.log(`User with role ${role} joined socket: ${socket.id}`);
       socket.join(`role:${role}`);
     }
-    
+
     // Add user to personal room if ID is provided
     if (socket.handshake.query && socket.handshake.query.userId) {
       const userId = socket.handshake.query.userId;
       console.log(`User ${userId} joined personal room: ${socket.id}`);
       socket.join(`user:${userId}`);
     }
-    
+
     socket.on('disconnect', (reason) => {
       console.log(`Socket disconnected: ${socket.id} - ${reason}`);
     });
@@ -54,13 +54,13 @@ function initSocketIO(httpServer) {
     socket.on('error', (error) => {
       console.error('Socket error:', error);
     });
-    
+
     // Add a custom ping handler for testing
     socket.on('ping_server', (data) => {
       console.log('Received ping from client:', data);
-      socket.emit('pong_client', { 
+      socket.emit('pong_client', {
         received: data,
-        serverTime: new Date().toISOString() 
+        serverTime: new Date().toISOString()
       });
     });
   });
@@ -79,16 +79,16 @@ function emitOrderUpdate(orderId, orderData) {
     console.warn('Socket.IO not initialized when trying to emit order update');
     return false;
   }
-  
+
   try {
     console.log('Emitting order update for:', orderId);
-    
+
     // Broadcast to all clients
     io.emit('order:updated', { orderId, data: orderData });
-    
+
     // Also send to specific role rooms
     io.to('role:PLANNER').to('role:BEHEERDER').emit('order:updated', { orderId, data: orderData });
-    
+
     console.log('Active connections:', io.engine.clientsCount);
     return true;
   } catch (error) {
@@ -103,16 +103,16 @@ function emitNotification(notification) {
     console.warn('Socket.IO not initialized when trying to emit notification');
     return false;
   }
-  
+
   try {
     console.log('Emitting notification:', notification.id || 'unknown');
-    
+
     // Send to all PLANNER and BEHEERDER users
     io.to('role:PLANNER').to('role:BEHEERDER').emit('notification:new', notification);
-    
+
     // Also broadcast to all clients as a fallback
     io.emit('notification:new', notification);
-    
+
     return true;
   } catch (error) {
     console.error('Error emitting notification:', error);
@@ -130,10 +130,10 @@ function shutdown() {
   }
 }
 
-module.exports = { 
-  initSocketIO, 
-  getIO, 
-  emitOrderUpdate, 
+module.exports = {
+  initSocketIO,
+  getIO,
+  emitOrderUpdate,
   emitNotification,
   shutdown
 };
