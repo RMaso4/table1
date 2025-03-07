@@ -61,6 +61,7 @@ export default function DraggableColumnHeader({
       onDragStart={(e) => onDragStart(e, field)}
       onDragOver={(e) => onDragOver(e, field)}
       onDragEnd={onDragEnd}
+      style={{ width: '300px', minWidth: '300px', maxWidth: '300px' }}
     >
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between group">

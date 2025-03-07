@@ -57,10 +57,66 @@ input:-webkit-autofill:active {
   color: #9ca3af;
 }
 
+/* Fix for number inputs in dark mode */
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  display: none;
+}
+
+/* Custom number input styling with arrows */
+.number-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.number-input-arrows {
+  position: absolute;
+  right: 5px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.number-arrow {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 12px;
+  width: 16px;
+}
+
+.number-arrow:hover {
+  color: #3b82f6; /* blue-500 */
+}
+
+.dark .number-arrow {
+  color: #9ca3af; /* gray-400 */
+}
+
+.dark .number-arrow:hover {
+  color: #60a5fa; /* blue-400 */
+}
+
 /* Number Input in dark mode - fixed background and text color */
 .dark input[type="number"] {
   background-color: #1f2937;
   color: #f9fafb;
+}
+
+.dark input[type="number"]::-webkit-inner-spin-button,
+.dark input[type="number"]::-webkit-outer-spin-button {
+  filter: invert(100%);
+  opacity: 0.7;
 }
 
 /* Fix for selected columns in dark mode */
@@ -100,6 +156,29 @@ input:-webkit-autofill:active {
 
 .dark .text-blue-700 {
   color: #93c5fd;
+}
+
+/* Consistent table styling */
+table.min-w-full th, 
+table.min-w-full td {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* First column (priority column) can be narrower */
+table.min-w-full th:first-child,
+table.min-w-full td:first-child {
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
+}
+
+/* Ensure consistent heights for table rows */
+table.min-w-full tr {
+  height: 48px;
 }
 
 /* Color variables with improved dark mode values */
