@@ -1,7 +1,5 @@
 # Parthos Order Management System
 
-![Parthos Logo](public/ParthosLogo.svg)
-
 A real-time manufacturing order management system built with Next.js, Prisma, and real-time synchronization capabilities.
 
 ## Overview
