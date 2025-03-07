@@ -1,4 +1,4 @@
-// src/components/InstructionText.tsx
+// src/components/InstructionsText.tsx
 import React, { useState } from 'react';
 import { Info, X } from 'lucide-react';
 
@@ -19,16 +19,19 @@ export default function InstructionText({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!onChange) return;
     
     setIsSubmitting(true);
+    setError(null);
     try {
       await onChange(editText);
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to save instruction text:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update instructions');
     } finally {
       setIsSubmitting(false);
     }
@@ -50,6 +53,9 @@ export default function InstructionText({
           rows={3}
           disabled={isSubmitting}
         />
+        {error && (
+          <div className="text-xs text-red-500 dark:text-red-400">{error}</div>
+        )}
         <div className="flex space-x-2">
           <button
             onClick={handleSave}
@@ -62,6 +68,7 @@ export default function InstructionText({
             onClick={() => {
               setIsEditing(false);
               setEditText(text || '');
+              setError(null);
             }}
             disabled={isSubmitting}
             className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50"

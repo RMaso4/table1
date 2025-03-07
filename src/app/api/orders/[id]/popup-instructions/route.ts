@@ -48,7 +48,7 @@ export async function PATCH(
     // Validate field
     if (!validPopupFields.includes(field)) {
       return NextResponse.json(
-        { error: 'Invalid popup field' },
+        { error: `Invalid popup field: ${field}` },
         { status: 400 }
       );
     }

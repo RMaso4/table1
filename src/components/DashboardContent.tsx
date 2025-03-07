@@ -335,7 +335,92 @@ export function DashboardContent() {
       }
     }
   };
-
+  const handleInstructionUpdate = async (orderId: string, field: string, value: string): Promise<void> => {
+    try {
+      // Reset any previous errors
+      setError(null);
+  
+      console.log(`Updating instruction ${field} for order ${orderId} to:`, value);
+  
+      // Find the order to update
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      if (!orderToUpdate) {
+        throw new Error('Order not found');
+      }
+  
+      // Create a copy of the order with the updated field
+      const updatedOrder = {
+        ...orderToUpdate,
+        [field]: value,
+        updatedAt: new Date().toISOString() // Update the timestamp locally
+      };
+  
+      // Optimistically update the orders state
+      setOrders(prevOrders =>
+        prevOrders.map(order => order.id === orderId ? updatedOrder : order)
+      );
+  
+      // Also update priority orders if needed
+      setPriorityOrders(prevOrders => {
+        const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+        if (orderIndex === -1) return prevOrders; // Not in the list
+  
+        const newPriorityOrders = [...prevOrders];
+        newPriorityOrders[orderIndex] = updatedOrder;
+        return newPriorityOrders;
+      });
+  
+      // For instruction fields, use the specialized endpoint
+      if (field.startsWith('popup_text_')) {
+        const response = await fetch(`/api/orders/${orderId}/popup-instructions`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ field, value }),
+        });
+  
+        if (!response.ok) {
+          // Try to parse error response
+          const errorData = await response.json().catch(() => ({}));
+  
+          // Revert optimistic update on error
+          setOrders(prevOrders =>
+            prevOrders.map(order => order.id === orderId ? orderToUpdate : order)
+          );
+  
+          setPriorityOrders(prevOrders => {
+            const orderIndex = prevOrders.findIndex(order => order.id === orderId);
+            if (orderIndex === -1) return prevOrders;
+  
+            const revertedPriorityOrders = [...prevOrders];
+            revertedPriorityOrders[orderIndex] = orderToUpdate;
+            return revertedPriorityOrders;
+          });
+  
+          throw new Error(errorData.error || errorData.message || 'Failed to update instruction');
+        }
+  
+        // Parse response data
+        const data = await response.json();
+        
+        // Show a brief success message
+        setLastUpdateToast(`Updated ${field.replace('popup_text_', '')} instructions successfully`);
+        setTimeout(() => setLastUpdateToast(null), 2000);
+  
+        return;
+      } else {
+        // For non-instruction fields, use the regular update endpoint
+        return handleCellUpdate(orderId, field, value);
+      }
+    } catch (error) {
+      console.error('Error updating instruction:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update instructions');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+  };
+  
   // Load priority orders when orders are available
   useEffect(() => {
     if (orders.length > 0) {
@@ -1317,7 +1402,7 @@ export function DashboardContent() {
                                 : field.startsWith('popup_text_') ? (
                                   <InstructionText
                                     text={order[field as keyof Order] as string || null}
-                                    onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                    onChange={(value) => handleInstructionUpdate(order.id, field, value)}
                                     title={column.title}
                                     canEdit={canRoleEditColumn(session?.user?.role as Role, field)}
                                   />
