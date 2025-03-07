@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Providers from "@/components/Providers";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import ThemeDebug from "@/components/ThemeDebug";
 import "./globals.css";
 
 // Load fonts with preload
@@ -47,12 +46,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
         <ThemeProvider>
-          {/* Add this during development to debug theme issues */}
-          {process.env.NODE_ENV === 'development' && <ThemeDebug />}
-          
           {/* Notification container for toast messages */}
           <div id="toast-container" className="fixed top-4 right-4 z-50"></div>
 
@@ -64,7 +60,7 @@ export default function RootLayout({
           </Providers>
 
           {/* Footer with minimal info */}
-          <footer className="py-2 px-4 text-xs text-center text-muted-foreground border-t border-border">
+          <footer className="py-2 px-4 text-xs text-center text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
             <p>© {new Date().getFullYear()} Parthos Order Management System</p>
           </footer>
         </ThemeProvider>

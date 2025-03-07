@@ -1,76 +1,16 @@
-/* src/app/globals.css */
-/* Base styles applied to both modes */
-:root {
-  --transition-theme: 0.2s ease-in-out;
-}
+/* src/app/globals.css - Updated Dark Mode Styles */
 
-/* Light mode - default theme */
-:root {
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #003D73;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --accent: #f5f5f5;
-  --accent-foreground: #171717;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #003D73;
-}
-
-/* Dark mode - separate namespaced variables */
-.dark {
-  color-scheme: dark;
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #1a1a1a;
-  --card-foreground: #ededed;
-  --popover: #1a1a1a;
-  --popover-foreground: #ededed;
-  --primary: #1a5999;
-  --primary-foreground: #ffffff;
-  --secondary: #272727;
-  --secondary-foreground: #ededed;
-  --muted: #272727;
-  --muted-foreground: #a3a3a3;
-  --accent: #272727;
-  --accent-foreground: #ededed;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #333333;
-  --input: #333333;
-  --ring: #1a5999;
-}
-
-/* Apply a transition to all elements for smooth theme switching */
-* {
-  transition: background-color var(--transition-theme), 
-              border-color var(--transition-theme),
-              color var(--transition-theme);
-}
-
-/* Base styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Light mode autofill */
+/* Override browser autofill styles */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-text-fill-color: #111827 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -80,7 +20,7 @@ input:-webkit-autofill:active {
 .dark input:-webkit-autofill:focus,
 .dark input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #1f2937 inset !important;
-  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-text-fill-color: #f9fafb !important;
 }
 
 /* Firefox-specific fix */
@@ -171,10 +111,55 @@ input[type="number"]::-webkit-outer-spin-button {
   /* blue-400 */
 }
 
+/* Number Input in dark mode - fixed background and text color */
+.dark input[type="number"] {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+.dark input[type="number"]::-webkit-inner-spin-button,
+.dark input[type="number"]::-webkit-outer-spin-button {
+  filter: invert(100%);
+  opacity: 0.7;
+}
+
 /* Fix for selected columns in dark mode */
 .dark [type="checkbox"]:checked {
   background-color: #3b82f6;
   border-color: #3b82f6;
+}
+
+/* EditableCell dark mode styles - improved */
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="email"],
+.dark input[type="password"] {
+  background-color: #1f2937;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+
+.dark input[type="text"]:focus,
+.dark input[type="number"]:focus,
+.dark input[type="date"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus {
+  border-color: #3b82f6;
+  outline-color: #3b82f6;
+}
+
+/* Fix for column selection UI in dark mode */
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark .border-blue-500 {
+  border-color: #3b82f6;
+}
+
+.dark .text-blue-700 {
+  color: #93c5fd;
 }
 
 /* Consistent table styling */
@@ -200,7 +185,51 @@ table.min-w-full tr {
   height: 48px;
 }
 
-/* Base styles */
+/* Color variables with improved dark mode values */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #003D73;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #003D73;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #1a1a1a;
+  --card-foreground: #ededed;
+  --popover: #1a1a1a;
+  --popover-foreground: #ededed;
+  --primary: #1a5999;
+  --primary-foreground: #ffffff;
+  --secondary: #272727;
+  --secondary-foreground: #ededed;
+  --muted: #272727;
+  --muted-foreground: #a3a3a3;
+  --accent: #272727;
+  --accent-foreground: #ededed;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #333333;
+  --input: #333333;
+  --ring: #1a5999;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -210,6 +239,57 @@ body {
   body {
     @apply text-foreground bg-background;
   }
+}
+
+/* Dark mode color overrides for main table components - improved contrast */
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+
+.dark .bg-gray-50 {
+  @apply bg-gray-900;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+
+.dark .text-gray-700 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-900 {
+  @apply text-gray-100;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  @apply hover:bg-gray-700;
+}
+
+/* Fix for column header in dark mode */
+.dark th.bg-gray-50 {
+  @apply bg-gray-700;
+}
+
+/* Fix for input field in dark mode */
+.dark input.bg-white {
+  @apply bg-gray-700;
+}
+
+/* Fix number inputs in dark mode */
+.dark input[type="number"] {
+  @apply bg-gray-700 text-gray-100;
+}
+
+/* Fix number input arrows */
+.dark input[type="number"]::-webkit-inner-spin-button,
+.dark input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  filter: invert(1);
 }
 
 @keyframes fadeIn {
