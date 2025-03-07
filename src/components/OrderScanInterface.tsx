@@ -144,10 +144,12 @@ const OrderScanInterface = () => {
   };
   
   // Add a function to refresh order data after updates
-  const refreshOrder = async (orderId: string) => {
+  const refreshOrder = async () => {
+    if (!order?.verkoop_order) return;
+    
     try {
       setLoading(true);
-      const response = await fetch(`/api/orders/scan/${order?.verkoop_order}`);
+      const response = await fetch(`/api/orders/scan/${order.verkoop_order}`);
       
       if (!response.ok) {
         throw new Error('Failed to refresh order data');
@@ -191,7 +193,7 @@ const OrderScanInterface = () => {
       setSuccess(`Successfully started ${confirmAction.label}`);
       
       // Refresh order data after a short delay to ensure we have the latest data
-      setTimeout(() => refreshOrder(order.id), 1000);
+      setTimeout(() => refreshOrder(), 1000);
       
       // Auto-clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
@@ -409,12 +411,12 @@ const OrderScanInterface = () => {
         )}
 
         {/* Machine Instructions Popup */}
-        {confirmAction && (
+        {confirmAction && showInstructionPopup && order && (
           <MachineInstructionPopup
             isOpen={showInstructionPopup}
             onClose={closeInstructionPopup}
             title={`${confirmAction.label} Instructions`}
-            instruction={order?.[confirmAction.textField]?.toString() || null}
+            instruction={order[confirmAction.textField] as string | null}
             orderNumber={order?.verkoop_order || ''}
             onProceed={confirmMachineAction}
             onUpdateInstruction={canEditInstructions ? updateInstructionText : undefined}

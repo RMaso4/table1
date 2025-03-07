@@ -28,6 +28,18 @@ export async function GET(
         verkantlijmen: true,
         cnc_start_datum: true,
         pmt_start_datum: true,
+        slotje: true,
+        // Include all instruction text fields
+        popup_text_bruto_zagen: true,
+        popup_text_pers: true,
+        popup_text_netto_zagen: true,
+        popup_text_verkantlijmen: true,
+        popup_text_cnc: true,
+        popup_text_pmt: true,
+        popup_text_lakkerij: true,
+        popup_text_inpak: true,
+        popup_text_rail: true,
+        popup_text_assemblage: true
       }
     });
 
