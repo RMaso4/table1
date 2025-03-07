@@ -95,6 +95,19 @@ model Order {
   inkoopordernummer            String?
   gez_planning                 Boolean   @default(false)
   slotje                       Boolean   @default(false)
+  
+  // New pop-up text fields for machine instructions
+  popup_text_bruto_zagen       String?
+  popup_text_pers              String?
+  popup_text_netto_zagen       String?
+  popup_text_verkantlijmen     String?
+  popup_text_cnc               String?
+  popup_text_pmt               String?
+  popup_text_lakkerij          String?
+  popup_text_inpak             String?
+  popup_text_rail              String?
+  popup_text_assemblage        String?
+  
   updatedAt                    DateTime  @updatedAt
   notifications                Notification[]
 }

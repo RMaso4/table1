@@ -1,4 +1,4 @@
-// app/api/orders/[id]/machine-action/route.ts
+// src/app/api/orders/[id]/machine-action/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -40,16 +40,28 @@ export async function POST(
 
     const { field } = await request.json() as MachineActionRequest;
 
-    // Only update if the field is not already set
+    // Find the order with its slotje status
     const order = await prisma.order.findUnique({
       where: { id },
-      select: { [field]: true, verkoop_order: true }
+      select: { 
+        [field]: true, 
+        verkoop_order: true, 
+        slotje: true 
+      }
     });
 
     if (!order) {
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if the order is locked (slotje)
+    if (order.slotje) {
+      return NextResponse.json(
+        { error: 'Order is locked and cannot be modified' },
+        { status: 400 }
       );
     }
 
@@ -81,6 +93,13 @@ export async function POST(
         verkantlijmen: true,
         cnc_start_datum: true,
         pmt_start_datum: true,
+        slotje: true,
+        popup_text_bruto_zagen: true,
+        popup_text_pers: true,
+        popup_text_netto_zagen: true,
+        popup_text_verkantlijmen: true,
+        popup_text_cnc: true,
+        popup_text_pmt: true,
       }
     });
 
