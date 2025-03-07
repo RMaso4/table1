@@ -712,12 +712,37 @@ export function DashboardContent() {
     }
   }, [lastNotification, realtimeEnabled]);
 
-  // Load saved column order
+  // Load saved column order with special handling for instruction fields
   useEffect(() => {
     const savedOrder = localStorage.getItem('columnOrder');
     if (savedOrder) {
       try {
-        setColumnOrder(JSON.parse(savedOrder));
+        const parsedOrder = JSON.parse(savedOrder) as string[];
+        
+        // Get all available column fields
+        const allFields = availableColumns.map(col => col.field);
+        
+        // Get all instruction fields
+        const instructionFields = availableColumns
+          .filter(col => col.field.startsWith('popup_text_'))
+          .map(col => col.field);
+        
+        // Check if parsedOrder is missing any fields, particularly instruction fields
+        const missingFields = allFields.filter(field => !parsedOrder.includes(field));
+        
+        if (missingFields.length > 0) {
+          // Add the missing fields to the end of the column order
+          const updatedOrder = [...parsedOrder, ...missingFields];
+          setColumnOrder(updatedOrder);
+          
+          // Save the updated order back to localStorage
+          localStorage.setItem('columnOrder', JSON.stringify(updatedOrder));
+          
+          console.log('Added missing columns to columnOrder:', missingFields);
+        } else {
+          // Use the saved order as is
+          setColumnOrder(parsedOrder);
+        }
       } catch (error) {
         console.error('Error parsing saved column order:', error);
         setColumnOrder(availableColumns.map(col => col.field));
