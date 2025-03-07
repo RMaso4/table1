@@ -19,6 +19,10 @@ import Pagination from '@/components/Pagination';
 import { paginateData } from '@/utils/paginationUtils';
 import RoleLegend from '@/components/Rolelegend';
 import MobileLegend from '@/components/MobileLegend';
+import LockIndicator from '@/components/LockIndicator';
+import InstructionText from '@/components/InstructionsText';
+import { canRoleEditColumn } from '@/utils/columnPermissions';
+import { Role } from '@prisma/client';
 
 // Import role permissions utility
 import { getEditableRoles } from '@/utils/columnPermissions';
@@ -104,7 +108,17 @@ export function DashboardContent() {
     { field: 'wp_dwp_pc', title: 'WP DWP PC', type: 'text' },
     { field: 'totaal_boards', title: 'Totaal Boards', type: 'number' },
     { field: 'inkoopordernummer', title: 'inkoopordernummer', type: 'text' },
-    { field: 'slotje', title: 'slotje', type: 'boolean' },
+    { field: 'slotje', title: 'Locked', type: 'boolean' },
+    { field: 'popup_text_bruto_zagen', title: 'Bruto Zaag Instructions', type: 'text' },
+    { field: 'popup_text_pers', title: 'Pers Instructions', type: 'text' },
+    { field: 'popup_text_netto_zagen', title: 'Netto Zaag Instructions', type: 'text' },
+    { field: 'popup_text_verkantlijmen', title: 'Verkantlijmen Instructions', type: 'text' },
+    { field: 'popup_text_cnc', title: 'CNC Instructions', type: 'text' },
+    { field: 'popup_text_pmt', title: 'PMT Instructions', type: 'text' },
+    { field: 'popup_text_lakkerij', title: 'Lakkerij Instructions', type: 'text' },
+    { field: 'popup_text_inpak', title: 'Inpak Instructions', type: 'text' },
+    { field: 'popup_text_rail', title: 'Rail Instructions', type: 'text' },
+    { field: 'popup_text_assemblage', title: 'Assemblage Instructions', type: 'text' },
     { field: 'updatedAt', title: 'updatedAt', type: 'date' }
   ], []);
 
@@ -138,7 +152,7 @@ export function DashboardContent() {
   const enableFallbackMode = () => {
     setIsServerSavingDisabled(true);
     localStorage.setItem('priorityFallbackMode', 'true');
-    
+
     // Broadcast this change to other tabs
     try {
       window.dispatchEvent(new StorageEvent('storage', {
@@ -149,7 +163,7 @@ export function DashboardContent() {
     } catch (e) {
       console.warn('Failed to dispatch storage event', e);
     }
-    
+
     console.warn('Priority orders fallback mode enabled');
   };
 
@@ -157,7 +171,7 @@ export function DashboardContent() {
   const disableFallbackMode = () => {
     setIsServerSavingDisabled(false);
     localStorage.setItem('priorityFallbackMode', 'false');
-    
+
     // Broadcast this change to other tabs
     try {
       window.dispatchEvent(new StorageEvent('storage', {
@@ -168,7 +182,7 @@ export function DashboardContent() {
     } catch (e) {
       console.warn('Failed to dispatch storage event', e);
     }
-    
+
     console.log('Priority orders fallback mode disabled');
   };
 
@@ -176,22 +190,22 @@ export function DashboardContent() {
   const attemptServerSync = async () => {
     // Skip if already syncing or retrying
     if (loading || isRetrying.current) return;
-    
+
     try {
       isRetrying.current = true;
-      
+
       // Get current priority order IDs
       const orderIds = priorityOrders.map(order => order.id);
-      
+
       if (orderIds.length === 0) {
         disableFallbackMode();
         isRetrying.current = false;
         return;
       }
-      
+
       // Show syncing indicator
       setLastUpdateToast('Syncing priority orders with server...');
-      
+
       // Attempt to post to server
       const response = await fetch('/api/priority-orders', {
         method: 'POST',
@@ -200,11 +214,11 @@ export function DashboardContent() {
         },
         body: JSON.stringify({ orderIds }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
-      
+
       // Server sync successful
       disableFallbackMode();
       setLastUpdateToast('Priority orders synced with server');
@@ -264,14 +278,14 @@ export function DashboardContent() {
       const response = await fetch('/api/priority-orders');
       if (response.ok) {
         const data = await response.json();
-        
+
         // If we have orderIds, map to full order objects
         if (data.orderIds && Array.isArray(data.orderIds) && data.orderIds.length > 0) {
           // Filter out any null/undefined orders when mapping IDs to objects
           const priorityOrderObjects = data.orderIds
             .map((id: string) => orders.find(order => order.id === id))
             .filter((order: Order | undefined): order is Order => order !== undefined);
-          
+
           if (priorityOrderObjects.length > 0) {
             setPriorityOrders(priorityOrderObjects);
             // If we successfully fetch from API, disable fallback mode
@@ -284,13 +298,13 @@ export function DashboardContent() {
         console.warn('Server returned error but continuing in online mode');
         disableFallbackMode(); // Explicitly stay in online mode
       }
-      
+
       // Fall back to localStorage if API fails or returns empty results
       const savedPriorityOrders = localStorage.getItem('priorityOrders');
       if (savedPriorityOrders) {
         try {
           const parsedOrders = JSON.parse(savedPriorityOrders);
-          
+
           // Reconcile with current orders to ensure we have the latest data
           const reconciledOrders = parsedOrders
             .map((savedOrder: any) => {
@@ -299,7 +313,7 @@ export function DashboardContent() {
               return currentOrder || savedOrder;
             })
             .filter(Boolean);
-          
+
           setPriorityOrders(reconciledOrders);
         } catch (parseError) {
           console.error('Error parsing saved priority orders:', parseError);
@@ -308,7 +322,7 @@ export function DashboardContent() {
     } catch (error) {
       console.error('Error fetching priority orders:', error);
       enableFallbackMode();
-      
+
       // Fall back to localStorage
       const savedPriorityOrders = localStorage.getItem('priorityOrders');
       if (savedPriorityOrders) {
@@ -332,23 +346,23 @@ export function DashboardContent() {
   // Handle real-time priority updates
   useEffect(() => {
     if (!lastPriorityUpdate || !realtimeEnabled) return;
-    
+
     try {
       // Extract the priority orders data
       const { priorityOrders: priorityData } = lastPriorityUpdate;
-      
+
       if (!priorityData || !priorityData.orderIds) {
         console.error('Invalid priority update format');
         return;
       }
-      
+
       // Show toast notification
       const userName = lastPriorityUpdate.updatedBy.name || 'Another user';
       setLastUpdateToast(`${userName} updated the priority order list`);
       setTimeout(() => setLastUpdateToast(null), 3000);
-      
+
       console.log('Processing real-time priority order update:', priorityData);
-      
+
       // FIX 3: Updated to handle empty arrays properly
       // If we have orders, map them to ensure they match the Order type
       if (priorityData.orders && Array.isArray(priorityData.orders)) {
@@ -361,11 +375,11 @@ export function DashboardContent() {
         const priorityOrderObjects = priorityData.orderIds
           .map(id => orders.find(order => order.id === id))
           .filter((order): order is Order => order !== undefined);
-        
+
         // Important: Always update state, even with an empty array
         setPriorityOrders(priorityOrderObjects);
       }
-      
+
       // FIX 4: Updated to use new values for localStorage, not stale state
       // Save to localStorage as backup - use the new values, not the current state
       if (priorityData.orders && Array.isArray(priorityData.orders)) {
@@ -383,19 +397,19 @@ export function DashboardContent() {
       console.error('Error processing priority update:', error);
     }
   }, [lastPriorityUpdate, realtimeEnabled, orders]);
-  
+
   // FIX 1: Updated to save even when priorityOrders is empty
   // Save priority orders to both API and localStorage when they change
   useEffect(() => {
     // Save to localStorage as backup
     localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
-    
+
     // Don't send API updates when the component first mounts
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    
+
     // Always save to API when there are changes, even if the array is empty
     // This ensures empty state is properly synchronized with the backend
     if (!lastPriorityUpdate && !isServerSavingDisabled) {
@@ -412,23 +426,23 @@ export function DashboardContent() {
         console.log('Using localStorage fallback for priority orders');
         return;
       }
-      
+
       // Get just the IDs in the current order
       const orderIds = priorityOrders.map(order => order.id);
-      
+
       // FIX 2: Removed the early return for empty arrays
       // Even if orderIds is empty, we MUST send the empty array to the server
       // to properly clear the priority list
       console.log(orderIds.length === 0 ? 'Saving empty priority list to server' : `Saving ${orderIds.length} priority orders`);
-      
+
       // Show saving indicator
       setLastUpdateToast('Saving priority orders...');
-      
+
       // Set a timeout to abort if taking too long
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Saving priority orders timed out')), 8000);
       });
-      
+
       // Actual API request
       const fetchPromise = fetch('/api/priority-orders', {
         method: 'POST',
@@ -437,10 +451,10 @@ export function DashboardContent() {
         },
         body: JSON.stringify({ orderIds }),
       });
-      
+
       // Use Promise.race to implement a timeout
       const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-      
+
       if (!response.ok) {
         // Try to get error details
         let errorDetail = 'Unknown error';
@@ -450,32 +464,32 @@ export function DashboardContent() {
         } catch (parseError) {
           errorDetail = `Status ${response.status} (${response.statusText})`;
         }
-        
+
         throw new Error(`Failed to save priority orders: ${errorDetail}`);
       }
-      
+
       // Parse response
       await response.json();
-      
+
       // Success - show brief message
       setLastUpdateToast('Priority orders saved');
       setTimeout(() => setLastUpdateToast(null), 2000);
-      
+
       // Always save to localStorage as a backup
       localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
     } catch (error) {
       console.error('Error saving priority orders:', error);
-      
+
       // Show error to user but don't mention offline mode
       setError("Temporary issue saving priority orders. Retrying...");
       setTimeout(() => setError(null), 3000);
-      
+
       // Still save to localStorage as backup
       localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
-      
+
       // NEVER enable fallback mode, regardless of the error
       disableFallbackMode(); // Force online mode
-      
+
       // Schedule a retry after a short delay
       setTimeout(() => {
         console.log('Retrying priority order save...');
@@ -517,17 +531,17 @@ export function DashboardContent() {
   useEffect(() => {
     // Disable fallback mode immediately and periodically
     disableFallbackMode();
-    
+
     // Check every 30 seconds to ensure we're still in online mode
     const intervalId = setInterval(() => {
       disableFallbackMode();
     }, 30000);
-    
+
     return () => clearInterval(intervalId);
   }, []);
 
-   // Update sort state when default settings change
-   useEffect(() => {
+  // Update sort state when default settings change
+  useEffect(() => {
     if (!sortState.field && defaultSort.field) {
       setSortState({
         field: defaultSort.field,
@@ -548,7 +562,7 @@ export function DashboardContent() {
       const timer = setTimeout(() => {
         attemptServerSync();
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isConnected, isServerSavingDisabled]);
@@ -719,7 +733,7 @@ export function DashboardContent() {
   // Memoized filtering function
   const applyFilters = useCallback(() => {
     let result = [...orders];
-    
+
     // Apply column filters
     Object.entries(columnFilters).forEach(([field, filterValue]) => {
       if (filterValue) {
@@ -1131,18 +1145,18 @@ export function DashboardContent() {
               {lastUpdateToast}
             </div>
           )}
-  
+
           {/* Priority Orders Table */}
           <div className="px-6">
             <MobileLegend />
           </div>
-          
+
           <PriorityOrdersTable
             orders={priorityOrders}
             onRemoveFromPriority={removeFromPriorityList}
             onPriorityOrdersChange={updatePriorityOrders}
           />
-  
+
           {/* Main Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-4">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -1167,7 +1181,7 @@ export function DashboardContent() {
                       setTimeout(() => setError(null), 3000);
                     }}
                   />
-  
+
                   {/* Export Priority Button */}
                   {priorityOrders.length > 0 && (
                     <button
@@ -1180,7 +1194,7 @@ export function DashboardContent() {
                     </button>
                   )}
                 </div>
-  
+
                 <button
                   onClick={() => setIsFilterDialogOpen(true)}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
@@ -1210,19 +1224,19 @@ export function DashboardContent() {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     {/* Priority Action Column */}
-                    <th 
+                    <th
                       className="w-12 px-2 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                       style={{ width: '60px', minWidth: '60px', maxWidth: '60px' }}
                     >
                       Priority
                     </th>
-  
+
                     {/* Regular Columns */}
                     {columnOrder.map(field => {
                       const column = availableColumns.find(col => col.field === field)!;
                       // Get editable roles for this column
                       const editableRoles = getEditableRoles(field);
-                      
+
                       return (
                         <DraggableColumnHeader
                           key={field}
@@ -1246,8 +1260,8 @@ export function DashboardContent() {
                     paginatedOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         {/* Priority Action Cell */}
-                        <td 
-                          className={getTableCellClasses()} 
+                        <td
+                          className={getTableCellClasses()}
                           style={{ width: '60px', minWidth: '60px', maxWidth: '60px' }}
                         >
                           <OrderTableActions
@@ -1256,54 +1270,79 @@ export function DashboardContent() {
                             onAddToPriority={addToPriorityList}
                           />
                         </td>
-  
+
                         {/* Regular Data Cells */}
                         {columnOrder.map(field => {
                           const column = availableColumns.find(col => col.field === field)!;
                           return (
-                            <td 
-                              key={field} 
+                            <td
+                              key={field}
                               className={getTableCellClasses()}
                               style={{ width: '300px', minWidth: '300px', maxWidth: '300px' }}
                             >
-                              {column.type === 'boolean' ? (
-                                <input
-                                  type="checkbox"
-                                  checked={order[field as keyof Order] as boolean}
-                                  onChange={(e) => handleCellUpdate(order.id, field, e.target.checked)}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                              {/* Slotje field gets special rendering */}
+                              {field === 'slotje' ? (
+                                <LockIndicator
+                                  isLocked={!!order[field]}
+                                  onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                  disabled={!canRoleEditColumn(session?.user?.role as Role, field)}
                                 />
-                              ) : column.type === 'date' ? (
-                                field === 'updatedAt' ? (
-                                  order[field] ? new Date(order[field] as string).toLocaleDateString() : '-'
-                                ) : (
-                                  <EditableCell
-                                    value={order[field as keyof Order] as string}
+                              )
+                                /* Instruction text fields get special rendering */
+                                : field.startsWith('popup_text_') ? (
+                                  <InstructionText
+                                    text={order[field as keyof Order] as string || null}
                                     onChange={(value) => handleCellUpdate(order.id, field, value)}
-                                    type="date"
-                                    field={field}
-                                    orderId={order.id}
-                                    orderNumber={order.verkoop_order}
+                                    title={column.title}
+                                    canEdit={canRoleEditColumn(session?.user?.role as Role, field)}
                                   />
                                 )
-                              ) : column.type === 'number' ? (
-                                <EditableCell
-                                  value={order[field as keyof Order] as number}
-                                  onChange={(value) => handleCellUpdate(order.id, field, Number(value))}
-                                  type="number"
-                                  field={field}
-                                  orderId={order.id}
-                                  orderNumber={order.verkoop_order}
-                                />
-                              ) : (
-                                <EditableCell
-                                  value={order[field as keyof Order] as string}
-                                  onChange={(value) => handleCellUpdate(order.id, field, value)}
-                                  field={field}
-                                  orderId={order.id}
-                                  orderNumber={order.verkoop_order}
-                                />
-                              )}
+                                  /* Boolean fields */
+                                  : column.type === 'boolean' ? (
+                                    <input
+                                      type="checkbox"
+                                      checked={!!order[field as keyof Order]}
+                                      onChange={(e) => handleCellUpdate(order.id, field, e.target.checked)}
+                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                                      disabled={!canRoleEditColumn(session?.user?.role as Role, field)}
+                                    />
+                                  )
+                                    /* Date fields */
+                                    : column.type === 'date' ? (
+                                      field === 'updatedAt' ? (
+                                        order[field] ? new Date(order[field] as string).toLocaleDateString() : '-'
+                                      ) : (
+                                        <EditableCell
+                                          value={order[field as keyof Order] as string}
+                                          onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                          type="date"
+                                          field={field}
+                                          orderId={order.id}
+                                          orderNumber={order.verkoop_order}
+                                        />
+                                      )
+                                    )
+                                      /* Number fields */
+                                      : column.type === 'number' ? (
+                                        <EditableCell
+                                          value={order[field as keyof Order] as number}
+                                          onChange={(value) => handleCellUpdate(order.id, field, Number(value))}
+                                          type="number"
+                                          field={field}
+                                          orderId={order.id}
+                                          orderNumber={order.verkoop_order}
+                                        />
+                                      )
+                                        /* Text fields */
+                                        : (
+                                          <EditableCell
+                                            value={order[field as keyof Order] as string}
+                                            onChange={(value) => handleCellUpdate(order.id, field, value)}
+                                            field={field}
+                                            orderId={order.id}
+                                            orderNumber={order.verkoop_order}
+                                          />
+                                        )}
                             </td>
                           );
                         })}
@@ -1311,8 +1350,8 @@ export function DashboardContent() {
                     ))
                   ) : (
                     <tr>
-                      <td 
-                        colSpan={columnOrder.length + 1} 
+                      <td
+                        colSpan={columnOrder.length + 1}
                         className={`${getTableCellClasses()} text-center text-sm text-gray-500 dark:text-gray-400`}
                       >
                         {globalSearchQuery || Object.keys(columnFilters).length > 0 || activeFilters.length > 0 ?
@@ -1324,11 +1363,11 @@ export function DashboardContent() {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Pagination Controls */}
             {filteredOrders.length > 0 && (
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                <Pagination 
+                <Pagination
                   currentPage={currentPage}
                   totalItems={filteredOrders.length}
                   pageSize={itemsPerPage}
@@ -1339,7 +1378,7 @@ export function DashboardContent() {
               </div>
             )}
           </div>
-  
+
           <FilterDialog
             isOpen={isFilterDialogOpen}
             onClose={() => setIsFilterDialogOpen(false)}

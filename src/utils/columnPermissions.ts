@@ -1,5 +1,6 @@
 // src/utils/columnPermissions.ts
 import { Role } from '@prisma/client';
+import { validPopupFields } from '@/app/api/orders/[id]/popup-instructions/route';
 
 // Define the roles that can edit specific columns
 export const getEditableRoles = (field: string): Role[] => {
@@ -23,6 +24,16 @@ export const getEditableRoles = (field: string): Role[] => {
     'cnc_start_datum', 
     'pmt_start_datum'
   ];
+
+  // Special fields - only BEHEERDER and PLANNER can edit slotje
+  if (field === 'slotje') {
+    return alwaysEditable;
+  }
+  
+  // Popup instruction fields - only BEHEERDER and PLANNER can edit
+  if (validPopupFields.includes(field)) {
+    return alwaysEditable;
+  }
   
   if (salesEditableFields.includes(field)) {
     return [...alwaysEditable, 'SALES'];
@@ -38,6 +49,8 @@ export const getEditableRoles = (field: string): Role[] => {
 
 // Check if a specific role can edit a column
 export const canRoleEditColumn = (role: Role, field: string): boolean => {
+  if (!role) return false;
+  
   const editableRoles = getEditableRoles(field);
   return editableRoles.includes(role);
 };

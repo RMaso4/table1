@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // Define the popup text fields that can be updated
-const validPopupFields = [
+export const validPopupFields = [
   'popup_text_bruto_zagen',
   'popup_text_pers',
   'popup_text_netto_zagen',
@@ -23,6 +23,7 @@ interface PopupInstructionRequest {
   value: string;
 }
 
+// Re-exported from this file for easier importing
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
