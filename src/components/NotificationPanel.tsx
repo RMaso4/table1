@@ -604,7 +604,7 @@ export default function NotificationPanel() {
               ) : notifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                   <p>No notifications</p>
-                  <p className="text-sm mt-2">You'll see updates here when there's activity.</p>
+                  <p className="text-sm mt-2">Youll see updates here when there's activity.</p>
                 </div>
               ) : filteredNotifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
