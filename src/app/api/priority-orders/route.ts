@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher';
+import { pusherServer, CHANNELS } from '@/lib/pusher';
 
 // Define custom event name for priority orders
 const PRIORITY_EVENT = 'priority:updated';

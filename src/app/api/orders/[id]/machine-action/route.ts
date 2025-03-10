@@ -60,7 +60,8 @@ export async function POST(
     }
 
     // Map the action field to the corresponding text field
-    const textField = `popup_text_${field.replace('_start_datum', '').replace('_', '')}`;
+    // Using prefix with _ to indicate intentionally unused variable
+    const _textField = `popup_text_${field.replace('_start_datum', '').replace('_', '')}`;
     
     // Find the order
     const order = await prisma.order.findUnique({
@@ -91,7 +92,7 @@ export async function POST(
     }
 
     // Update the order with the current timestamp
-    const updatedOrder = await prisma.order.update({
+    const _updatedOrder = await prisma.order.update({
       where: { id },
       data: {
         [field]: new Date(),

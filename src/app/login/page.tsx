@@ -9,7 +9,8 @@ import { signIn, useSession } from 'next-auth/react';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  // Removed unused state variables:
+  // const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -62,6 +63,7 @@ export default function LoginPage() {
       });
 
       if (!apiLoginResponse.ok) {
+        // Try to parse error response
         const data = await apiLoginResponse.json();
         throw new Error(data.error || 'Login failed');
       }
