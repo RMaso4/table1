@@ -611,7 +611,7 @@ export default function NotificationPanel() {
                   <p>No {filterMode === 'read' ? 'read' : 'unread'} notifications</p>
                   <p className="text-sm mt-2">
                         {filterMode === 'read'
-                          ? 'Notifications you&apos;ve marked as read will appear here.'
+                          ? 'Notifications youve marked as read will appear here.'
                           : 'All your notifications have been read.'}
                       </p>
                 </div>
