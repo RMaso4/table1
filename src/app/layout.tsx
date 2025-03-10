@@ -58,11 +58,6 @@ export default function RootLayout({
               {children}
             </main>
           </Providers>
-
-          {/* Footer with minimal info */}
-          <footer className="py-2 px-4 text-xs text-center text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
-            <p>© {new Date().getFullYear()} Parthos Order Management System</p>
-          </footer>
         </ThemeProvider>
       </body>
     </html>
