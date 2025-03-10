@@ -252,46 +252,6 @@ const OrderScanInterface = () => {
     }
   };
 
-  // Toggle slotje status
-  const toggleSlotje = async () => {
-    if (!order) return;
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch(`/api/orders/${order.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ slotje: !order.slotje }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to update slotje status (${response.status})`);
-      }
-
-      setOrder({
-        ...order,
-        slotje: !order.slotje,
-      });
-      
-      setSuccess(`Slotje ${order.slotje ? 'removed' : 'applied'} successfully`);
-      
-      // Auto-clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      console.error("Slotje update error:", err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -354,26 +314,6 @@ const OrderScanInterface = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Order Details</h2>
-              
-              {/* Slotje toggle button */}
-              <button
-                onClick={toggleSlotje}
-                disabled={loading || actionLoading}
-                className={`
-                  px-4 py-2 rounded-md flex items-center gap-2 
-                  ${order.slotje 
-                    ? 'bg-red-600 hover:bg-red-700 text-white' 
-                    : 'bg-green-600 hover:bg-green-700 text-white'}
-                  ${(loading || actionLoading) ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-              >
-                <span>
-                  {order.slotje ? 'Remove Lock' : 'Apply Lock'}
-                </span>
-                <span>
-                  {order.slotje ? '🔓' : '🔒'}
-                </span>
-              </button>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
