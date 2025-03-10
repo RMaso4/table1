@@ -14,8 +14,9 @@ import { useTheme } from '@/components/ThemeProvider';
 interface CustomPage {
   id: string;
   name: string;
-  path: string;
   columns: string[];
+  createdBy: string;
+  createdAt: string;
 }
 
 interface NavbarProps {
@@ -30,7 +31,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
 
   // State for custom pages
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
-  const [pagesLoading, setPagesLoading] = useState(true);
+  const [_pagesLoading, setPagesLoading] = useState(true);
 
   // Fetch custom pages from API on component mount
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
         const response = await fetch('/api/custom-pages');
 
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as CustomPage[];
           setCustomPages(data.map((page: any) => ({
             ...page,
             path: `/custom/${page.id}`

@@ -9,7 +9,7 @@ interface TooltipProps {
 
 export default function Tooltip({ children, content, position = 'top' }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [_coords, setCoords] = useState({ x: 0, y: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
 
   // Positioning logic

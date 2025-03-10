@@ -610,10 +610,10 @@ export default function NotificationPanel() {
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                   <p>No {filterMode === 'read' ? 'read' : 'unread'} notifications</p>
                   <p className="text-sm mt-2">
-                    {filterMode === 'read' 
-                      ? 'Notifications you mark as read will appear here.' 
-                      : 'All your notifications have been read.'}
-                  </p>
+                        {filterMode === 'read'
+                          ? 'Notifications you&apos;ve marked as read will appear here.'
+                          : 'All your notifications have been read.'}
+                      </p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">

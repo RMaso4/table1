@@ -285,7 +285,7 @@ export default function usePusher() {
         }
 
         const updateId = data.priorityOrders.id;
-        const now = Date.now();
+        const _now = Date.now();
 
         // Simple deduplication for priority updates
         if (processedPriorityUpdatesRef.current.has(updateId)) {

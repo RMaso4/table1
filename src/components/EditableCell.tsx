@@ -81,7 +81,8 @@ export default function EditableCell({
       }
 
       return true;
-    } catch (error) {
+      // To this:
+    } catch (_error) {
       setError('Invalid input');
       return false;
     }

@@ -402,7 +402,7 @@ export function DashboardContent() {
         }
 
         // Parse response data
-        const data = await response.json();
+        const _data = await response.json();
 
         // Show a brief success message
         setLastUpdateToast(`Updated ${field.replace('popup_text_', '')} instructions successfully`);
@@ -421,12 +421,11 @@ export function DashboardContent() {
     }
   };
 
-  // Load priority orders when orders are available
   useEffect(() => {
     if (orders.length > 0) {
       fetchPriorityOrders();
     }
-  }, [orders]);
+  }, [orders, fetchPriorityOrders]);
 
   // Handle real-time priority updates
   useEffect(() => {
@@ -485,6 +484,7 @@ export function DashboardContent() {
 
   // FIX 1: Updated to save even when priorityOrders is empty
   // Save priority orders to both API and localStorage when they change
+  // To this:
   useEffect(() => {
     // Save to localStorage as backup
     localStorage.setItem('priorityOrders', JSON.stringify(priorityOrders));
@@ -546,7 +546,7 @@ export function DashboardContent() {
         try {
           const errorData = await response.json();
           errorDetail = errorData.error || 'Server returned an error';
-        } catch (parseError) {
+        } catch (_parseError) {
           errorDetail = `Status ${response.status} (${response.statusText})`;
         }
 
@@ -641,6 +641,7 @@ export function DashboardContent() {
   }, [pageSize]);
 
   // When connection status changes, try to sync with server
+  // To this:
   useEffect(() => {
     if (isConnected && isServerSavingDisabled && !isRetrying.current) {
       // Try to reconnect after a slight delay
@@ -650,8 +651,7 @@ export function DashboardContent() {
 
       return () => clearTimeout(timer);
     }
-  }, [isConnected, isServerSavingDisabled]);
-
+  }, [isConnected, isServerSavingDisabled, attemptServerSync]);
   // Handle real-time order updates
   useEffect(() => {
     // Skip if real-time updates are disabled or no update received
@@ -770,16 +770,21 @@ export function DashboardContent() {
 
   }, [lastOrderUpdate, realtimeEnabled, columnFilters, globalSearchQuery, activeFilters, orders]);
 
-  // Clean up timeouts when component unmounts
+  // To this:
   useEffect(() => {
     return () => {
+      // Save refs to local variables before clearing
+      const processingTimeouts = processingTimeoutsRef.current;
+      const processedUpdates = processedUpdatesRef.current;
+      const updateThrottleTimes = updateThrottleTimeRef.current;
+
       // Clear all processing timeouts to prevent memory leaks
-      processingTimeoutsRef.current.forEach(timeout => {
+      processingTimeouts.forEach(timeout => {
         clearTimeout(timeout);
       });
-      processingTimeoutsRef.current.clear();
-      processedUpdatesRef.current.clear();
-      updateThrottleTimeRef.current.clear();
+      processingTimeouts.clear();
+      processedUpdates.clear();
+      updateThrottleTimes.clear();
     };
   }, []);
 
@@ -808,7 +813,8 @@ export function DashboardContent() {
         const allFields = availableColumns.map(col => col.field);
 
         // Get all instruction fields
-        const instructionFields = availableColumns
+        // To this:
+        const _instructionFields = availableColumns
           .filter(col => col.field.startsWith('popup_text_'))
           .map(col => col.field);
 
@@ -983,7 +989,7 @@ export function DashboardContent() {
     setActiveFilters(filters);
   };
 
-  const handleCellUpdate = async (orderId: string, field: string, value: string | number | boolean): Promise<void> => {
+  const handleCellUpdate = async (orderId: string, field: string, value: any): Promise<void> => {
     try {
       // Reset any previous errors
       setError(null);
@@ -1108,7 +1114,7 @@ export function DashboardContent() {
   };
 
   // Handle export functionality
-  const handleExport = () => {
+  const _handleExport = () => {
     // Get visible columns in their current order
     const visibleColumns = columnOrder
       .map(field => availableColumns.find(col => col.field === field))

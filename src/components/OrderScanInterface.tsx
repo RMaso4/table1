@@ -171,7 +171,7 @@ const OrderScanInterface = () => {
   };
   
   // Add a function to refresh order data after updates
-  const refreshOrder = async () => {
+  const _refreshOrder = async () => {
     if (!order?.verkoop_order) return;
     
     try {

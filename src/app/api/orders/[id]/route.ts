@@ -39,7 +39,7 @@ const validateFieldValue = (field: string, value: FieldValue): FieldValue => {
         throw new Error(`Invalid date format for field ${field}`);
       }
       return date.toISOString();
-    } catch (error) { // Removed underscore prefix
+    } catch (_error) { // Removed underscore prefix
       throw new Error(`Invalid date format for field ${field}`);
     }
   }
